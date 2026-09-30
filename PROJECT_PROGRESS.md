@@ -2,6 +2,40 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T0-01 独立工程
+
+### 已完成
+
+- 建立 Python 3.12.10/uv 后端工程和七个领域包、无业务数据库的 Gateway 及 common 包。
+- 建立独立 React/Vite 前端入口，固定 Node.js 22.23.2/npm 10.9.8，定义构建、lint、类型、契约和测试脚本。
+- 建立两端 `.dockerignore`，补充浏览器测试产物忽略规则，更新根说明、子工程说明与开发规范的当前阶段。
+
+### 进行中
+
+- T0-01 工程建立与验证完成。
+- 准备 T0-02/T0-03 的 28 个公开接口、DTO、内部命令/事件与状态场景。
+
+### 阻塞与风险
+
+- 无 T0 实现阻塞；当前 Docker Engine 可用，但宿主机未安装 Compose 插件，T1 部署验收前需补齐。
+- 业务接口、真实学校访问与后台任务尚未实现。
+
+### 下一步
+
+- 生成 `docs/contracts/openapi.yaml`、后端 DTO、前端 `generated.d.ts`，并验证 28 个公开接口和补充字段。
+
+### 主要文件或模块
+
+- `backend/pyproject.toml`、`.python-version`、`services/`、`frontend/package.json`、入口与工具配置。
+- `.gitignore`、两端 `.dockerignore`、README、AGENTS 与 `docs/开发说明.md`。
+
+### 验证
+
+- 已检查仓库：开始时 `dev` 与 `origin/dev` 同步，工作区干净；无 `AGENT.md` 或子目录规范。
+- 已在固定 Node 22.23.2/npm 10.9.8 容器生成 package-lock；`uv lock`、`uv sync --locked` 通过。
+- Python 3.12.10 加载全部领域包通过，`ruff check .` 通过；前端 `lint`、`typecheck`、`build` 通过。
+- 已运行 `git diff --check`，确认没有空白格式问题；依赖和构建产物均被忽略。
+
 ## 2026-10-01
 
 ### 已完成

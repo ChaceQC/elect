@@ -1,0 +1,41 @@
+[project]
+name = "elect-backend"
+version = "0.1.0"
+description = "寝室电费系统后端"
+requires-python = "==3.12.10"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.10,<3",
+  "uvicorn>=0.34,<1",
+  "sqlalchemy>=2.0,<3",
+  "alembic>=1.14,<2",
+  "asyncmy>=0.2.10,<1",
+  "httpx>=0.28,<1",
+  "cryptography>=44,<50",
+  "aio-pika>=9.5,<10",
+  "redis>=5.2,<8",
+  "uuid6>=2024.7.10,<2026",
+  "pyyaml>=6.0,<7",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3,<9",
+  "ruff>=0.11,<1",
+  "openapi-spec-validator>=0.7,<0.8",
+  "jsonschema>=4.23,<5",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

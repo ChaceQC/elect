@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前阶段：设计文档与独立界面参考已就绪，正式前后端、接口契约和 Docker 部署工程尚待实现。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前阶段：正在实施 T0。正式前后端独立工程已建立，接口契约、初始迁移与场景基线正在补齐；业务功能与 Docker 部署尚待实现。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -11,14 +11,15 @@ GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 - [开发规范](AGENTS.md)：版本、Git/GitHub 工作流、代码规模、文档同步与验证要求。
 - [项目文档](docs/README.md)：总实施计划、前后端设计、学校 API 与 Docker 部署说明。
 - [界面参考](example/README.md)：独立 React 演示的启动方式与模拟功能。
+- [开发说明](docs/开发说明.md)：正式工程的环境、构建和验证入口。
 
 ## 目录
 
 ```text
 AGENTS.md              # 开发规范
 PROJECT_PROGRESS.md    # 持续更新的任务进度
-frontend/              # 正式学生端，当前为占位目录
-backend/               # 正式后端，当前为占位目录
+frontend/              # 独立 React/Vite 入口、依赖锁与验证工具
+backend/               # Python 3.12.10/uv 工程与领域包
 docs/                  # 设计、实施、契约、验收和运维文档
 example/               # 独立界面与交互参考
 ```
@@ -38,6 +39,8 @@ npm run dev
 打开终端显示的本地地址。构建使用 `npm run build`。此演示使用模拟数据，不请求学校 API；详细限制见 [参考说明](example/README.md)。
 
 正式系统的目标环境仅需 Docker Engine/Compose，启动入口将在部署工程实施后提供。
+
+正式前端开发使用 `cd frontend && npm ci && npm run dev`，当前显示服务准备页面；后端开发使用 `cd backend && uv sync --locked`。详细环境与验证见 [开发说明](docs/开发说明.md)。
 
 ## 开发与版本
 

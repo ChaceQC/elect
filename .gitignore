@@ -4,6 +4,8 @@ dist/
 build/
 .vite/
 coverage/
+test-results/
+playwright-report/
 
 # Python 环境、缓存与构建产物
 .venv/

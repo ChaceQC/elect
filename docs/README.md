@@ -14,6 +14,7 @@
 | [前端实施计划](前端实施计划.md) | F0–F8 的页面、组件、API 接入与定向验收 |
 | [学校对接 API 文档](学校对接API文档.md) | 学校认证、寝室、历史、支付协议及验证范围 |
 | [Docker 部署配置说明](Docker部署配置说明.md) | 全栈容器部署、域名、证书、预检与更换流程 |
+| [开发说明](开发说明.md) | 正式工程的环境、构建、契约和验证入口 |
 
 ## 统一目录
 
@@ -31,7 +32,7 @@ deploy/                      # Compose、Nginx 模板、基础服务配置和运
 example/                     # 页面和交互参考，不参加生产构建
 ```
 
-当前 frontend/、backend/ 已建立目录，应用与部署文件按计划实现。项目文档已整理到本目录，参考材料自己的 README 保留在 example 内。
+当前 frontend/ 已有独立入口和依赖锁，backend/ 已有 Python 工程、依赖锁与领域包；T0 的契约与迁移正在补齐，业务服务和部署按后续计划实现。参考材料自己的 README 保留在 example 内。
 
 ## 部署约定
 
@@ -42,4 +43,4 @@ example/                     # 页面和交互参考，不参加生产构建
 - deploy/.env 配置 ELECT_DOMAIN、ELECT_TLS_CERT_FILE、ELECT_TLS_KEY_FILE；证书链和私钥通过只读 Secret 挂载。
 - Nginx 唯一发布 80/443；HTTPS 域名、后端可信 Origin 与邮件站内链接使用同一配置。
 
-具体配置和目标命令见 [Docker 部署配置说明](Docker部署配置说明.md)。当前交付为设计与实施计划，Dockerfile、Compose 和业务代码尚待实施。
+具体配置和目标命令见 [Docker 部署配置说明](Docker部署配置说明.md)。Dockerfile、Compose 和业务代码尚待实施。
