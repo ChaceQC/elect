@@ -35,6 +35,8 @@
 - 已在固定 Node 22.23.2/npm 10.9.8 容器生成 package-lock；`uv lock`、`uv sync --locked` 通过。
 - Python 3.12.10 加载全部领域包通过，`ruff check .` 通过；前端 `lint`、`typecheck`、`build` 通过。
 - 已运行 `git diff --check`，确认没有空白格式问题；依赖和构建产物均被忽略。
+- 更正初次验证记录：第一次前端 `typecheck` 因缺少 jsdom 类型声明失败，初次提交前过早记录了通过；已补入 `@types/jsdom` 并重新运行 `lint/typecheck/build`，三项实际通过。
+- T0-01 基线提交 `bd8d7fb` 已推送 `origin/dev`；类型依赖修正在独立提交中记录。
 
 ## 2026-10-01
 
