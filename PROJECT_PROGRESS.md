@@ -12,10 +12,11 @@
 - 新的独立项目仅用 Docker 构建两端、生成 Secret、自签证书、启动 19 个长期服务和两项一次性作业，实际空库/事件/权限检查通过。
 - 实际 MQ 中断/恢复、数据库拒绝 ready、三种基础服务重建后保留审计/Inbox、新证书预检/替换和错误 SAN 拒绝通过。
 - 同步根/子目录 README、AGENTS、总/前后端计划、架构/部署/开发/运行文档；保存 T1 验收与生产关闭状态的桌面/手机截图。
+- 四批实现提交 9d07793、405b7a0、4eaad25、743a98e 均已推送 origin/dev；实现已从 dev 快进合并并推送 origin/main。
 
 ### 进行中
 
-- 本阶段实现与本地验收已完成；正在提交最终批次并核对 GitHub 容器 CI。
+- 暂无本阶段实现任务进行中；T1 本地与 GitHub CI 已通过，实现已快进合并到 main，T2 待执行。
 
 ### 阻塞与风险
 
@@ -40,6 +41,9 @@
 - 实际 HTTPS 生产前端/Nginx/Gateway：直达/刷新、持久 FEATURE_DISABLED、跨站 ORIGIN_REJECTED、无注册 MSW；两种宽度截图已检查。
 - MQ 停止期间持久事件未标 published，恢复后自动投递且审计一条；MySQL 停止时 ready 503；重建 MySQL/Redis/MQ 后唯一审计与 Inbox 保留。
 - 新证书经 tls-check/nginx -t 后重建入口，实际 DER 与新证书一致；错误 SAN 在无网络一次性容器退出 1。
+- 最终 v0.2.0 两端镜像实际构建/启动通过，后端 UID/GID 10001，前端无 node_modules/worker 资源；迁移重复与审计持久状态保持。
+- [GitHub 容器 CI](https://github.com/ChaceQC/elect/actions/runs/36790577543) 实际 success（代码 743a98e），离线/浏览器和全新空库集成两步均通过。
+- 140 个文档本地链接、shell 语法、Git/镜像忽略与 git diff --check 通过；测试容器已停止，保留命名卷，不影响已有无关服务。
 - 修复并复验浏览器发现的弹窗反向 Tab 焦点循环；修复 Docker 检查缺失前端合成夹具只读挂载后完整通过。
 
 ## 2026-10-01 · T1 容器与可靠事件基础
