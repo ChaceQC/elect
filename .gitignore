@@ -32,6 +32,7 @@ htmlcov/
 !.env.*.template
 
 # 私钥、证书与本地运行数据
+auth.txt
 *.key
 *.pem
 *.p12

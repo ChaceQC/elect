@@ -4,6 +4,7 @@ coverage
 test-results
 playwright-report
 .env
+auth.txt
 .env.*
 !.env.example
 *.key
