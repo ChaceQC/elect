@@ -1,4 +1,4 @@
-"""独立领域 Alembic 入口；部署持锁编排在 T1 实现。"""
+"""独立领域开发/SQL 导出入口；部署使用 services.migrate_all_mysql 持锁执行。"""
 
 import argparse
 from pathlib import Path
@@ -25,7 +25,7 @@ def main():
     parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
     if args.domain == "all" and not args.sql:
-        raise SystemExit("在线迁移须指定单一领域；统一持锁执行器由 T1 提供")
+        raise SystemExit("此入口须指定单域；全域部署使用 python -m services.migrate_all_mysql")
     if args.output_dir and not args.sql:
         raise SystemExit("--output-dir 仅用于离线 SQL")
     domains = DATABASES if args.domain == "all" else [args.domain]

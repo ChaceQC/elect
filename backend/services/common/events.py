@@ -1,5 +1,7 @@
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
+
+from pydantic import Field
 
 from .dto import DTO, Version
 
@@ -45,10 +47,11 @@ class OrderRequestedPayload(DTO):
 
 
 class AuditPayload(DTO):
-    action: str
-    object_type: str
+    action: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,63}$")]
+    object_type: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,63}$")]
     object_id: UUID
-    result: str
+    result: Literal["succeeded", "failed", "denied", "cancelled", "unknown"]
+    actor_user_id: UUID | None = None
 
 
 EventPayload = (

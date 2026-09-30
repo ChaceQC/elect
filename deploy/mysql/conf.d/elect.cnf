@@ -1,0 +1,10 @@
+[mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_0900_ai_ci
+default-time-zone=+00:00
+max_connections=200
+innodb_buffer_pool_size=512M
+log_bin=elect-bin
+binlog_expire_logs_seconds=604800
+max_binlog_size=100M
+server-id=1

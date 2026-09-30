@@ -1,4 +1,4 @@
-"""公开配置的 T0 校验约定；Secret 读取/Worker 启动检查在 T1 实现。"""
+"""公开域名、路径和副作用政策；运行 Secret 加载见 runtime。"""
 
 from pathlib import Path
 from typing import Annotated

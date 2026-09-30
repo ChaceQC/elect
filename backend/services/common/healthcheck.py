@@ -5,6 +5,10 @@ import urllib.request
 
 
 def main():
+    if sys.argv[1:] == ["worker"]:
+        from .heartbeat import job_healthy
+
+        sys.exit(0 if job_healthy() else 1)
     try:
         with urllib.request.urlopen("http://127.0.0.1:8000/health/ready", timeout=4) as response:
             if response.status != 200:

@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.1.0。T0 工程与契约基线已完成；T1 正在实施，两端 Dockerfile、服务工厂、健康/错误/日志基础和 TLS 预检已建立。Compose、服务认证与公共数据层正在接入，当前不提供可使用的学校业务服务。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.1.0。T0 工程与契约基线已完成；T1 正在实施，两端 Dockerfile、服务工厂、健康/错误/日志基础和 TLS 预检已建立。Compose、服务认证与可靠事件已经验收，前端公共数据层正在接入，当前不提供可使用的学校业务服务。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -22,11 +22,11 @@ PROJECT_PROGRESS.md    # 持续更新的任务进度
 frontend/              # 独立 React/Vite 入口、依赖锁与验证工具
 backend/               # Python 3.12.10/uv 工程与领域包
 docs/                  # 设计、实施、契约、验收和运维文档
-deploy/                # 公开变量与Secret/领域库所有权约定，Compose待T1
+deploy/                # 公开变量与Secret/领域库所有权约定，Compose、配置模板与运维入口
 example/               # 独立界面与交互参考
 ```
 
-部署变量与 Secret 约定已在 `deploy/` 建立，两端镜像可独立构建，Compose 待本阶段完成；生产源码与镜像构建不依赖 `example/`。
+部署变量与 Secret 约定已在 `deploy/` 建立，两端镜像可独立构建，Compose 已提供；生产源码与镜像构建不依赖 `example/`。
 
 ## 启动界面参考
 
@@ -40,7 +40,7 @@ npm run dev
 
 打开终端显示的本地地址。构建使用 `npm run build`。此演示使用模拟数据，不请求学校 API；详细限制见 [参考说明](example/README.md)。
 
-正式系统的目标环境仅需 Docker Engine/Compose，启动入口将在部署工程实施后提供。
+正式系统的目标环境仅需 Docker Engine/Compose；配置 Secret、域名和证书后使用 [部署入口](docs/Docker部署配置说明.md) 启动当前阶段骨架。学校业务尚未开放。
 
 正式前端开发使用 `cd frontend && npm ci && npm run dev`，当前显示服务准备页面；后端开发使用 `cd backend && uv sync --locked`。详细环境与验证见 [开发说明](docs/开发说明.md)。
 

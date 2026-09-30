@@ -2,6 +2,42 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T1 容器与可靠事件基础
+
+### 已完成
+
+- deploy/compose.yaml：MySQL 8.4.8、Redis 7.4.7、RabbitMQ 4.1.4、八个 API、六域 Relay、Audit Worker、migrate 与 tls-check；基础镜像固定摘要，只有 Nginx 发布正式 80/443。
+- 无网络 Secret 生成器、空卷 probe/七域 app/ddl provisioning、本库 GET_LOCK 同连接迁移、UTC 和最小账号；文件 0400/目录 0700，已有 Secret 拒绝覆盖。
+- 本域事务 Outbox、30 秒发布租约/到期接管、确认后标记、退避；签名持久消息、事务 Inbox 与提交后 ACK，Audit 只保存脱敏登记字段。
+- 域名渲染、只读 TLS、Nginx 静态缓存/SPA 回退、HTTPS 跳转、健康依赖与资源上限；API 缓存/队列降级、数据库/迁移失效拒绝 ready。
+- 同步运行决策、Secret 清单、事件 actor 字段/签名协议与架构/部署文档。P1-01..05/07/08 基础范围已完成，P1-06 CI 待下一批。
+
+### 进行中
+
+- 前端 F1 公共数据层、路由/初始化守卫和容器 CI；T1 尚未整体完成。
+
+### 阻塞与风险
+
+- 无实现阻塞。验收使用 elect.test.local 两天自签证书和本机 18080/18443；未配置正式公网域名/证书，不声称公网或学校业务验收。
+- 监控、支付、邮件业务 Worker 及业务恢复器未实现，未用空循环冒充健康。
+
+### 下一步
+
+- 实现前端 API 客户端、Query/会话隔离、四页路由、202 操作恢复与版本冲突草稿保护，然后加入 Docker CI 和浏览器验收。
+
+### 主要文件或模块
+
+- deploy/compose*.yaml、nginx、mysql、redis、公开配置；backend/services/common、audit/receiver、deployment/provision、migrate_all_mysql、scripts/deployment_smoke.py。
+- backend/tests、docs/contracts/internal/schemas.json、events/registry.yaml、运行/部署/架构说明及各 README。
+
+### 验证
+
+- 全量后端 ruff、内部协议生成校验和 pytest：60 passed / 1 skipped。
+- 独立 Compose 首次空库实际启动，migrate/tls-check 均退出 0，所有 API/Relay/Audit 与基础服务 healthy。
+- 容器 smoke：七域空业务、UTC、跨库/DDL 拒绝；每库两次并发持锁迁移；并发领取/租约接管/迟到写回拒绝/退避、Inbox 事务回滚与并发去重；实际 JWT 用户上下文、Redis 前缀 ACL 均通过。
+- 同一合成签名事件两次直接发布并由真实 Relay 再发布：Audit 和 Inbox 各一条，Outbox 已确认发布；无外部副作用。
+- nginx -t、/details 直达 200/no-cache、HTTP 308 固定配置域名和 query 保留均通过；初始 Nginx tmpfs 权限缺少 CHOWN 已修复并重启验证。
+
 ## 2026-10-01 · T1 服务认证
 
 ### 已完成

@@ -1,0 +1,82 @@
+"""RabbitMQ 持久投递、confirm 与事件签名。"""
+
+import base64
+
+import aio_pika
+from cryptography.hazmat.primitives import serialization
+from pamqp.commands import Basic
+
+from .internal_dto import EventEnvelope
+
+
+def signed_message(runtime, event):
+    if event.producer != runtime.service:
+        raise ValueError("不能代签其他领域事件")
+    body = event.model_dump_json().encode()
+    key = serialization.load_pem_private_key(runtime.signing_key.get_secret_value().encode(), None)
+    return aio_pika.Message(
+        body=body,
+        delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+        content_type="application/json",
+        message_id=str(event.event_id),
+        headers={"key_id": runtime.key_id, "signature": base64.b64encode(key.sign(body)).decode()},
+    )
+
+
+def verified_event(runtime, message):
+    if len(message.body) > 64 * 1024:
+        raise ValueError("事件过大")
+    entry = runtime.trust_bundle[message.headers["key_id"]]
+    if runtime.service not in entry.audiences or "event:audit" not in entry.scopes:
+        raise ValueError("事件权限不符")
+    public = serialization.load_pem_public_key(entry.public_key.encode())
+    public.verify(base64.b64decode(message.headers["signature"], validate=True), message.body)
+    event = EventEnvelope.model_validate_json(message.body)
+    if event.producer != entry.issuer or str(event.event_id) != message.message_id:
+        raise ValueError("事件身份不符")
+    return event
+
+
+class Broker:
+    def __init__(self, runtime):
+        self.runtime = runtime
+        self.connection = None
+
+    async def open(self):
+        self.connection = await aio_pika.connect_robust(
+            self.runtime.amqp_url.get_secret_value(),
+            timeout=3,
+        )
+        self.channel = await self.connection.channel(publisher_confirms=True, on_return_raises=True)
+        await self.channel.set_qos(prefetch_count=8)
+        self.exchange = await self.channel.declare_exchange(
+            "elect.events",
+            aio_pika.ExchangeType.TOPIC,
+            durable=True,
+        )
+
+    async def audit_queue(self):
+        dead = await self.channel.declare_exchange("elect.dead", durable=True)
+        dead_queue = await self.channel.declare_queue("elect.audit.dead", durable=True)
+        await dead_queue.bind(dead, routing_key="audit")
+        queue = await self.channel.declare_queue(
+            "elect.audit",
+            durable=True,
+            arguments={
+                "x-dead-letter-exchange": "elect.dead",
+                "x-dead-letter-routing-key": "audit",
+            },
+        )
+        await queue.bind(self.exchange, routing_key="audit.recorded")
+        return queue
+
+    async def publish(self, event):
+        confirmed = await self.exchange.publish(
+            signed_message(self.runtime, event), routing_key=event.type, mandatory=True, timeout=10
+        )
+        if not isinstance(confirmed, Basic.Ack):
+            raise RuntimeError("未收到 publisher confirm")
+
+    async def close(self):
+        if self.connection:
+            await self.connection.close()

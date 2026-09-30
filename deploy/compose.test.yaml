@@ -1,0 +1,26 @@
+# 独立验收项目使用本机临时端口，正式入口仍为 80/443。
+services:
+  nginx:
+    ports: !override ["127.0.0.1:18080:80", "127.0.0.1:18443:443"]
+  smoke:
+    image: ${ELECT_IMAGE:?set-backend-image}
+    profiles: [test]
+    networks: [app, data]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      ELECT_TEST_DISPOSABLE: "1"
+      ELECT_RUNTIME_FILE: /run/secrets/migration_runtime
+    secrets:
+      - migration_runtime
+      - {source: identity_runtime, target: identity_runtime.json}
+      - {source: school_adapter_runtime, target: school_adapter_runtime.json}
+      - {source: room_runtime, target: room_runtime.json}
+      - {source: monitoring_runtime, target: monitoring_runtime.json}
+      - {source: notification_runtime, target: notification_runtime.json}
+      - {source: payment_runtime, target: payment_runtime.json}
+      - {source: audit_runtime, target: audit_runtime.json}
+    command: [python, -m, scripts.deployment_smoke]
+    mem_limit: 256m

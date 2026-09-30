@@ -2,7 +2,7 @@
 
 版本：1.0；编写日期：2026-10-01；状态：T1 实施中。
 
-本文统一[后端架构](后端架构详细设计.md)、[后端实施计划](后端实施计划.md)和[前端实施计划](前端实施计划.md)中的部署方式。T0 已建立 [公开变量模板](../deploy/.env.example)、[Secret/账号清单](../deploy/secrets.example.yaml)与七域迁移；T1 已建立两端 Dockerfile、运行骨架与 TLS 预检；以下完整编排正在落地，目前尚未创建可运行的 Compose 或执行全栈部署。
+本文统一[后端架构](后端架构详细设计.md)、[后端实施计划](后端实施计划.md)和[前端实施计划](前端实施计划.md)中的部署方式。T0 已建立 [公开变量模板](../deploy/.env.example)、[Secret/账号清单](../deploy/secrets.example.yaml)与七域迁移；T1 已建立两端镜像、Compose、Secret 生成、空卷 provisioning、持锁迁移、TLS 预检和公共运行设施，并通过独立容器基础验收。前端公共数据层及 CI 正在本阶段完成；学校业务不在本阶段开放。
 
 ## 1. 整套部署方式
 
@@ -55,7 +55,7 @@ Gateway/Identity 的 Origin/CSRF 检查、可信跳转和 Notification 的站内
 
 模板为 deploy/nginx/default.conf.template，挂到 `/etc/nginx/templates/default.conf.template`。frontend/Dockerfile 的 Nginx 运行阶段保留官方 entrypoint，在启动时渲染到 `/etc/nginx/conf.d/default.conf`。
 
-关键 Compose 配置如下；此片段仅展开入口与证书，完整服务、网络和一次性作业以架构设计第 13 节为基础实现：
+关键 Compose 配置如下；完整的卷、权限、健康依赖与资源限制见 [compose.yaml](../deploy/compose.yaml)：
 
 ```yaml
 services:
@@ -71,7 +71,7 @@ services:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
     secrets: [tls_cert, tls_key]
     depends_on:
-      gateway: {condition: service_started}
+      gateway: {condition: service_healthy}
       tls-check: {condition: service_completed_successfully}
 
 secrets:
@@ -83,11 +83,27 @@ Compose 的 `$$` 使容器得到过滤表达式 `^ELECT_DOMAIN$`。模板只替�
 
 80 端口返回配置域名的 HTTPS 308 跳转，443 从 `/run/secrets/tls_cert`、`/run/secrets/tls_key` 读取证书。正式入口是 index.html，SPA 回退 `/index.html`；完整反代模板见架构设计第 13.4 节。
 
-tls-check 的目标入口为 backend/services/deployment/check_tls.py，在无网络、只读文件系统的容器中检查域名格式、有效期、SAN 和公私钥配对，不初始化业务服务，不输出私钥/证书正文。失败时阻止 Nginx 启动；Nginx 本身继续校验配置语法及证书可加载性。
+tls-check 的入口为 backend/services/deployment/check_tls.py，在无网络、只读文件系统的容器中检查域名格式、有效期、SAN 和公私钥配对，不初始化业务服务，不输出私钥/证书正文。失败时阻止 Nginx 启动；Nginx 本身继续校验配置语法及证书可加载性。
 
 ## 4. 首次部署
 
-实现配置和服务后，准备 deploy/.env、全部 Secret 与证书，从仓库根执行：
+先复制 `deploy/.env.example` 为 `deploy/.env` 并配置域名、证书与受限 Secret 目录。完整首次生成流程只依赖 Docker：
+
+```sh
+docker build -t elect-backend:v0.1.0 backend
+# 先创建目标空目录；生成器拒绝覆盖已有 Secret。
+mkdir -p /opt/elect/secrets
+chmod 700 /opt/elect/secrets
+docker run --rm --network none --user 0:0 \
+  -v /opt/elect/secrets:/run/provision \
+  elect-backend:v0.1.0 python -m services.deployment.provision --output-dir /run/provision
+```
+
+生成器创建随机数据库/缓存/消息账号、每服务独立 Ed25519 私钥、公钥 trust bundle 和 runtime JSON，文件按接收容器 UID 设为 0400，目录 0700。MySQL 首次初始化从 SQL Secret 先创建 probe/七域库/app/ddl；已有卷不重复 provisioning，不可重新生成随机账号替换原 Secret。学校 KEK/SMTP 等后续业务密钥按阶段补齐。
+
+正式证书由管理员放到配置路径；生成器默认不生成 TLS。仅独立验收可显式使用 `--test-tls-domain elect.test.local` 生成两天自签证书，不能将其描述为受信任公网证书。Compose 要求 2.24.4 或更新版本（测试端口覆盖使用 `!override`）。
+
+随后从仓库根执行：
 
 ```sh
 docker compose --env-file deploy/.env -f deploy/compose.yaml config --quiet
@@ -96,6 +112,8 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml ps -a
 ```
 
 config --quiet 校验配置引用；up --build 构建 frontend/backend 镜像，启动基础服务，等待数据库健康、migrate 和 tls-check 完成，再按依赖启动应用。一次性作业成功退出属于正常完成，不能将它们要求为长期 running。
+
+当前默认运行八个 API 骨架、六个本域 Relay 和 Audit Worker；监控 Scheduler/Worker/业务恢复器、支付 Worker、邮件 Worker 随 T3–T6 实现后加入，不启动空循环冒充业务健康。MQ/Redis 故障在领域 API readiness 显示 degraded（HTTP 200），MySQL/结构异常返回 503；后台健康反映实际扫描/领取/持久提交心跳。
 
 随后验证域名的 HTTPS 跳转、证书链、SPA 直达路由、同源登录 Cookie/CSRF 和 API，并检查后台进程心跳。验收机器不预装 Node/npm、Python/uv、MySQL、Redis、RabbitMQ 或 Nginx，也不预先生成宿主机 dist。
 

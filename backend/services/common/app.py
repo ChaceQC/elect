@@ -7,7 +7,8 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from .database import create_database, database_ready
+from .database import create_database, database_ready, migration_head
+from .dependencies import transport_status
 from .http import ApiError, install_http
 from .logging import configure_logging
 from .runtime import load_runtime, public_origin, side_effect_policy
@@ -25,6 +26,7 @@ def create_app(service: str):
         app.state.side_effect_policy = side_effect_policy()
         engine = create_database(runtime.db_url.get_secret_value()) if runtime.db_url else None
         app.state.database = engine
+        app.state.migration_head = migration_head(service) if engine else None
         try:
             yield
         finally:
@@ -54,8 +56,14 @@ def create_app(service: str):
         try:
             if app.state.database:
                 async with asyncio.timeout(3):
-                    await database_ready(app.state.database, f"{service}_0001")
-            return {"service": service, "status": "ready", "business_enabled": False}
+                    await database_ready(app.state.database, app.state.migration_head)
+            components = await transport_status(app.state.runtime)
+            return {
+                "service": service,
+                "status": "ready" if all(components.values()) else "degraded",
+                "components": components,
+                "business_enabled": False,
+            }
         except Exception:
             return JSONResponse(
                 status_code=503, content={"service": service, "status": "not_ready"}

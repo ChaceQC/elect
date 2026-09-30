@@ -4,9 +4,18 @@ from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 
+def migration_head(domain):
+    from alembic.script import ScriptDirectory
+
+    from scripts.migrations import configuration
+
+    return ScriptDirectory.from_config(configuration(domain)).get_current_head()
+
+
 def create_database(url):
     engine = create_async_engine(
         url,
+        connect_args={"connect_timeout": 3},
         pool_size=2,
         max_overflow=3,
         pool_timeout=3,

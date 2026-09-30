@@ -30,7 +30,11 @@ def test_events_declare_ownership_dedupe_and_no_sensitive_payload():
         assert event["schema_version"] == 1
         assert not forbidden.intersection(event["required_payload"])
         payload_type, producers = EVENTS[event["type"]]
-        assert set(payload_type.model_fields) == set(event["required_payload"])
+        required = {
+            name for name, field in payload_type.model_fields.items() if field.is_required()
+        }
+        assert required == set(event["required_payload"])
+        assert not forbidden.intersection(payload_type.model_fields)
         assert set(
             event["producer"] if isinstance(event["producer"], list) else [event["producer"]]
         ) == set(producers)

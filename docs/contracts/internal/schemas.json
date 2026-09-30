@@ -852,10 +852,12 @@
       "additionalProperties": false,
       "properties": {
         "action": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
           "title": "Action",
           "type": "string"
         },
         "object_type": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
           "title": "Object Type",
           "type": "string"
         },
@@ -865,8 +867,28 @@
           "type": "string"
         },
         "result": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "denied",
+            "cancelled",
+            "unknown"
+          ],
           "title": "Result",
           "type": "string"
+        },
+        "actor_user_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actor User Id"
         }
       },
       "required": [

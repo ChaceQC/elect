@@ -45,7 +45,10 @@ async def online(domain: str):
 
 
 def run(domain: str):
-    if context.is_offline_mode():
+    existing = context.config.attributes.get("connection")
+    if existing is not None:
+        configure_connection(existing)
+    elif context.is_offline_mode():
         context.configure(
             url=f"mysql+asyncmy://offline/{DATABASES[domain]}",
             target_metadata=None,
