@@ -15,8 +15,17 @@ from .logging import log
 
 
 class ApiError(Exception):
-    def __init__(self, status: int, code: ErrorCode, message: str, retryable=False):
+    def __init__(
+        self,
+        status: int,
+        code: ErrorCode,
+        message: str,
+        retryable=False,
+        *,
+        retry_after_seconds=None,
+    ):
         self.status, self.code, self.message, self.retryable = status, code, message, retryable
+        self.retry_after_seconds = retry_after_seconds
 
 
 def metadata(request: Request):
@@ -31,8 +40,8 @@ def error_response(request: Request, error: ApiError):
                 "code": error.code,
                 "message": error.message,
                 "retryable": error.retryable,
-                "retry_after_seconds": None,
-                "requires_reauth": False,
+                "retry_after_seconds": error.retry_after_seconds,
+                "requires_reauth": error.code == ErrorCode.SCHOOL_REAUTH_REQUIRED,
                 "field_errors": {},
             },
             "meta": metadata(request),
