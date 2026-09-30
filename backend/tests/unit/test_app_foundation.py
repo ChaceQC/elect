@@ -1,9 +1,11 @@
 from uuid import UUID
 
 from fastapi import Request
+from fastapi.responses import Response
 from fastapi.testclient import TestClient
 
 from services.common.app import create_app
+from services.common.browser_security import require_browser_write
 from services.common.http import metadata
 from services.common.runtime import load_runtime
 
@@ -52,3 +54,42 @@ def test_bad_runtime_is_redacted(tmp_path, monkeypatch):
         assert "private-password" not in str(error)
     else:
         raise AssertionError("非法 Secret 未被拒绝")
+
+
+def test_origin_and_session_csrf_are_both_required(runtime_factory):
+    runtime_factory()
+    app = create_app("gateway")
+
+    @app.post("/test-write")
+    async def write(request: Request):
+        require_browser_write(request, "test-session-csrf")
+        return Response(status_code=204)
+
+    with TestClient(app) as client:
+        assert (
+            client.post(
+                "/test-write",
+                headers={
+                    "Origin": "https://foreign.example.edu",
+                    "X-CSRF-Token": "test-session-csrf",
+                },
+            ).json()["error"]["code"]
+            == "ORIGIN_REJECTED"
+        )
+        assert (
+            client.post(
+                "/test-write",
+                headers={
+                    "Origin": "https://elect.example.edu",
+                },
+            ).json()["error"]["code"]
+            == "CSRF_REJECTED"
+        )
+        response = client.post(
+            "/test-write",
+            headers={
+                "Origin": "https://elect.example.edu",
+                "X-CSRF-Token": "test-session-csrf",
+            },
+        )
+        assert response.status_code == 204 and response.content == b""

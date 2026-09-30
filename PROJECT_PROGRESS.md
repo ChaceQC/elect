@@ -2,6 +2,36 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T1 服务认证
+
+### 已完成
+
+- 每服务独立 Ed25519/EdDSA 短期 JWT，校验签名、算法、key_id、iss/sub/aud/iat/exp/jti、命令权限与用户会话版本；启动检查签名公私钥一致。
+- 内部诊断只返回验证后的上下文；任意 X-User-Id 不参与身份，对象归属不符返回 404。
+- HTTPS Origin/会话 CSRF 公共校验与内部身份拒绝信封；新增 PyJWT 锁定依赖及运行决策文档。
+
+### 进行中
+
+- Outbox/Inbox、Audit 消费者、正式 Secret/provisioning 与 Compose。
+
+### 阻塞与风险
+
+- 无阻塞；应用会话 introspection 和真实业务 CSRF 接入留待 T2，当前业务关闭。
+
+### 下一步
+
+- 实现本域事务 Outbox、发布租约/退避、RabbitMQ confirm/手动 ACK 与签名事件，并在空库 Compose 验证重复事件只落一条审计。
+
+### 主要文件或模块
+
+- backend/services/common/security.py、browser_security.py、app.py、http.py、pyproject.toml/uv.lock、tests/unit。
+- docs/decisions/T1运行基础.md。
+
+### 验证
+
+- ruff 通过；服务身份/应用基础定向测试 15 passed，覆盖伪造头、错误算法、过期、错误 audience/issuer/scope、超长 TTL、非法 jti/用户版本与 Origin/CSRF。
+- 上一批完整 pytest 实际为 46 passed / 1 skipped；提交 9d07793 已推送 origin/dev。
+
 ## 2026-10-01 · T1 第一批：镜像与服务入口
 
 ### 已完成

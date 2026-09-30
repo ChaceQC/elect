@@ -1,6 +1,6 @@
 # 后端工程
 
-T0 工程/DTO/状态模型与七域初始 Alembic 迁移已完成。T1 已建立非 root Docker 镜像、八个 API 骨架、Secret 加载、UTC 连接池、脱敏日志、统一错误、live/ready 与 TLS 预检；业务 API 在后续阶段实现。Python 固定为 3.12.10，使用 uv 管理独立依赖。
+T0 工程/DTO/状态模型与七域初始 Alembic 迁移已完成。T1 已建立非 root Docker 镜像、八个 API 骨架、Secret 加载、UTC 连接池、脱敏日志、统一错误、live/ready、Ed25519 服务认证与 TLS 预检；业务 API 在后续阶段实现。Python 固定为 3.12.10，使用 uv 管理独立依赖。
 
 开发机安装 uv 后执行：
 

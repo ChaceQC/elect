@@ -83,5 +83,13 @@ def install_http(app, service: str):
 
     @app.exception_handler(HTTPException)
     async def http_error(request, exc):
+        if request.url.path.startswith("/internal/") and exc.status_code == 401:
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": {"code": "SERVICE_AUTH_REJECTED", "message": "服务身份或权限无效"},
+                    "meta": metadata(request),
+                },
+            )
         code = ErrorCode.NOT_FOUND if exc.status_code == 404 else ErrorCode.INVALID_ARGUMENT
         return error_response(request, ApiError(exc.status_code, code, "请求无法处理"))

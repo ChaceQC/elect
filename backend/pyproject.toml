@@ -16,6 +16,7 @@ dependencies = [
   "redis>=5.2,<8",
   "uuid6>=2024.7.10,<2026",
   "pyyaml>=6.0,<7",
+  "pyjwt[crypto]>=2.10,<3",
 ]
 
 [dependency-groups]
