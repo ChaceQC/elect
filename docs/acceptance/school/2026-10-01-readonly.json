@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-01",
+  "source": "学校文档参考实现",
+  "scope": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "B01",
+    "B02"
+  ],
+  "external_business_writes": false,
+  "production_adapter_verified": false,
+  "authentication": "passed",
+  "current_user": "passed",
+  "bound_rooms": "passed",
+  "bound_room_count": 1,
+  "result": "passed"
+}

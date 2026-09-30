@@ -1,0 +1,231 @@
+schema_version: 1
+models:
+  login_attempt:
+    transitions:
+      created:
+      - authenticating
+      - failed
+      - expired
+      authenticating:
+      - staged
+      - failed
+      - expired
+      staged:
+      - identity_committed
+      - failed
+      - expired
+      identity_committed:
+      - activating
+      - failed
+      activating:
+      - activated
+      - failed
+      activated:
+      - session_issued
+      session_issued: []
+      failed: []
+      expired: []
+    terminal:
+    - session_issued
+    - failed
+    - expired
+    recovery:
+      authenticating: 按 attempt 查询 Adapter；未 dispatch 可失败，已验证凭据不得被失败覆盖
+      staged: 暂存到期未激活则清理；已登记 Identity 的 attempt 优先对账
+      identity_committed: 按 attempt 幂等激活，保留已有 user_id
+      activating: 查询激活结果，不能重写未经验证的凭据
+      activated: 持久确认后签发会话；重认证保持当前 user_id
+  room_operation:
+    transitions:
+      accepted:
+      - running
+      - failed
+      - cancelled
+      running:
+      - reconciling
+      - succeeded
+      - failed
+      reconciling:
+      - unknown
+      - succeeded
+      - failed
+      unknown:
+      - reconciling
+      - succeeded
+      - failed
+      succeeded: []
+      failed: []
+      cancelled: []
+    terminal:
+    - succeeded
+    - failed
+    - cancelled
+    recovery:
+      accepted: 从 MySQL 重新唤醒，逻辑操作 ID 不变
+      running: 根据 dispatch 台账或 retarget Saga 步骤继续
+      reconciling: 绑定只查 B02，切换按已提交偏好向前完成
+      unknown: 仅回查/人工核实；保持目标写入屏障，不重新 POST
+  monitor:
+    transitions:
+      disabled:
+      - active
+      - retargeting
+      - requires_reauth
+      - blocked_room
+      active:
+      - disabled
+      - retargeting
+      - requires_reauth
+      - blocked_room
+      requires_reauth:
+      - active
+      - disabled
+      - retargeting
+      - blocked_room
+      blocked_room:
+      - active
+      - disabled
+      - retargeting
+      - requires_reauth
+      retargeting:
+      - active
+      - disabled
+      - requires_reauth
+      - blocked_room
+    terminal: []
+    recovery:
+      active: 按 schedule_anchor_at 合并错过的时间槽，仅创建一条补偿采集
+      retargeting: 按 operation_id 查询 Room 提交结果；尊重 desired_enabled
+      requires_reauth: 人工重认证后按最新凭据版本和当前 generation 恢复
+      blocked_room: 本人有效默认绑定确认后按当前意图恢复
+  run:
+    transitions:
+      pending:
+      - running
+      - cancelled
+      running:
+      - succeeded
+      - retry_wait
+      - failed
+      - cancel_requested
+      retry_wait:
+      - running
+      - cancelled
+      - failed
+      cancel_requested:
+      - cancelled
+      succeeded: []
+      failed: []
+      cancelled: []
+    terminal:
+    - succeeded
+    - failed
+    - cancelled
+    recovery:
+      pending: 从 MySQL 重新唤醒，唯一计划键保持不变
+      running: 租约过期提升 execution_epoch，再进入 retry_wait，拒绝旧结果
+      retry_wait: 到达持久 next_attempt_at 后领取，不依赖队列 TTL
+      cancel_requested: 结束在途请求并丢弃结果，不写成功样本
+  episode:
+    transitions:
+      open:
+      - closed
+      closed: []
+    terminal:
+    - closed
+    recovery:
+      open: 保持计数；间隔/次数变化不清零，未知投递占用序号
+  alert_slot:
+    transitions:
+      reserved:
+      - authorized
+      - cancelled
+      authorized:
+      - reserved
+      - sent
+      - delivery_unknown
+      - failed
+      - cancelled
+      sent: []
+      delivery_unknown: []
+      failed: []
+      cancelled: []
+    terminal:
+    - sent
+    - delivery_unknown
+    - failed
+    - cancelled
+    recovery:
+      reserved: 幂等创建 notification job；发送前重新验权
+      authorized: 许可/投递租约过期先核对是否可能发送；可能发送则 delivery_unknown
+      delivery_unknown: 占用提醒名额，人工核实，不盲重发
+  notification_job:
+    transitions:
+      pending:
+      - sending
+      - cancelled
+      sending:
+      - sent
+      - retry_wait
+      - failed
+      - delivery_unknown
+      - cancelled
+      retry_wait:
+      - sending
+      - cancelled
+      - failed
+      sent: []
+      failed: []
+      delivery_unknown: []
+      cancelled: []
+    terminal:
+    - sent
+    - failed
+    - delivery_unknown
+    - cancelled
+    recovery:
+      pending: 取得投递租约与当前代次许可后发送
+      sending: 可能已发送正文/发送后崩溃则 delivery_unknown，不重发
+      retry_wait: 仅明确未接收的临时错误，1/5/15 分钟最多 3 次重试并重新授权
+      delivery_unknown: 保留 Message-ID 和台账，核实/人工处理
+  payment_order:
+    transitions:
+      created:
+      - submitting
+      - rejected
+      submitting:
+      - awaiting_payment
+      - submit_unknown
+      - rejected
+      submit_unknown:
+      - awaiting_payment
+      - status_unknown
+      - rejected
+      - paid_confirmed
+      - expired_confirmed
+      - closed_confirmed
+      awaiting_payment:
+      - paid_confirmed
+      - status_unknown
+      - expired_confirmed
+      - closed_confirmed
+      status_unknown:
+      - awaiting_payment
+      - paid_confirmed
+      - expired_confirmed
+      - closed_confirmed
+      paid_confirmed: []
+      rejected: []
+      expired_confirmed: []
+      closed_confirmed: []
+    terminal:
+    - paid_confirmed
+    - rejected
+    - expired_confirmed
+    - closed_confirmed
+    recovery:
+      created: 使用同一 upstream_operation_id，Adapter 台账先提交再 dispatch
+      submitting: dispatch 后崩溃进入 submit_unknown，只查询已有学校订单
+      submit_unknown: 保留同用户/绑定屏障；空列表不能解除，不二次建单
+      awaiting_payment: 查询经验证的支付状态；QR 成功不能确认付款
+      status_unknown: 保存未知；只有已验收映射或人工确证才能终结

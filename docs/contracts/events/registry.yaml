@@ -1,0 +1,72 @@
+schema_version: 1
+envelope: ../internal/schemas.json#/$defs/EventEnvelope
+transport:
+  authority: MySQL Outbox/Inbox
+  delivery: RabbitMQ 持久队列、消息持久化、publisher confirm、手动 ACK；至少一次，消费者幂等。
+  inbox_key: [consumer_name, event_id]
+  business_dedupe: 每个事件列出的 dedupe_key；合法恢复使用新 event_id，不因旧 Inbox 阻止同一 run 恢复。
+  forbidden_payload: [password, student_id, token, cookie, email, pay_url, prepay_id, wrapped_dek, ciphertext]
+events:
+  - type: credential.updated
+    producer: school_adapter
+    consumers: [identity, monitoring]
+    schema_version: 1
+    aggregate_version: credential_version
+    dedupe_key: credential_id/credential_version
+    required_payload: [credential_id, owner_user_id, credential_version]
+  - type: credential.revoked
+    producer: school_adapter
+    consumers: [identity, monitoring]
+    schema_version: 1
+    aggregate_version: credential_version
+    dedupe_key: credential_id/credential_version/revoked
+    required_payload: [credential_id, owner_user_id, credential_version]
+  - type: monitor.run_ready
+    producer: monitoring
+    consumers: [monitoring]
+    schema_version: 1
+    aggregate_version: run_version
+    dedupe_key: event_id
+    required_payload: [run_id, generation]
+  - type: monitor.alert_reserved
+    producer: monitoring
+    consumers: [notification]
+    schema_version: 1
+    aggregate_version: monitor_version
+    dedupe_key: alert_slot_id
+    required_payload: [alert_slot_id, owner_user_id, generation, email_version]
+  - type: notification.delivery_reported
+    producer: notification
+    consumers: [monitoring]
+    schema_version: 1
+    aggregate_version: job_version
+    dedupe_key: job_id/job_version
+    required_payload: [job_id, alert_slot_id, state]
+  - type: room.history_sync_requested
+    producer: room
+    consumers: [room]
+    schema_version: 1
+    aggregate_version: sync_version
+    dedupe_key: event_id
+    required_payload: [sync_id, binding_id]
+  - type: room.binding_confirmed
+    producer: room
+    consumers: [monitoring]
+    schema_version: 1
+    aggregate_version: preference_version
+    dedupe_key: binding_id/preference_version
+    required_payload: [binding_id, owner_user_id, preference_version]
+  - type: payment.order_requested
+    producer: payment
+    consumers: [payment]
+    schema_version: 1
+    aggregate_version: order_version
+    dedupe_key: order_id
+    required_payload: [order_id, owner_user_id]
+  - type: audit.recorded
+    producer: [identity, school_adapter, room, monitoring, notification, payment, gateway]
+    consumers: [audit]
+    schema_version: 1
+    aggregate_version: object_version
+    dedupe_key: event_id
+    required_payload: [action, object_type, object_id, result]

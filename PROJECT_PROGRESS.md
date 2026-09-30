@@ -2,6 +2,49 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T0 完成
+
+### 已完成
+
+- T0-01..04、后端 P0-01..05、前端 F0-01..05 的交付与验证完成，计划清单已勾选；项目/契约版本为 0.1.0。
+- 独立 Python/uv 与 React/Vite/npm 工程；正式源码/构建不引用 example，两端锁文件和镜像忽略规则已提交基线。
+- 冻结 28 个公开 API、后端 DTO、前端 generated.d.ts；补齐 preference_version、credential_version、run.version、待完成摘要、邮件状态、未解决订单和快照失效。
+- 定义内部命令、9 类事件及 8 类状态模型；版本、幂等、未知状态和恢复入口具有可执行校验。
+- 建立七域独立 Alembic 初始链与 47 张领域/事件表（另有各库 alembic_version），增加调度锚点、运行版本、持久历史窗口/Saga/支付步骤/快照成员；实际 MySQL 验证通过。
+- 固化数据库 app/ddl 账号、Secret/服务身份、域名/证书、四类外部副作用开关、邮箱和支付保护政策与学校待确认门禁。
+- 交付 10 个 MSW 合成场景、三种宽度共 27 张参考截图、组件/字段/按钮/API 追踪与真实验收模板。
+- 用户提供的 auth.txt 已加入 Git/镜像忽略且未跟踪，开发规范/说明已同步；实际只读 A01–A04/B01/B02 通过，返回 1 条本人绑定，记录不含真实凭据/token/寝室标识。
+
+### 进行中
+
+- 暂无业务实现任务进行中；T0 验收已完成，正式业务留待 T1–T6。
+
+### 阻塞与风险
+
+- T0 无阻塞。宿主机 Docker Engine 可用但 Compose 插件尚缺，T1 部署验收前需准备。
+- 真实绑定写入、支付金额/状态/到账、SMTP 与学校限频仍未验收；能力开关默认关闭，不将参考烟测或模拟测试描述为正式业务完成。
+
+### 下一步
+
+- 按 T1-01 创建 frontend/Dockerfile、backend/Dockerfile 和 API/后台进程/预检入口。
+- 随后按 T1-02 创建 deploy/compose.yaml、probe/provision、持锁 migrate、tls-check 及基础服务健康依赖；完成 M0 后再进入 T2 正式认证闭环。
+
+### 主要文件或模块
+
+- backend/services/* 的 DTO、状态与 migrations；backend/scripts、tests、pyproject.toml/uv.lock。
+- frontend/src/api/generated.d.ts、src/mocks、tests/unit、scripts，以及 docs/acceptance/frontend/reference。
+- docs/contracts、database、decisions、T0需求追踪表、acceptance/T0验收记录与学校记录；deploy/.env.example、secrets.example.yaml。
+- 根/子工程 README、AGENTS、PROJECT_PROGRESS 和受影响计划/架构/部署/学校文档。
+
+### 验证
+
+- Python 3.12.10、固定 Node 22.23.2/npm 10.9.8；uv sync --locked、领域包加载及前端独立构建通过。
+- backend：ruff 与 OpenAPI/内部协议/表目录一致性检查通过，pytest 38 passed / 1 skipped（临时库项默认跳过）。
+- 显式临时 MySQL 8.4.8 集成检查 1 passed：七域升级各两次、业务表空、无跨库 FK、app 无 DDL/跨库权限；非法间隔、重复计划/样本、未知订单换键重复建单被数据库拒绝。
+- frontend：contract:check、lint、typecheck、3 项 Vitest/MSW 分支检查、build 全部通过；生产入口无 mock 导入。
+- Playwright/Chromium 对 example 实际交互，27 张参考截图已保存并抽查；学校只读参考烟测通过且不执行外部业务写入。
+- auth.txt 忽略/未跟踪检查、122 个本地文档链接、27 张截图清单、T0/P0/F0 任务范围、生产产物无场景数据与 git diff --check 均通过。
+
 ## 2026-10-01 · T0-01 独立工程
 
 ### 已完成

@@ -1,0 +1,28 @@
+{
+  "synthetic": true,
+  "B02_empty": {
+    "code": 200,
+    "data": []
+  },
+  "B03_empty": {
+    "code": 200,
+    "data": {
+      "records": [],
+      "total": 0,
+      "current": 1,
+      "size": 10
+    }
+  },
+  "C02_empty": {
+    "code": 200,
+    "data": {
+      "list": []
+    }
+  },
+  "D02_unverified_status": {
+    "code": 200,
+    "data": {
+      "fixture_status": "UNVERIFIED"
+    }
+  }
+}

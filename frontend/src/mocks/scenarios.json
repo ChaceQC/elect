@@ -1,0 +1,517 @@
+{
+  "empty_account": [
+    {
+      "method": "get",
+      "path": "/room-bindings",
+      "status": 200,
+      "body": {
+        "data": {
+          "items": [],
+          "page": 1,
+          "page_size": 10,
+          "total": 0,
+          "default_binding_id": null,
+          "preference_version": 1,
+          "default_switch_operation_id": null,
+          "sync_status": "ready",
+          "last_synced_at": "2026-10-01T10:00:00+08:00",
+          "pending_operations": [],
+          "pending_operations_truncated": false
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "bound_account": [
+    {
+      "method": "get",
+      "path": "/room-bindings",
+      "status": 200,
+      "body": {
+        "data": {
+          "items": [
+            {
+              "id": "0199a10c-0000-7000-8000-000000000002",
+              "room_id": "0199a10c-0000-7000-8000-000000000003",
+              "building": "合成楼",
+              "number": "示例室",
+              "display_name": "合成楼 · 示例室",
+              "status": "active",
+              "balance": {
+                "amount": "25.50",
+                "currency": "CNY",
+                "source": "school_bound_rooms",
+                "fetched_at": "2026-10-01T10:00:00+08:00",
+                "school_observed_at": null,
+                "stale": false,
+                "refresh_state": "ready",
+                "error_code": null
+              }
+            }
+          ],
+          "page": 1,
+          "page_size": 10,
+          "total": 1,
+          "default_binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "preference_version": 1,
+          "default_switch_operation_id": null,
+          "sync_status": "ready",
+          "last_synced_at": "2026-10-01T10:00:00+08:00",
+          "pending_operations": [],
+          "pending_operations_truncated": false
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "school_failed": [
+    {
+      "method": "get",
+      "path": "/room-candidates",
+      "status": 503,
+      "body": {
+        "error": {
+          "code": "SCHOOL_UNAVAILABLE",
+          "message": "合成场景：学校暂不可用",
+          "retryable": true,
+          "retry_after_seconds": 30,
+          "requires_reauth": false,
+          "field_errors": {},
+          "current_version": null,
+          "existing_operation_id": null
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    },
+    {
+      "method": "get",
+      "path": "/room-bindings",
+      "status": 200,
+      "body": {
+        "data": {
+          "items": [
+            {
+              "id": "0199a10c-0000-7000-8000-000000000002",
+              "room_id": "0199a10c-0000-7000-8000-000000000003",
+              "building": "合成楼",
+              "number": "示例室",
+              "display_name": "合成楼 · 示例室",
+              "status": "active",
+              "balance": {
+                "amount": "25.50",
+                "currency": "CNY",
+                "source": "school_bound_rooms",
+                "fetched_at": "2026-10-01T10:00:00+08:00",
+                "school_observed_at": null,
+                "stale": true,
+                "refresh_state": "failed",
+                "error_code": "SCHOOL_UNAVAILABLE"
+              }
+            }
+          ],
+          "page": 1,
+          "page_size": 10,
+          "total": 1,
+          "default_binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "preference_version": 1,
+          "default_switch_operation_id": null,
+          "sync_status": "stale",
+          "last_synced_at": "2026-10-01T10:00:00+08:00",
+          "pending_operations": [],
+          "pending_operations_truncated": false
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "partial_history": [
+    {
+      "method": "get",
+      "path": "/room-bindings/{id}/consumption",
+      "status": 200,
+      "body": {
+        "data": {
+          "start_date": "2026-09-30",
+          "end_date": "2026-10-01",
+          "binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "granularity": "day",
+          "buckets": [
+            {
+              "start_date": "2026-09-30",
+              "end_date": "2026-09-30",
+              "amount": "0.00",
+              "energy_usage": "0.0000",
+              "known_days": 1,
+              "expected_days": 1,
+              "complete": true
+            },
+            {
+              "start_date": "2026-10-01",
+              "end_date": "2026-10-01",
+              "amount": null,
+              "energy_usage": null,
+              "known_days": 0,
+              "expected_days": 1,
+              "complete": false
+            }
+          ],
+          "summary": {
+            "amount": "0.00",
+            "energy_usage": "0.0000",
+            "known_days": 1,
+            "expected_days": 2,
+            "complete": false
+          },
+          "coverage": "partial",
+          "sync_status": "partial",
+          "sync_operation": null,
+          "version": 1
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "switch_pending": [
+    {
+      "method": "get",
+      "path": "/room-bindings",
+      "status": 200,
+      "body": {
+        "data": {
+          "items": [
+            {
+              "id": "0199a10c-0000-7000-8000-000000000002",
+              "room_id": "0199a10c-0000-7000-8000-000000000003",
+              "building": "合成楼",
+              "number": "示例室",
+              "display_name": "合成楼 · 示例室",
+              "status": "active",
+              "balance": {
+                "amount": "25.50",
+                "currency": "CNY",
+                "source": "school_bound_rooms",
+                "fetched_at": "2026-10-01T10:00:00+08:00",
+                "school_observed_at": null,
+                "stale": false,
+                "refresh_state": "ready",
+                "error_code": null
+              }
+            }
+          ],
+          "page": 1,
+          "page_size": 10,
+          "total": 1,
+          "default_binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "preference_version": 1,
+          "default_switch_operation_id": "0199a10c-0000-7000-8000-000000000004",
+          "sync_status": "ready",
+          "last_synced_at": "2026-10-01T10:00:00+08:00",
+          "pending_operations": [
+            {
+              "id": "0199a10c-0000-7000-8000-000000000004",
+              "type": "switch_default",
+              "state": "running",
+              "target_binding_id": "0199a10c-0000-7000-8000-000000000002",
+              "created_at": "2026-10-01T10:00:00+08:00"
+            }
+          ],
+          "pending_operations_truncated": false
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    },
+    {
+      "method": "get",
+      "path": "/operations/{id}",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "0199a10c-0000-7000-8000-000000000004",
+          "type": "switch_default",
+          "state": "running",
+          "target_binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "created_at": "2026-10-01T10:00:00+08:00",
+          "binding_status": "confirmed",
+          "default_status": "switching",
+          "retryable": false,
+          "error_code": null,
+          "next_reconcile_at": null,
+          "result_binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "result_order_id": null
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "run_cancelling": [
+    {
+      "method": "get",
+      "path": "/monitor",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "0199a10c-0000-7000-8000-000000000004",
+          "binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "config": {
+            "enabled": true,
+            "interval_minutes": 75,
+            "repeat_limit": 2,
+            "threshold": "20.00",
+            "email": "fixture@example.invalid"
+          },
+          "state": "active",
+          "health": "degraded",
+          "version": 4,
+          "generation": 3,
+          "current_run": {
+            "id": "0199a10c-0000-7000-8000-000000000003",
+            "version": 3,
+            "binding_id": "0199a10c-0000-7000-8000-000000000002",
+            "state": "cancel_requested",
+            "scheduled_for": "2026-10-01T10:00:00+08:00",
+            "started_at": "2026-10-01T10:00:00+08:00",
+            "finished_at": null,
+            "next_attempt_at": null,
+            "cancel_pending": true,
+            "error_code": null,
+            "attempts": []
+          },
+          "last_run": null,
+          "next_run_at": "2026-10-01T10:00:00+08:00",
+          "last_success_at": null,
+          "last_error_code": "SCHOOL_TIMEOUT",
+          "cancel_pending": true,
+          "in_flight_count": 1,
+          "notification": {
+            "state": "delivery_unknown",
+            "last_sent_at": null,
+            "last_error_code": "SMTP_RESULT_UNKNOWN",
+            "next_retry_at": null,
+            "in_flight_count": 0,
+            "delivery_unknown_count": 1
+          }
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    },
+    {
+      "method": "get",
+      "path": "/monitor/runs/{id}",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "0199a10c-0000-7000-8000-000000000003",
+          "version": 3,
+          "binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "state": "cancel_requested",
+          "scheduled_for": "2026-10-01T10:00:00+08:00",
+          "started_at": "2026-10-01T10:00:00+08:00",
+          "finished_at": null,
+          "next_attempt_at": null,
+          "cancel_pending": true,
+          "error_code": null,
+          "attempts": []
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    },
+    {
+      "method": "post",
+      "path": "/monitor/runs/{id}/cancel",
+      "status": 202,
+      "body": {
+        "data": {
+          "id": "0199a10c-0000-7000-8000-000000000003",
+          "version": 3,
+          "binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "state": "cancel_requested",
+          "scheduled_for": "2026-10-01T10:00:00+08:00",
+          "started_at": "2026-10-01T10:00:00+08:00",
+          "finished_at": null,
+          "next_attempt_at": null,
+          "cancel_pending": true,
+          "error_code": null,
+          "attempts": []
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "unknown_order": [
+    {
+      "method": "get",
+      "path": "/payments/capabilities",
+      "status": 200,
+      "body": {
+        "data": {
+          "enabled": false,
+          "currency": "CNY",
+          "min_amount": "1.00",
+          "max_amount": "500.00",
+          "amount_step": "1.00",
+          "unavailable_reason": "REAL_PAYMENT_NOT_ACCEPTED",
+          "unresolved_order": {
+            "order_id": "0199a10c-0000-7000-8000-000000000004",
+            "binding_id": "0199a10c-0000-7000-8000-000000000002",
+            "state": "submit_unknown",
+            "amount": "50.00",
+            "currency": "CNY",
+            "created_at": "2026-10-01T10:00:00+08:00"
+          }
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    },
+    {
+      "method": "get",
+      "path": "/payment-orders/{id}",
+      "status": 200,
+      "body": {
+        "data": {
+          "order_id": "0199a10c-0000-7000-8000-000000000004",
+          "binding_id": "0199a10c-0000-7000-8000-000000000002",
+          "state": "submit_unknown",
+          "amount": "50.00",
+          "currency": "CNY",
+          "created_at": "2026-10-01T10:00:00+08:00",
+          "binding_display_name": "合成楼 · 示例室",
+          "paid_confirmed": false,
+          "last_checked_at": null,
+          "qr_status": "unknown",
+          "qr_expires_at": null,
+          "error_code": "SCHOOL_TIMEOUT"
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "snapshot_expired": [
+    {
+      "method": "get",
+      "path": "/room-bindings/{id}/monitor-samples",
+      "status": 410,
+      "body": {
+        "error": {
+          "code": "SNAPSHOT_EXPIRED",
+          "message": "快照已过期，请重新加载第一页",
+          "retryable": false,
+          "retry_after_seconds": null,
+          "requires_reauth": false,
+          "field_errors": {},
+          "current_version": null,
+          "existing_operation_id": null
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "credential_revoking": [
+    {
+      "method": "get",
+      "path": "/auth/me",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "0199a10c-0000-7000-8000-000000000001",
+          "student_id": "SYNTHETIC-STUDENT",
+          "school": "合成学校",
+          "credential_status": "revoking",
+          "credential_version": 2,
+          "consent": {
+            "agreement_version": "fixture-v1",
+            "accepted_at": "2026-10-01T10:00:00+08:00",
+            "credential_use_allowed": true,
+            "revoked_at": null
+          },
+          "csrf_token": "fixture-only-csrf",
+          "credential_revoke_operation": {
+            "id": "0199a10c-0000-7000-8000-000000000005",
+            "type": "credential_revoke",
+            "state": "running",
+            "target_binding_id": null,
+            "created_at": "2026-10-01T10:00:00+08:00"
+          }
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ],
+  "bootstrap_loading": [
+    {
+      "method": "post",
+      "path": "/auth/login",
+      "status": 200,
+      "body": {
+        "data": {
+          "user": {
+            "id": "0199a10c-0000-7000-8000-000000000001",
+            "student_id": "SYNTHETIC-STUDENT",
+            "school": "合成学校",
+            "credential_status": "active",
+            "credential_version": 2,
+            "consent": {
+              "agreement_version": "fixture-v1",
+              "accepted_at": "2026-10-01T10:00:00+08:00",
+              "credential_use_allowed": true,
+              "revoked_at": null
+            },
+            "csrf_token": "fixture-only-csrf",
+            "credential_revoke_operation": null
+          },
+          "bootstrap": {
+            "rooms_state": "loading",
+            "requires_binding": null,
+            "default_binding_id": null,
+            "credential_status": "active"
+          }
+        },
+        "meta": {
+          "request_id": "0199a10c-0000-7000-8000-000000000001",
+          "server_time": "2026-10-01T10:00:00+08:00"
+        }
+      }
+    }
+  ]
+}

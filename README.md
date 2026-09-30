@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前阶段：正在实施 T0。正式前后端独立工程已建立，接口契约、初始迁移与场景基线正在补齐；业务功能与 Docker 部署尚待实现。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.1.0。T0 工程与契约基线已完成：独立前后端、28 个 API 契约、七域初始迁移、状态模型和前端场景/参考截图已验证。业务功能与 Docker 部署从 T1 开始实施，当前不提供可使用的学校业务服务。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -12,6 +12,7 @@ GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 - [项目文档](docs/README.md)：总实施计划、前后端设计、学校 API 与 Docker 部署说明。
 - [界面参考](example/README.md)：独立 React 演示的启动方式与模拟功能。
 - [开发说明](docs/开发说明.md)：正式工程的环境、构建和验证入口。
+- [T0 验收](docs/acceptance/T0验收记录.md)：交付物、测试结果及后续阶段边界。
 
 ## 目录
 
@@ -21,10 +22,11 @@ PROJECT_PROGRESS.md    # 持续更新的任务进度
 frontend/              # 独立 React/Vite 入口、依赖锁与验证工具
 backend/               # Python 3.12.10/uv 工程与领域包
 docs/                  # 设计、实施、契约、验收和运维文档
+deploy/                # 公开变量与Secret/领域库所有权约定，Compose待T1
 example/               # 独立界面与交互参考
 ```
 
-部署工程按计划在 `deploy/` 建立；生产源码与镜像构建不依赖 `example/`。
+部署变量与 Secret 约定已在 `deploy/` 建立，Dockerfile/Compose 待 T1；生产源码与镜像构建不依赖 `example/`。
 
 ## 启动界面参考
 

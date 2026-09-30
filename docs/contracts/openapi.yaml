@@ -1,0 +1,5246 @@
+# 由 backend/scripts/generate_openapi.py 生成；请修改 DTO/端点清单后重新生成。
+openapi: 3.1.0
+info:
+  title: 寝室电费学生端 API
+  version: 0.1.0
+  description: T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，时间戳带时区。202 仅表示持久受理。业务服务按 x-stage
+    实现。
+servers:
+- url: /api/v1
+paths:
+  /auth/agreement:
+    get:
+      operationId: get_agreement
+      tags:
+      - identity
+      summary: get_agreement
+      x-owner: identity
+      x-stage: T2
+      security: []
+      parameters: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Agreement'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /auth/captcha:
+    post:
+      operationId: create_captcha
+      tags:
+      - school_adapter
+      summary: create_captcha
+      x-owner: school_adapter
+      x-stage: T2
+      security: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Captcha'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaptchaRequest'
+  /auth/login:
+    post:
+      operationId: login
+      tags:
+      - identity
+      summary: login
+      x-owner: identity
+      x-stage: T2
+      security: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LoginResult'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+  /auth/me:
+    get:
+      operationId: get_me
+      tags:
+      - identity
+      summary: get_me
+      x-owner: identity
+      x-stage: T2
+      security:
+      - SessionCookie: []
+      parameters: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Me'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /auth/logout:
+    post:
+      operationId: logout
+      tags:
+      - identity
+      summary: logout
+      x-owner: identity
+      x-stage: T2
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      responses:
+        '204':
+          description: 成功
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /auth/school-credential:
+    delete:
+      operationId: revoke_credential
+      tags:
+      - identity
+      summary: revoke_credential
+      x-owner: identity
+      x-stage: T3
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionRequest'
+      x-version-required: expected_version；缺失 428，冲突 409
+      x-result-query: /operations/{id}
+      x-persistence: identity.credential_operations
+  /overview:
+    get:
+      operationId: get_overview
+      tags:
+      - gateway
+      summary: get_overview
+      x-owner: gateway
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: binding_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Overview'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /room-bindings:
+    get:
+      operationId: list_bindings
+      tags:
+      - room
+      summary: list_bindings
+      x-owner: room
+      x-stage: T2
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 128
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Bindings'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+    post:
+      operationId: bind_room
+      tags:
+      - room
+      summary: bind_room
+      x-owner: room
+      x-stage: T3
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindRequest'
+      x-result-query: /operations/{id}
+      x-persistence: room.room_operations
+  /room-bindings/sync:
+    post:
+      operationId: sync_bindings
+      tags:
+      - room
+      summary: sync_bindings
+      x-owner: room
+      x-stage: T2
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      x-result-query: /operations/{id}
+      x-persistence: room.room_operations
+  /room-candidates:
+    get:
+      operationId: list_candidates
+      tags:
+      - room
+      summary: list_candidates
+      x-owner: room
+      x-stage: T2
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 128
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+      - name: room_id
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 128
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Candidates'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /room-preferences/default:
+    put:
+      operationId: set_default
+      tags:
+      - room
+      summary: set_default
+      x-owner: room
+      x-stage: T3
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DefaultResult'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefaultRequest'
+      x-version-required: expected_version；缺失 428，冲突 409
+      x-result-query: /operations/{id}
+      x-persistence: room.room_operations
+  /operations/{id}:
+    get:
+      operationId: get_operation
+      tags:
+      - gateway
+      summary: get_operation
+      x-owner: gateway
+      x-stage: T2
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Operation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /room-bindings/{id}/balance:
+    get:
+      operationId: get_balance
+      tags:
+      - room
+      summary: get_balance
+      x-owner: room
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Balance'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /room-bindings/{id}/balance-refresh:
+    post:
+      operationId: refresh_balance
+      tags:
+      - room
+      summary: refresh_balance
+      x-owner: room
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      x-result-query: /operations/{id}
+      x-persistence: room.room_operations
+  /room-bindings/{id}/consumption:
+    get:
+      operationId: get_consumption
+      tags:
+      - room
+      summary: get_consumption
+      x-owner: room
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: start_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: end_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: granularity
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - day
+          - week
+          - month
+          default: day
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Consumption'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /room-bindings/{id}/history-sync:
+    post:
+      operationId: sync_history
+      tags:
+      - room
+      summary: sync_history
+      x-owner: room
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HistoryRequest'
+      x-result-query: /operations/{id}
+      x-persistence: room.history_syncs
+  /room-bindings/{id}/monitor-samples:
+    get:
+      operationId: list_samples
+      tags:
+      - monitoring
+      summary: list_samples
+      x-owner: monitoring
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: start_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: end_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+      - name: snapshot_token
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 512
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Samples'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /monitor:
+    get:
+      operationId: get_monitor
+      tags:
+      - monitoring
+      summary: get_monitor
+      x-owner: monitoring
+      x-stage: T3
+      security:
+      - SessionCookie: []
+      parameters: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Monitor'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+    patch:
+      operationId: update_monitor
+      tags:
+      - monitoring
+      summary: update_monitor
+      x-owner: monitoring
+      x-stage: T3
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Monitor'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonitorPatch'
+      x-version-required: expected_version；缺失 428，冲突 409
+  /monitor/runs:
+    post:
+      operationId: create_run
+      tags:
+      - monitoring
+      summary: create_run
+      x-owner: monitoring
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedRun'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      x-result-query: /monitor/runs/{id}
+      x-persistence: monitoring.monitor_runs
+  /monitor/runs/{id}:
+    get:
+      operationId: get_run
+      tags:
+      - monitoring
+      summary: get_run
+      x-owner: monitoring
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Run'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /monitor/runs/{id}/cancel:
+    post:
+      operationId: cancel_run
+      tags:
+      - monitoring
+      summary: cancel_run
+      x-owner: monitoring
+      x-stage: T4
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Run'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Run'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionRequest'
+      x-version-required: expected_version；缺失 428，冲突 409
+      x-result-query: /monitor/runs/{id}
+      x-persistence: monitoring.monitor_runs
+  /payments/capabilities:
+    get:
+      operationId: get_capabilities
+      tags:
+      - payment
+      summary: get_capabilities
+      x-owner: payment
+      x-stage: T6
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: binding_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Capabilities'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /payment-orders:
+    post:
+      operationId: create_order
+      tags:
+      - payment
+      summary: create_order
+      x-owner: payment
+      x-stage: T6
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOrder'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      x-result-query: /payment-orders/{id}
+      x-persistence: payment.payment_orders
+  /payment-orders/{id}:
+    get:
+      operationId: get_order
+      tags:
+      - payment
+      summary: get_order
+      x-owner: payment
+      x-stage: T6
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /payment-orders/{id}/qr:
+    get:
+      operationId: get_qr
+      tags:
+      - payment
+      summary: get_qr
+      x-owner: payment
+      x-stage: T6
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/QRPending'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      x-result-query: /payment-orders/{id}
+      x-persistence: payment.payment_operations
+  /payment-orders/{id}/qr-refresh:
+    post:
+      operationId: refresh_qr
+      tags:
+      - payment
+      summary: refresh_qr
+      x-owner: payment
+      x-stage: T6
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      x-result-query: /operations/{id}
+      x-persistence: payment.payment_operations
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-elect_session
+      description: Secure; HttpOnly; SameSite=Lax; Path=/；不设置 Domain
+  parameters:
+    CSRF:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 按用户+操作类型分区，原请求摘要一致才能重放，至少保留 180 天
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+  schemas:
+    DTO:
+      additionalProperties: false
+      properties: {}
+      title: DTO
+      type: object
+    Meta:
+      additionalProperties: false
+      properties:
+        request_id:
+          format: uuid
+          title: Request Id
+          type: string
+        server_time:
+          format: date-time
+          title: Server Time
+          type: string
+      required:
+      - request_id
+      - server_time
+      title: Meta
+      type: object
+    ErrorCode:
+      enum:
+      - INVALID_ARGUMENT
+      - INVALID_INTERVAL
+      - INVALID_DATE_RANGE
+      - CAPTCHA_INVALID
+      - CAPTCHA_EXPIRED
+      - APP_SESSION_EXPIRED
+      - SCHOOL_LOGIN_REJECTED
+      - CSRF_REJECTED
+      - ORIGIN_REJECTED
+      - NOT_FOUND
+      - VERSION_CONFLICT
+      - IDEMPOTENCY_CONFLICT
+      - OPERATION_IN_PROGRESS
+      - SCHOOL_REAUTH_REQUIRED
+      - REAUTH_ACCOUNT_MISMATCH
+      - ROOM_CANDIDATE_EXPIRED
+      - SNAPSHOT_EXPIRED
+      - SNAPSHOT_MISMATCH
+      - PRECONDITION_REQUIRED
+      - RATE_LIMITED
+      - SCHOOL_PROTOCOL_CHANGED
+      - SCHOOL_INVALID_RESPONSE
+      - SCHOOL_UNAVAILABLE
+      - CIRCUIT_OPEN
+      - DEPENDENCY_UNAVAILABLE
+      - SCHOOL_TIMEOUT
+      - PAYMENT_UNAVAILABLE
+      - FEATURE_DISABLED
+      title: ErrorCode
+      type: string
+    Error:
+      additionalProperties: false
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          title: Message
+          type: string
+        retryable:
+          title: Retryable
+          type: boolean
+        retry_after_seconds:
+          anyOf:
+          - minimum: 0
+            type: integer
+          - type: 'null'
+          title: Retry After Seconds
+        requires_reauth:
+          title: Requires Reauth
+          type: boolean
+        field_errors:
+          additionalProperties:
+            type: string
+          title: Field Errors
+          type: object
+        current_version:
+          anyOf:
+          - minimum: 1
+            type: integer
+          - type: 'null'
+          default: null
+          title: Current Version
+        existing_operation_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          default: null
+          title: Existing Operation Id
+      required:
+      - code
+      - message
+      - retryable
+      - retry_after_seconds
+      - requires_reauth
+      - field_errors
+      title: Error
+      type: object
+    ErrorEnvelope:
+      additionalProperties: false
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - error
+      - meta
+      title: ErrorEnvelope
+      type: object
+    VersionRequest:
+      additionalProperties: false
+      properties:
+        expected_version:
+          minimum: 1
+          title: Expected Version
+          type: integer
+      required:
+      - expected_version
+      title: VersionRequest
+      type: object
+    DateRange:
+      additionalProperties: false
+      properties:
+        start_date:
+          format: date
+          title: Start Date
+          type: string
+        end_date:
+          format: date
+          title: End Date
+          type: string
+      required:
+      - start_date
+      - end_date
+      title: DateRange
+      type: object
+    Page:
+      additionalProperties: false
+      properties:
+        page:
+          minimum: 1
+          title: Page
+          type: integer
+        page_size:
+          maximum: 100
+          minimum: 1
+          title: Page Size
+          type: integer
+        total:
+          minimum: 0
+          title: Total
+          type: integer
+      required:
+      - page
+      - page_size
+      - total
+      title: Page
+      type: object
+    OperationSummary:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        type:
+          enum:
+          - credential_revoke
+          - binding_sync
+          - bind_room
+          - switch_default
+          - balance_refresh
+          - history_sync
+          - qr_refresh
+          title: Type
+          type: string
+        state:
+          enum:
+          - accepted
+          - running
+          - reconciling
+          - unknown
+          - succeeded
+          - failed
+          - cancelled
+          title: State
+          type: string
+        target_binding_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Target Binding Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+      required:
+      - id
+      - type
+      - state
+      - target_binding_id
+      - created_at
+      title: OperationSummary
+      type: object
+    Operation:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        type:
+          enum:
+          - credential_revoke
+          - binding_sync
+          - bind_room
+          - switch_default
+          - balance_refresh
+          - history_sync
+          - qr_refresh
+          title: Type
+          type: string
+        state:
+          enum:
+          - accepted
+          - running
+          - reconciling
+          - unknown
+          - succeeded
+          - failed
+          - cancelled
+          title: State
+          type: string
+        target_binding_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Target Binding Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        binding_status:
+          anyOf:
+          - enum:
+            - pending
+            - confirmed
+            - failed
+            - unknown
+            type: string
+          - type: 'null'
+          title: Binding Status
+        default_status:
+          anyOf:
+          - enum:
+            - pending
+            - switching
+            - confirmed
+            - unchanged
+            - failed
+            type: string
+          - type: 'null'
+          title: Default Status
+        retryable:
+          title: Retryable
+          type: boolean
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+        next_reconcile_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Next Reconcile At
+        result_binding_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Result Binding Id
+        result_order_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Result Order Id
+      required:
+      - id
+      - type
+      - state
+      - target_binding_id
+      - created_at
+      - binding_status
+      - default_status
+      - retryable
+      - error_code
+      - next_reconcile_at
+      - result_binding_id
+      - result_order_id
+      title: Operation
+      type: object
+    AcceptedOperation:
+      additionalProperties: false
+      properties:
+        operation_id:
+          format: uuid
+          title: Operation Id
+          type: string
+        state:
+          enum:
+          - accepted
+          - running
+          - reconciling
+          - unknown
+          - succeeded
+          - failed
+          - cancelled
+          title: State
+          type: string
+        poll_url:
+          title: Poll Url
+          type: string
+      required:
+      - operation_id
+      - state
+      - poll_url
+      title: AcceptedOperation
+      type: object
+    Agreement:
+      additionalProperties: false
+      properties:
+        version:
+          title: Version
+          type: string
+        content:
+          title: Content
+          type: string
+        content_hash:
+          pattern: ^[a-f0-9]{64}$
+          title: Content Hash
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - version
+      - content
+      - content_hash
+      - updated_at
+      title: Agreement
+      type: object
+    CaptchaRequest:
+      additionalProperties: false
+      properties:
+        previous_challenge_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Previous Challenge Id
+      title: CaptchaRequest
+      type: object
+    Captcha:
+      additionalProperties: false
+      properties:
+        challenge_id:
+          maxLength: 128
+          minLength: 43
+          title: Challenge Id
+          type: string
+        image_data_url:
+          pattern: ^data:image/(png|jpeg);base64,
+          title: Image Data Url
+          type: string
+        expires_at:
+          format: date-time
+          title: Expires At
+          type: string
+      required:
+      - challenge_id
+      - image_data_url
+      - expires_at
+      title: Captcha
+      type: object
+    LoginRequest:
+      additionalProperties: false
+      properties:
+        student_id:
+          maxLength: 128
+          minLength: 1
+          title: Student Id
+          type: string
+        password:
+          format: password
+          title: Password
+          type: string
+          writeOnly: true
+        challenge_id:
+          title: Challenge Id
+          type: string
+        captcha_answer:
+          maxLength: 32
+          minLength: 1
+          title: Captcha Answer
+          type: string
+        agreement_version:
+          title: Agreement Version
+          type: string
+        agreement_accepted:
+          const: true
+          title: Agreement Accepted
+          type: boolean
+        credential_use_allowed:
+          title: Credential Use Allowed
+          type: boolean
+      required:
+      - student_id
+      - password
+      - challenge_id
+      - captcha_answer
+      - agreement_version
+      - agreement_accepted
+      - credential_use_allowed
+      title: LoginRequest
+      type: object
+    Consent:
+      additionalProperties: false
+      properties:
+        agreement_version:
+          title: Agreement Version
+          type: string
+        accepted_at:
+          format: date-time
+          title: Accepted At
+          type: string
+        credential_use_allowed:
+          title: Credential Use Allowed
+          type: boolean
+        revoked_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Revoked At
+      required:
+      - agreement_version
+      - accepted_at
+      - credential_use_allowed
+      - revoked_at
+      title: Consent
+      type: object
+    Me:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        student_id:
+          title: Student Id
+          type: string
+        school:
+          title: School
+          type: string
+        credential_status:
+          enum:
+          - active
+          - requires_reauth
+          - revoking
+          - revoked
+          - missing
+          title: Credential Status
+          type: string
+        credential_version:
+          anyOf:
+          - minimum: 1
+            type: integer
+          - type: 'null'
+          title: Credential Version
+        consent:
+          $ref: '#/components/schemas/Consent'
+        csrf_token:
+          title: Csrf Token
+          type: string
+        credential_revoke_operation:
+          anyOf:
+          - $ref: '#/components/schemas/OperationSummary'
+          - type: 'null'
+      required:
+      - id
+      - student_id
+      - school
+      - credential_status
+      - credential_version
+      - consent
+      - csrf_token
+      - credential_revoke_operation
+      title: Me
+      type: object
+    Bootstrap:
+      additionalProperties: false
+      properties:
+        rooms_state:
+          enum:
+          - loading
+          - ready
+          - failed
+          title: Rooms State
+          type: string
+        requires_binding:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Requires Binding
+        default_binding_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Default Binding Id
+        credential_status:
+          enum:
+          - active
+          - requires_reauth
+          - revoking
+          - revoked
+          - missing
+          title: Credential Status
+          type: string
+      required:
+      - rooms_state
+      - requires_binding
+      - default_binding_id
+      - credential_status
+      title: Bootstrap
+      type: object
+    LoginResult:
+      additionalProperties: false
+      properties:
+        user:
+          $ref: '#/components/schemas/Me'
+        bootstrap:
+          $ref: '#/components/schemas/Bootstrap'
+      required:
+      - user
+      - bootstrap
+      title: LoginResult
+      type: object
+    Balance:
+      additionalProperties: false
+      properties:
+        amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          title: Amount
+        currency:
+          const: CNY
+          title: Currency
+          type: string
+        source:
+          anyOf:
+          - enum:
+            - school_bound_rooms
+            - school_room_candidate
+            type: string
+          - type: 'null'
+          title: Source
+        fetched_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Fetched At
+        school_observed_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: School Observed At
+        stale:
+          title: Stale
+          type: boolean
+        refresh_state:
+          enum:
+          - idle
+          - pending
+          - ready
+          - failed
+          title: Refresh State
+          type: string
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+      required:
+      - amount
+      - currency
+      - source
+      - fetched_at
+      - school_observed_at
+      - stale
+      - refresh_state
+      - error_code
+      title: Balance
+      type: object
+    Binding:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        room_id:
+          format: uuid
+          title: Room Id
+          type: string
+        building:
+          title: Building
+          type: string
+        number:
+          title: Number
+          type: string
+        display_name:
+          title: Display Name
+          type: string
+        status:
+          enum:
+          - active
+          - rechecking
+          - inactive
+          title: Status
+          type: string
+        balance:
+          anyOf:
+          - $ref: '#/components/schemas/Balance'
+          - type: 'null'
+      required:
+      - id
+      - room_id
+      - building
+      - number
+      - display_name
+      - status
+      - balance
+      title: Binding
+      type: object
+    Bindings:
+      additionalProperties: false
+      properties:
+        page:
+          minimum: 1
+          title: Page
+          type: integer
+        page_size:
+          maximum: 100
+          minimum: 1
+          title: Page Size
+          type: integer
+        total:
+          minimum: 0
+          title: Total
+          type: integer
+        items:
+          items:
+            $ref: '#/components/schemas/Binding'
+          title: Items
+          type: array
+        default_binding_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Default Binding Id
+        preference_version:
+          minimum: 1
+          title: Preference Version
+          type: integer
+        default_switch_operation_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Default Switch Operation Id
+        sync_status:
+          enum:
+          - ready
+          - loading
+          - empty
+          - stale
+          - partial
+          - failed
+          - unavailable
+          title: Sync Status
+          type: string
+        last_synced_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Last Synced At
+        pending_operations:
+          items:
+            $ref: '#/components/schemas/OperationSummary'
+          maxItems: 20
+          title: Pending Operations
+          type: array
+        pending_operations_truncated:
+          title: Pending Operations Truncated
+          type: boolean
+      required:
+      - page
+      - page_size
+      - total
+      - items
+      - default_binding_id
+      - preference_version
+      - default_switch_operation_id
+      - sync_status
+      - last_synced_at
+      - pending_operations
+      - pending_operations_truncated
+      title: Bindings
+      type: object
+    Candidate:
+      additionalProperties: false
+      properties:
+        candidate_id:
+          title: Candidate Id
+          type: string
+        room_id:
+          title: Room Id
+          type: string
+        building:
+          title: Building
+          type: string
+        number:
+          title: Number
+          type: string
+        display_name:
+          title: Display Name
+          type: string
+        already_bound:
+          title: Already Bound
+          type: boolean
+        expires_at:
+          format: date-time
+          title: Expires At
+          type: string
+      required:
+      - candidate_id
+      - room_id
+      - building
+      - number
+      - display_name
+      - already_bound
+      - expires_at
+      title: Candidate
+      type: object
+    Candidates:
+      additionalProperties: false
+      properties:
+        page:
+          minimum: 1
+          title: Page
+          type: integer
+        page_size:
+          maximum: 100
+          minimum: 1
+          title: Page Size
+          type: integer
+        total:
+          minimum: 0
+          title: Total
+          type: integer
+        items:
+          items:
+            $ref: '#/components/schemas/Candidate'
+          title: Items
+          type: array
+        search_quality:
+          enum:
+          - exact
+          - partial
+          - unverified
+          title: Search Quality
+          type: string
+        expires_at:
+          format: date-time
+          title: Expires At
+          type: string
+      required:
+      - page
+      - page_size
+      - total
+      - items
+      - search_quality
+      - expires_at
+      title: Candidates
+      type: object
+    BindRequest:
+      additionalProperties: false
+      properties:
+        candidate_id:
+          maxLength: 128
+          minLength: 1
+          title: Candidate Id
+          type: string
+      required:
+      - candidate_id
+      title: BindRequest
+      type: object
+    DefaultRequest:
+      additionalProperties: false
+      properties:
+        binding_id:
+          format: uuid
+          title: Binding Id
+          type: string
+        expected_version:
+          minimum: 1
+          title: Expected Version
+          type: integer
+      required:
+      - binding_id
+      - expected_version
+      title: DefaultRequest
+      type: object
+    DefaultResult:
+      additionalProperties: false
+      properties:
+        default_binding_id:
+          format: uuid
+          title: Default Binding Id
+          type: string
+        preference_version:
+          minimum: 1
+          title: Preference Version
+          type: integer
+        state:
+          const: ready
+          title: State
+          type: string
+      required:
+      - default_binding_id
+      - preference_version
+      - state
+      title: DefaultResult
+      type: object
+    HistoryRequest:
+      additionalProperties: false
+      properties:
+        start_date:
+          format: date
+          title: Start Date
+          type: string
+        end_date:
+          format: date
+          title: End Date
+          type: string
+      required:
+      - start_date
+      - end_date
+      title: HistoryRequest
+      type: object
+    Bucket:
+      additionalProperties: false
+      properties:
+        start_date:
+          format: date
+          title: Start Date
+          type: string
+        end_date:
+          format: date
+          title: End Date
+          type: string
+        amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          title: Amount
+        energy_usage:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,13})\.\d{4}$
+            type: string
+          - type: 'null'
+          title: Energy Usage
+        known_days:
+          minimum: 0
+          title: Known Days
+          type: integer
+        expected_days:
+          minimum: 1
+          title: Expected Days
+          type: integer
+        complete:
+          title: Complete
+          type: boolean
+      required:
+      - start_date
+      - end_date
+      - amount
+      - energy_usage
+      - known_days
+      - expected_days
+      - complete
+      title: Bucket
+      type: object
+    ConsumptionSummary:
+      additionalProperties: false
+      properties:
+        amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          title: Amount
+        energy_usage:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,13})\.\d{4}$
+            type: string
+          - type: 'null'
+          title: Energy Usage
+        known_days:
+          minimum: 0
+          title: Known Days
+          type: integer
+        expected_days:
+          minimum: 1
+          title: Expected Days
+          type: integer
+        complete:
+          title: Complete
+          type: boolean
+      required:
+      - amount
+      - energy_usage
+      - known_days
+      - expected_days
+      - complete
+      title: ConsumptionSummary
+      type: object
+    Consumption:
+      additionalProperties: false
+      properties:
+        start_date:
+          format: date
+          title: Start Date
+          type: string
+        end_date:
+          format: date
+          title: End Date
+          type: string
+        binding_id:
+          format: uuid
+          title: Binding Id
+          type: string
+        granularity:
+          enum:
+          - day
+          - week
+          - month
+          title: Granularity
+          type: string
+        buckets:
+          items:
+            $ref: '#/components/schemas/Bucket'
+          title: Buckets
+          type: array
+        summary:
+          $ref: '#/components/schemas/ConsumptionSummary'
+        coverage:
+          enum:
+          - complete
+          - partial
+          - unknown
+          title: Coverage
+          type: string
+        sync_status:
+          enum:
+          - ready
+          - loading
+          - empty
+          - stale
+          - partial
+          - failed
+          - unavailable
+          title: Sync Status
+          type: string
+        sync_operation:
+          anyOf:
+          - $ref: '#/components/schemas/OperationSummary'
+          - type: 'null'
+        version:
+          minimum: 1
+          title: Version
+          type: integer
+      required:
+      - start_date
+      - end_date
+      - binding_id
+      - granularity
+      - buckets
+      - summary
+      - coverage
+      - sync_status
+      - sync_operation
+      - version
+      title: Consumption
+      type: object
+    Profile:
+      additionalProperties: false
+      properties:
+        student_id:
+          title: Student Id
+          type: string
+        default_binding:
+          anyOf:
+          - $ref: '#/components/schemas/Binding'
+          - type: 'null'
+        alert_email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Alert Email
+      required:
+      - student_id
+      - default_binding
+      - alert_email
+      title: Profile
+      type: object
+    OverviewSummary:
+      additionalProperties: false
+      properties:
+        yesterday_amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          title: Yesterday Amount
+        last_14_days_amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          title: Last 14 Days Amount
+        known_days:
+          minimum: 0
+          title: Known Days
+          type: integer
+        expected_days:
+          minimum: 0
+          title: Expected Days
+          type: integer
+        complete:
+          title: Complete
+          type: boolean
+      required:
+      - yesterday_amount
+      - last_14_days_amount
+      - known_days
+      - expected_days
+      - complete
+      title: OverviewSummary
+      type: object
+    MonitorOverview:
+      additionalProperties: false
+      properties:
+        enabled:
+          title: Enabled
+          type: boolean
+        state:
+          enum:
+          - active
+          - disabled
+          - requires_reauth
+          - blocked_room
+          - retargeting
+          title: State
+          type: string
+        health:
+          enum:
+          - healthy
+          - degraded
+          - unavailable
+          title: Health
+          type: string
+        interval_minutes:
+          maximum: 1440
+          minimum: 60
+          title: Interval Minutes
+          type: integer
+      required:
+      - enabled
+      - state
+      - health
+      - interval_minutes
+      title: MonitorOverview
+      type: object
+    Overview:
+      additionalProperties: false
+      properties:
+        viewing_binding_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Viewing Binding Id
+        profile:
+          anyOf:
+          - $ref: '#/components/schemas/Profile'
+          - type: 'null'
+        balance:
+          anyOf:
+          - $ref: '#/components/schemas/Balance'
+          - type: 'null'
+        summary:
+          anyOf:
+          - $ref: '#/components/schemas/OverviewSummary'
+          - type: 'null'
+        daily_consumption:
+          anyOf:
+          - $ref: '#/components/schemas/Consumption'
+          - type: 'null'
+        monitor:
+          anyOf:
+          - $ref: '#/components/schemas/MonitorOverview'
+          - type: 'null'
+        component_status:
+          additionalProperties:
+            enum:
+            - ready
+            - loading
+            - empty
+            - stale
+            - partial
+            - failed
+            - unavailable
+            type: string
+          propertyNames:
+            enum:
+            - profile
+            - balance
+            - history
+            - monitor
+          title: Component Status
+          type: object
+      required:
+      - viewing_binding_id
+      - profile
+      - balance
+      - summary
+      - daily_consumption
+      - monitor
+      - component_status
+      title: Overview
+      type: object
+    MonitorConfig:
+      additionalProperties: false
+      properties:
+        enabled:
+          title: Enabled
+          type: boolean
+        interval_minutes:
+          maximum: 1440
+          minimum: 60
+          title: Interval Minutes
+          type: integer
+        repeat_limit:
+          maximum: 5
+          minimum: 1
+          title: Repeat Limit
+          type: integer
+        threshold:
+          pattern: ^(0|[1-9]\d{0,11})\.\d{2}$
+          title: Threshold
+          type: string
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+      required:
+      - enabled
+      - interval_minutes
+      - repeat_limit
+      - threshold
+      - email
+      title: MonitorConfig
+      type: object
+    MonitorPatch:
+      additionalProperties: false
+      properties:
+        expected_version:
+          minimum: 1
+          title: Expected Version
+          type: integer
+        enabled:
+          title: Enabled
+          type: boolean
+        interval_minutes:
+          maximum: 1440
+          minimum: 60
+          title: Interval Minutes
+          type: integer
+        repeat_limit:
+          maximum: 5
+          minimum: 1
+          title: Repeat Limit
+          type: integer
+        threshold:
+          pattern: ^(0|[1-9]\d{0,11})\.\d{2}$
+          title: Threshold
+          type: string
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Email
+      required:
+      - expected_version
+      title: MonitorPatch
+      type: object
+    NotificationSummary:
+      additionalProperties: false
+      properties:
+        state:
+          enum:
+          - idle
+          - pending
+          - sending
+          - sent
+          - email_failed
+          - delivery_unknown
+          - cancelled
+          title: State
+          type: string
+        last_sent_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Last Sent At
+        last_error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Error Code
+        next_retry_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Next Retry At
+        in_flight_count:
+          minimum: 0
+          title: In Flight Count
+          type: integer
+        delivery_unknown_count:
+          minimum: 0
+          title: Delivery Unknown Count
+          type: integer
+      required:
+      - state
+      - last_sent_at
+      - last_error_code
+      - next_retry_at
+      - in_flight_count
+      - delivery_unknown_count
+      title: NotificationSummary
+      type: object
+    RunAttempt:
+      additionalProperties: false
+      properties:
+        attempt_no:
+          minimum: 1
+          title: Attempt No
+          type: integer
+        started_at:
+          format: date-time
+          title: Started At
+          type: string
+        finished_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Finished At
+        outcome:
+          enum:
+          - running
+          - succeeded
+          - retryable
+          - failed
+          - cancelled
+          - fenced
+          title: Outcome
+          type: string
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+      required:
+      - attempt_no
+      - started_at
+      - finished_at
+      - outcome
+      - error_code
+      title: RunAttempt
+      type: object
+    Run:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        version:
+          minimum: 1
+          title: Version
+          type: integer
+        binding_id:
+          format: uuid
+          title: Binding Id
+          type: string
+        state:
+          enum:
+          - pending
+          - running
+          - retry_wait
+          - cancel_requested
+          - succeeded
+          - failed
+          - cancelled
+          title: State
+          type: string
+        scheduled_for:
+          format: date-time
+          title: Scheduled For
+          type: string
+        started_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Finished At
+        next_attempt_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Next Attempt At
+        cancel_pending:
+          title: Cancel Pending
+          type: boolean
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+        attempts:
+          items:
+            $ref: '#/components/schemas/RunAttempt'
+          title: Attempts
+          type: array
+      required:
+      - id
+      - version
+      - binding_id
+      - state
+      - scheduled_for
+      - started_at
+      - finished_at
+      - next_attempt_at
+      - cancel_pending
+      - error_code
+      - attempts
+      title: Run
+      type: object
+    AcceptedRun:
+      additionalProperties: false
+      properties:
+        run_id:
+          format: uuid
+          title: Run Id
+          type: string
+        version:
+          minimum: 1
+          title: Version
+          type: integer
+        state:
+          enum:
+          - pending
+          - running
+          - retry_wait
+          - cancel_requested
+          - succeeded
+          - failed
+          - cancelled
+          title: State
+          type: string
+        poll_url:
+          title: Poll Url
+          type: string
+      required:
+      - run_id
+      - version
+      - state
+      - poll_url
+      title: AcceptedRun
+      type: object
+    Monitor:
+      additionalProperties: false
+      properties:
+        id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Id
+        binding_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Binding Id
+        config:
+          $ref: '#/components/schemas/MonitorConfig'
+        state:
+          enum:
+          - active
+          - disabled
+          - requires_reauth
+          - blocked_room
+          - retargeting
+          title: State
+          type: string
+        health:
+          enum:
+          - healthy
+          - degraded
+          - unavailable
+          title: Health
+          type: string
+        version:
+          minimum: 1
+          title: Version
+          type: integer
+        generation:
+          minimum: 1
+          title: Generation
+          type: integer
+        current_run:
+          anyOf:
+          - $ref: '#/components/schemas/Run'
+          - type: 'null'
+        last_run:
+          anyOf:
+          - $ref: '#/components/schemas/Run'
+          - type: 'null'
+        next_run_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Next Run At
+        last_success_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Last Success At
+        last_error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Error Code
+        cancel_pending:
+          title: Cancel Pending
+          type: boolean
+        in_flight_count:
+          minimum: 0
+          title: In Flight Count
+          type: integer
+        notification:
+          $ref: '#/components/schemas/NotificationSummary'
+      required:
+      - id
+      - binding_id
+      - config
+      - state
+      - health
+      - version
+      - generation
+      - current_run
+      - last_run
+      - next_run_at
+      - last_success_at
+      - last_error_code
+      - cancel_pending
+      - in_flight_count
+      - notification
+      title: Monitor
+      type: object
+    Sample:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        run_id:
+          format: uuid
+          title: Run Id
+          type: string
+        captured_at:
+          format: date-time
+          title: Captured At
+          type: string
+        balance:
+          pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+          title: Balance
+          type: string
+        previous_captured_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Previous Captured At
+        balance_delta:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          title: Balance Delta
+        balance_delta_kind:
+          const: net_balance_change
+          title: Balance Delta Kind
+          type: string
+        gap_seconds:
+          anyOf:
+          - minimum: 0
+            type: integer
+          - type: 'null'
+          title: Gap Seconds
+        gap_detected:
+          title: Gap Detected
+          type: boolean
+        meter_last_reading:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,13})\.\d{4}$
+            type: string
+          - type: 'null'
+          title: Meter Last Reading
+        meter_reading:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,13})\.\d{4}$
+            type: string
+          - type: 'null'
+          title: Meter Reading
+        meter_delta:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,13})\.\d{4}$
+            type: string
+          - type: 'null'
+          title: Meter Delta
+        meter_record_date:
+          anyOf:
+          - format: date
+            type: string
+          - type: 'null'
+          title: Meter Record Date
+        meter_source:
+          anyOf:
+          - const: school_C02_daily_record
+            type: string
+          - type: 'null'
+          title: Meter Source
+        meter_source_record_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Meter Source Record Key
+        meter_is_repeated:
+          title: Meter Is Repeated
+          type: boolean
+        quality:
+          enum:
+          - balance_only
+          - meter_not_realtime
+          - meter_inconsistent
+          - meter_negative_delta
+          title: Quality
+          type: string
+      required:
+      - id
+      - run_id
+      - captured_at
+      - balance
+      - previous_captured_at
+      - balance_delta
+      - balance_delta_kind
+      - gap_seconds
+      - gap_detected
+      - meter_last_reading
+      - meter_reading
+      - meter_delta
+      - meter_record_date
+      - meter_source
+      - meter_source_record_key
+      - meter_is_repeated
+      - quality
+      title: Sample
+      type: object
+    Samples:
+      additionalProperties: false
+      properties:
+        page:
+          minimum: 1
+          title: Page
+          type: integer
+        page_size:
+          maximum: 100
+          minimum: 1
+          title: Page Size
+          type: integer
+        total:
+          minimum: 0
+          title: Total
+          type: integer
+        items:
+          items:
+            $ref: '#/components/schemas/Sample'
+          title: Items
+          type: array
+        has_monitor_history:
+          title: Has Monitor History
+          type: boolean
+        snapshot_token:
+          title: Snapshot Token
+          type: string
+        snapshot_expires_at:
+          format: date-time
+          title: Snapshot Expires At
+          type: string
+      required:
+      - page
+      - page_size
+      - total
+      - items
+      - has_monitor_history
+      - snapshot_token
+      - snapshot_expires_at
+      title: Samples
+      type: object
+    OrderReference:
+      additionalProperties: false
+      properties:
+        order_id:
+          format: uuid
+          title: Order Id
+          type: string
+        binding_id:
+          format: uuid
+          title: Binding Id
+          type: string
+        state:
+          enum:
+          - created
+          - submitting
+          - awaiting_payment
+          - paid_confirmed
+          - submit_unknown
+          - status_unknown
+          - rejected
+          - expired_confirmed
+          - closed_confirmed
+          title: State
+          type: string
+        amount:
+          pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+          title: Amount
+          type: string
+        currency:
+          const: CNY
+          title: Currency
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+      required:
+      - order_id
+      - binding_id
+      - state
+      - amount
+      - currency
+      - created_at
+      title: OrderReference
+      type: object
+    Capabilities:
+      additionalProperties: false
+      properties:
+        enabled:
+          title: Enabled
+          type: boolean
+        currency:
+          const: CNY
+          title: Currency
+          type: string
+        min_amount:
+          pattern: ^(0|[1-9]\d{0,11})\.\d{2}$
+          title: Min Amount
+          type: string
+        max_amount:
+          pattern: ^(0|[1-9]\d{0,11})\.\d{2}$
+          title: Max Amount
+          type: string
+        amount_step:
+          pattern: ^(0|[1-9]\d{0,11})\.\d{2}$
+          title: Amount Step
+          type: string
+        unavailable_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unavailable Reason
+        unresolved_order:
+          anyOf:
+          - $ref: '#/components/schemas/OrderReference'
+          - type: 'null'
+      required:
+      - enabled
+      - currency
+      - min_amount
+      - max_amount
+      - amount_step
+      - unavailable_reason
+      - unresolved_order
+      title: Capabilities
+      type: object
+    OrderRequest:
+      additionalProperties: false
+      properties:
+        binding_id:
+          format: uuid
+          title: Binding Id
+          type: string
+        amount:
+          pattern: ^(0|[1-9]\d{0,11})\.\d{2}$
+          title: Amount
+          type: string
+        currency:
+          const: CNY
+          default: CNY
+          title: Currency
+          type: string
+      required:
+      - binding_id
+      - amount
+      title: OrderRequest
+      type: object
+    AcceptedOrder:
+      additionalProperties: false
+      properties:
+        order_id:
+          format: uuid
+          title: Order Id
+          type: string
+        state:
+          enum:
+          - created
+          - submitting
+          - awaiting_payment
+          - paid_confirmed
+          - submit_unknown
+          - status_unknown
+          - rejected
+          - expired_confirmed
+          - closed_confirmed
+          title: State
+          type: string
+        poll_url:
+          title: Poll Url
+          type: string
+      required:
+      - order_id
+      - state
+      - poll_url
+      title: AcceptedOrder
+      type: object
+    Order:
+      additionalProperties: false
+      properties:
+        order_id:
+          format: uuid
+          title: Order Id
+          type: string
+        binding_id:
+          format: uuid
+          title: Binding Id
+          type: string
+        state:
+          enum:
+          - created
+          - submitting
+          - awaiting_payment
+          - paid_confirmed
+          - submit_unknown
+          - status_unknown
+          - rejected
+          - expired_confirmed
+          - closed_confirmed
+          title: State
+          type: string
+        amount:
+          pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+          title: Amount
+          type: string
+        currency:
+          const: CNY
+          title: Currency
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        binding_display_name:
+          title: Binding Display Name
+          type: string
+        paid_confirmed:
+          title: Paid Confirmed
+          type: boolean
+        last_checked_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Last Checked At
+        qr_status:
+          enum:
+          - not_requested
+          - generating
+          - ready
+          - failed
+          - unknown
+          - expired_confirmed
+          title: Qr Status
+          type: string
+        qr_expires_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Qr Expires At
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+      required:
+      - order_id
+      - binding_id
+      - state
+      - amount
+      - currency
+      - created_at
+      - binding_display_name
+      - paid_confirmed
+      - last_checked_at
+      - qr_status
+      - qr_expires_at
+      - error_code
+      title: Order
+      type: object
+    QRPending:
+      additionalProperties: false
+      properties:
+        order_id:
+          format: uuid
+          title: Order Id
+          type: string
+        qr_status:
+          enum:
+          - not_requested
+          - generating
+          - ready
+          - failed
+          - unknown
+          - expired_confirmed
+          title: Qr Status
+          type: string
+        poll_url:
+          title: Poll Url
+          type: string
+        retry_after_seconds:
+          title: Retry After Seconds
+          type: integer
+      required:
+      - order_id
+      - qr_status
+      - poll_url
+      - retry_after_seconds
+      title: QRPending
+      type: object

@@ -1,0 +1,3857 @@
+{
+  "schema_version": 1,
+  "databases": {
+    "identity": {
+      "database": "elect_identity",
+      "revision": "identity_0001",
+      "tables": {
+        "users": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "school_id": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "status": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "session_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "credential_ref"
+            ]
+          ],
+          "checks": [
+            "session_version >= 1",
+            "status IN ('active', 'disabled', 'deleted')"
+          ],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "app_sessions": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "token_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "csrf_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "absolute_expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "last_seen_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "revoked_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "session_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "token_hash"
+            ]
+          ],
+          "checks": [
+            "session_version >= 1"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "user_id"
+              ],
+              "targets": [
+                "users.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "expires_at"
+            ],
+            [
+              "user_id",
+              "revoked_at"
+            ]
+          ]
+        },
+        "consents": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "agreement_version": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "accepted_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_use_allowed": {
+              "type": "BOOL",
+              "nullable": false,
+              "primary_key": false
+            },
+            "revoked_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "user_id"
+              ],
+              "targets": [
+                "users.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "user_id",
+              "agreement_version",
+              "accepted_at"
+            ]
+          ]
+        },
+        "login_attempts": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "browser_nonce_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "user_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "state IN ('created', 'authenticating', 'staged', 'identity_committed', 'activating', 'activated', 'session_issued', 'failed', 'expired')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "user_id"
+              ],
+              "targets": [
+                "users.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "state",
+              "expires_at"
+            ]
+          ]
+        },
+        "credential_operations": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "expected_credential_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "saga_step": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "next_reconcile_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "owner_user_id",
+              "expected_credential_version"
+            ]
+          ],
+          "checks": [
+            "expected_credential_version >= 1",
+            "state IN ('accepted', 'running', 'reconciling', 'unknown', 'succeeded', 'failed', 'cancelled')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "owner_user_id"
+              ],
+              "targets": [
+                "users.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "state",
+              "next_reconcile_at"
+            ]
+          ]
+        },
+        "outbox_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "type": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schema_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "available_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "publish_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "published_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_attempts": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "publish_attempts >= 0",
+            "schema_version >= 1 AND aggregate_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "publish_lease_until"
+            ],
+            [
+              "published_at",
+              "available_at"
+            ]
+          ]
+        },
+        "inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        }
+      }
+    },
+    "school_adapter": {
+      "database": "elect_school",
+      "revision": "school_0001",
+      "tables": {
+        "school_credentials": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "school_id": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "school_user_id_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "nonce": {
+              "type": "BINARY(12)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "wrapped_dek": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "kek_version": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "algorithm": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "status": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "verified_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "revoked_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "owner_user_id",
+              "school_id"
+            ]
+          ],
+          "checks": [
+            "status IN ('active', 'revoking', 'revoked', 'requires_reauth')",
+            "version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "credential_staging": {
+          "columns": {
+            "attempt_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "encrypted_payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "wrapped_dek": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "nonce": {
+              "type": "BINARY(12)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "kek_version": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "algorithm": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "candidate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "candidate_version >= 1",
+            "state IN ('staged', 'activating', 'activated', 'expired', 'failed')"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "state",
+              "expires_at"
+            ]
+          ]
+        },
+        "account_lookup": {
+          "columns": {
+            "school_id": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_version": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "lookup_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "credential_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "credential_id"
+              ],
+              "targets": [
+                "school_credentials.id"
+              ]
+            }
+          ],
+          "indexes": []
+        },
+        "upstream_operations": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "operation_type": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "target_ref": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "dispatched_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "result_ref": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "reconcile_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "credential_version >= 1",
+            "operation_type IN ('bind_room', 'create_order', 'E01', 'E02', 'E03', 'E04')",
+            "state IN ('prepared', 'dispatched', 'confirmed', 'rejected', 'reconciling', 'unknown')"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "state",
+              "reconcile_at"
+            ]
+          ]
+        },
+        "payment_sessions": {
+          "columns": {
+            "order_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "cookiejar_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "hidden_fields_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "state IN ('created', 'active', 'unknown', 'closed')",
+            "version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "outbox_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "type": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schema_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "available_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "publish_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "published_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_attempts": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "publish_attempts >= 0",
+            "schema_version >= 1 AND aggregate_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "publish_lease_until"
+            ],
+            [
+              "published_at",
+              "available_at"
+            ]
+          ]
+        },
+        "inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        }
+      }
+    },
+    "room": {
+      "database": "elect_room",
+      "revision": "room_0001",
+      "tables": {
+        "rooms": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "school_id": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "school_room_id": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "building_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "room_no": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "meter_code": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "metadata_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "school_id",
+              "school_room_id"
+            ]
+          ],
+          "checks": [
+            "metadata_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "room_bindings": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "room_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "school_relation_id": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "status": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "last_confirmed_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "id",
+              "owner_user_id"
+            ],
+            [
+              "owner_user_id",
+              "room_id"
+            ]
+          ],
+          "checks": [
+            "status IN ('active', 'rechecking', 'inactive')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "room_id"
+              ],
+              "targets": [
+                "rooms.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "owner_user_id",
+              "status"
+            ]
+          ]
+        },
+        "room_operations": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "type": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "target_room_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "target_binding_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "idempotency_key_hash": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "saga_step": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "upstream_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "next_reconcile_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "expected_preference_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "committed_preference_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "open_binding_target": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(type = 'bind_room' AND state IN ('accepted', 'running', 'reconciling', 'unknown'), target_room_id, NULL)"
+            },
+            "open_switch_owner": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(type = 'switch_default' AND state IN ('accepted', 'running', 'reconciling', 'unknown'), owner_user_id, NULL)"
+            }
+          },
+          "unique": [
+            [
+              "open_switch_owner"
+            ],
+            [
+              "owner_user_id",
+              "open_binding_target"
+            ],
+            [
+              "owner_user_id",
+              "type",
+              "idempotency_key_hash"
+            ]
+          ],
+          "checks": [
+            "state IN ('accepted', 'running', 'reconciling', 'unknown', 'succeeded', 'failed', 'cancelled')",
+            "type IN ('binding_sync', 'bind_room', 'switch_default', 'balance_refresh', 'history_sync')"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "owner_user_id",
+              "state"
+            ],
+            [
+              "state",
+              "next_reconcile_at"
+            ]
+          ]
+        },
+        "room_preferences": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "default_binding_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "switch_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "state IN ('ready', 'switching', 'blocked')",
+            "version >= 1"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "default_binding_id",
+                "owner_user_id"
+              ],
+              "targets": [
+                "room_bindings.id",
+                "room_bindings.owner_user_id"
+              ]
+            },
+            {
+              "columns": [
+                "switch_operation_id"
+              ],
+              "targets": [
+                "room_operations.id"
+              ]
+            }
+          ],
+          "indexes": []
+        },
+        "room_balance_cache": {
+          "columns": {
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "balance": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "fetched_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "school_observed_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "source": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "quality": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "binding_id"
+              ],
+              "targets": [
+                "room_bindings.id"
+              ]
+            }
+          ],
+          "indexes": []
+        },
+        "history_syncs": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "operation_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "requested_start": {
+              "type": "DATE",
+              "nullable": false,
+              "primary_key": false
+            },
+            "requested_end": {
+              "type": "DATE",
+              "nullable": false,
+              "primary_key": false
+            },
+            "source": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "status": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "coverage": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "fetched_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "operation_id"
+            ]
+          ],
+          "checks": [
+            "coverage IN ('complete', 'partial', 'unknown')",
+            "requested_end >= requested_start",
+            "status IN ('accepted', 'running', 'succeeded', 'failed', 'cancelled')",
+            "version >= 1"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "binding_id"
+              ],
+              "targets": [
+                "room_bindings.id"
+              ]
+            },
+            {
+              "columns": [
+                "operation_id"
+              ],
+              "targets": [
+                "room_operations.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "binding_id",
+              "requested_start",
+              "requested_end",
+              "source"
+            ]
+          ]
+        },
+        "history_sync_windows": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "sync_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "start_date": {
+              "type": "DATE",
+              "nullable": false,
+              "primary_key": false
+            },
+            "end_date": {
+              "type": "DATE",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "attempt_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "next_attempt_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "cursor": {
+              "type": "VARCHAR(512)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "cancel_requested_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "execution_epoch": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "sync_id",
+              "start_date",
+              "end_date"
+            ]
+          ],
+          "checks": [
+            "attempt_count >= 0",
+            "end_date >= start_date",
+            "execution_epoch >= 1",
+            "state IN ('pending', 'running', 'retry_wait', 'succeeded', 'failed', 'cancelled')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "sync_id"
+              ],
+              "targets": [
+                "history_syncs.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "state",
+              "lease_until"
+            ],
+            [
+              "state",
+              "next_attempt_at"
+            ]
+          ]
+        },
+        "school_history_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "request_room_id": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "source": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "source_record_key": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "record_date": {
+              "type": "DATE",
+              "nullable": false,
+              "primary_key": false
+            },
+            "source_time": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "source_timezone": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "last_reading": {
+              "type": "NUMERIC(18, 4)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "reading": {
+              "type": "NUMERIC(18, 4)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "energy_usage": {
+              "type": "NUMERIC(18, 4)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "charged_amount": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "charge_status": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "row_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "sync_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "occurrence_index": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "snapshot_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "quality": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "binding_id",
+              "source",
+              "source_record_key"
+            ],
+            [
+              "sync_id",
+              "row_hash",
+              "occurrence_index"
+            ]
+          ],
+          "checks": [
+            "occurrence_index >= 1",
+            "snapshot_version >= 1"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "binding_id"
+              ],
+              "targets": [
+                "room_bindings.id"
+              ]
+            },
+            {
+              "columns": [
+                "sync_id"
+              ],
+              "targets": [
+                "history_syncs.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "binding_id",
+              "record_date",
+              "source"
+            ]
+          ]
+        },
+        "outbox_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "type": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schema_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "available_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "publish_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "published_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_attempts": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "publish_attempts >= 0",
+            "schema_version >= 1 AND aggregate_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "publish_lease_until"
+            ],
+            [
+              "published_at",
+              "available_at"
+            ]
+          ]
+        },
+        "inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        }
+      }
+    },
+    "monitoring": {
+      "database": "elect_monitoring",
+      "revision": "monitoring_0001",
+      "tables": {
+        "monitors": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "desired_enabled": {
+              "type": "BOOL",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "health": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "interval_minutes": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "repeat_limit": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "threshold": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "email_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "email_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "generation": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schedule_anchor_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "next_run_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "active_run_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_success_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "consecutive_failures": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "last_retarget_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "current_episode_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_sample_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "first_enabled_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_email_sent_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "owner_user_id"
+            ]
+          ],
+          "checks": [
+            "consecutive_failures >= 0",
+            "email_version >= 1 AND version >= 1 AND generation >= 1",
+            "health IN ('healthy', 'degraded', 'unavailable')",
+            "interval_minutes BETWEEN 60 AND 1440",
+            "repeat_limit BETWEEN 1 AND 5",
+            "state <> 'active' OR (binding_id IS NOT NULL AND credential_ref IS NOT NULL AND desired_enabled = 1)",
+            "state IN ('active', 'disabled', 'requires_reauth', 'blocked_room', 'retargeting')",
+            "threshold > 0 AND threshold <= 10000.00"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "active_run_id"
+              ],
+              "targets": [
+                "monitor_runs.id"
+              ]
+            },
+            {
+              "columns": [
+                "current_episode_id"
+              ],
+              "targets": [
+                "alert_episodes.id"
+              ]
+            },
+            {
+              "columns": [
+                "last_sample_id"
+              ],
+              "targets": [
+                "monitor_samples.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "state",
+              "next_run_at"
+            ]
+          ]
+        },
+        "monitor_runs": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "monitor_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "generation": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "scheduled_for": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "attempt_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "next_attempt_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "execution_epoch": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "cancel_requested_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "started_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "finished_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "id",
+              "monitor_id"
+            ],
+            [
+              "monitor_id",
+              "generation",
+              "scheduled_for"
+            ]
+          ],
+          "checks": [
+            "attempt_count >= 0",
+            "generation >= 1 AND version >= 1 AND credential_version >= 1 AND execution_epoch >= 1",
+            "state IN ('pending', 'running', 'retry_wait', 'cancel_requested', 'succeeded', 'failed', 'cancelled')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "monitor_id"
+              ],
+              "targets": [
+                "monitors.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "state",
+              "lease_until"
+            ],
+            [
+              "state",
+              "next_attempt_at"
+            ]
+          ]
+        },
+        "monitor_run_requests": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "idempotency_key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "run_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "run_id"
+              ],
+              "targets": [
+                "monitor_runs.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "expires_at"
+            ]
+          ]
+        },
+        "monitor_attempts": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "run_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "attempt_no": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "worker_id": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "execution_epoch": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "started_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "finished_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "outcome": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "duration_ms": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "run_id",
+              "attempt_no"
+            ]
+          ],
+          "checks": [
+            "attempt_no >= 1 AND execution_epoch >= 1",
+            "outcome IN ('running', 'succeeded', 'retryable', 'failed', 'cancelled', 'fenced')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "run_id"
+              ],
+              "targets": [
+                "monitor_runs.id"
+              ]
+            }
+          ],
+          "indexes": []
+        },
+        "monitor_samples": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "run_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "monitor_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "captured_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "balance": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "previous_sample_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "balance_delta": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "meter_last_reading": {
+              "type": "NUMERIC(18, 4)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "meter_reading": {
+              "type": "NUMERIC(18, 4)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "meter_delta": {
+              "type": "NUMERIC(18, 4)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "meter_record_date": {
+              "type": "DATE",
+              "nullable": true,
+              "primary_key": false
+            },
+            "meter_source_record_key": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "quality": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "run_id"
+            ]
+          ],
+          "checks": [
+            "credential_version >= 1",
+            "quality IN ('balance_only', 'meter_not_realtime', 'meter_inconsistent', 'meter_negative_delta')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "previous_sample_id"
+              ],
+              "targets": [
+                "monitor_samples.id"
+              ]
+            },
+            {
+              "columns": [
+                "run_id",
+                "monitor_id"
+              ],
+              "targets": [
+                "monitor_runs.id",
+                "monitor_runs.monitor_id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "owner_user_id",
+              "binding_id",
+              "captured_at",
+              "id"
+            ]
+          ]
+        },
+        "alert_episodes": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "monitor_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "generation": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "opened_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "closed_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "threshold": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "recovery_threshold": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "sent_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "reserved_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "open_monitor_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(state = 'open', monitor_id, NULL)"
+            }
+          },
+          "unique": [
+            [
+              "open_monitor_id"
+            ]
+          ],
+          "checks": [
+            "generation >= 1",
+            "recovery_threshold >= threshold",
+            "sent_count >= 0 AND reserved_count >= 0",
+            "state IN ('open', 'closed')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "monitor_id"
+              ],
+              "targets": [
+                "monitors.id"
+              ]
+            }
+          ],
+          "indexes": []
+        },
+        "alert_slots": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "episode_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "ordinal": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "sample_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "generation": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "email_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "send_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "permit_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "delivery_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "authorized_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "finished_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "episode_id",
+              "ordinal"
+            ]
+          ],
+          "checks": [
+            "generation >= 1 AND email_version >= 1",
+            "ordinal BETWEEN 1 AND 5",
+            "state IN ('reserved', 'authorized', 'sent', 'delivery_unknown', 'failed', 'cancelled')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "episode_id"
+              ],
+              "targets": [
+                "alert_episodes.id"
+              ]
+            },
+            {
+              "columns": [
+                "sample_id"
+              ],
+              "targets": [
+                "monitor_samples.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "state",
+              "send_lease_until"
+            ]
+          ]
+        },
+        "control_operations": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "type": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "target_binding_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "expected_preference_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "committed_preference_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "generation": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "generation >= 1",
+            "state IN ('prepared', 'committed', 'compensated')",
+            "type IN ('retarget', 'credential_revoke', 'credential_update')"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "owner_user_id",
+              "state"
+            ]
+          ]
+        },
+        "sample_snapshots": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "start_date": {
+              "type": "DATE",
+              "nullable": false,
+              "primary_key": false
+            },
+            "end_date": {
+              "type": "DATE",
+              "nullable": false,
+              "primary_key": false
+            },
+            "token_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "total": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "token_hash"
+            ]
+          ],
+          "checks": [
+            "end_date >= start_date",
+            "total >= 0"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "expires_at"
+            ],
+            [
+              "owner_user_id",
+              "binding_id"
+            ]
+          ]
+        },
+        "sample_snapshot_items": {
+          "columns": {
+            "snapshot_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "position": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": true
+            },
+            "sample_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "snapshot_id",
+              "sample_id"
+            ]
+          ],
+          "checks": [
+            "position >= 1"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "sample_id"
+              ],
+              "targets": [
+                "monitor_samples.id"
+              ]
+            },
+            {
+              "columns": [
+                "snapshot_id"
+              ],
+              "targets": [
+                "sample_snapshots.id"
+              ]
+            }
+          ],
+          "indexes": []
+        },
+        "outbox_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "type": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schema_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "available_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "publish_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "published_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_attempts": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "publish_attempts >= 0",
+            "schema_version >= 1 AND aggregate_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "publish_lease_until"
+            ],
+            [
+              "published_at",
+              "available_at"
+            ]
+          ]
+        },
+        "inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        }
+      }
+    },
+    "notification": {
+      "database": "elect_notification",
+      "revision": "notification_0001",
+      "tables": {
+        "notification_jobs": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "alert_slot_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "email_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "generation": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "email_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "template_version": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "message_id": {
+              "type": "VARCHAR(256)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "attempt_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "next_attempt_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "execution_epoch": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "permit_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "permit_expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "alert_slot_id"
+            ],
+            [
+              "message_id"
+            ]
+          ],
+          "checks": [
+            "attempt_count >= 0",
+            "generation >= 1 AND email_version >= 1 AND version >= 1 AND execution_epoch >= 1",
+            "state IN ('pending', 'sending', 'retry_wait', 'sent', 'failed', 'delivery_unknown', 'cancelled')"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "state",
+              "lease_until"
+            ],
+            [
+              "state",
+              "next_attempt_at"
+            ]
+          ]
+        },
+        "notification_attempts": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "job_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "attempt_no": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "provider_result": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "started_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "finished_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "job_id",
+              "attempt_no"
+            ]
+          ],
+          "checks": [
+            "attempt_no >= 1",
+            "state IN ('started', 'accepted', 'retryable', 'rejected', 'unknown', 'cancelled')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "job_id"
+              ],
+              "targets": [
+                "notification_jobs.id"
+              ]
+            }
+          ],
+          "indexes": []
+        },
+        "outbox_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "type": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schema_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "available_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "publish_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "published_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_attempts": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "publish_attempts >= 0",
+            "schema_version >= 1 AND aggregate_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "publish_lease_until"
+            ],
+            [
+              "published_at",
+              "available_at"
+            ]
+          ]
+        },
+        "inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        }
+      }
+    },
+    "payment": {
+      "database": "elect_payment",
+      "revision": "payment_0001",
+      "tables": {
+        "payment_orders": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_display_name": {
+              "type": "VARCHAR(256)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "amount": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "currency": {
+              "type": "VARCHAR(3)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "idempotency_key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "upstream_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "sdgl_order_id_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "prepay_id_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "pay_url_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "school_status_raw_code": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_checked_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "unresolved_binding_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(state IN ('created','submitting','awaiting_payment','submit_unknown','status_unknown'), binding_id, NULL)"
+            }
+          },
+          "unique": [
+            [
+              "owner_user_id",
+              "idempotency_key_hash"
+            ],
+            [
+              "owner_user_id",
+              "unresolved_binding_id"
+            ],
+            [
+              "upstream_operation_id"
+            ]
+          ],
+          "checks": [
+            "amount > 0",
+            "currency = 'CNY'",
+            "state IN ('created', 'submitting', 'awaiting_payment', 'paid_confirmed', 'submit_unknown', 'status_unknown', 'rejected', 'expired_confirmed', 'closed_confirmed')",
+            "version >= 1 AND credential_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "state",
+              "last_checked_at"
+            ]
+          ]
+        },
+        "payment_operations": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "order_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "idempotency_key_hash": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "execution_epoch": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "next_attempt_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "qr_expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "owner_user_id",
+              "kind",
+              "idempotency_key_hash"
+            ]
+          ],
+          "checks": [
+            "execution_epoch >= 1",
+            "kind IN ('create_order', 'qr_refresh', 'status_check')",
+            "state IN ('accepted', 'running', 'reconciling', 'unknown', 'succeeded', 'failed', 'cancelled')"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "order_id"
+              ],
+              "targets": [
+                "payment_orders.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "state",
+              "lease_until"
+            ],
+            [
+              "state",
+              "next_attempt_at"
+            ]
+          ]
+        },
+        "outbox_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "type": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schema_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "available_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "publish_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "published_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_attempts": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "publish_attempts >= 0",
+            "schema_version >= 1 AND aggregate_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "publish_lease_until"
+            ],
+            [
+              "published_at",
+              "available_at"
+            ]
+          ]
+        },
+        "inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        }
+      }
+    },
+    "audit": {
+      "database": "elect_audit",
+      "revision": "audit_0001",
+      "tables": {
+        "audit_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "actor_user_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "service": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "action": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_type": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "result": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "request_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "occurred_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "sanitized_details": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "actor_user_id",
+              "occurred_at"
+            ],
+            [
+              "object_id",
+              "occurred_at"
+            ]
+          ]
+        },
+        "outbox_events": {
+          "columns": {
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "type": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "schema_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "aggregate_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "JSON",
+              "nullable": false,
+              "primary_key": false
+            },
+            "available_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "publish_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "published_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "publish_attempts": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "publish_attempts >= 0",
+            "schema_version >= 1 AND aggregate_version >= 1"
+          ],
+          "foreign_keys": [],
+          "indexes": [
+            [
+              "publish_lease_until"
+            ],
+            [
+              "published_at",
+              "available_at"
+            ]
+          ]
+        },
+        "inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        }
+      }
+    }
+  }
+}

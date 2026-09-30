@@ -1,0 +1,142 @@
+{
+  "source": "example/nature.html",
+  "synthetic": true,
+  "viewport_height": 1000,
+  "captures": [
+    {
+      "width": 375,
+      "state": "login",
+      "file": "375-login.png"
+    },
+    {
+      "width": 375,
+      "state": "agreement",
+      "file": "375-agreement.png"
+    },
+    {
+      "width": 375,
+      "state": "overview",
+      "file": "375-overview.png"
+    },
+    {
+      "width": 375,
+      "state": "details",
+      "file": "375-details.png"
+    },
+    {
+      "width": 375,
+      "state": "calendar",
+      "file": "375-calendar.png"
+    },
+    {
+      "width": 375,
+      "state": "payment",
+      "file": "375-payment.png"
+    },
+    {
+      "width": 375,
+      "state": "rooms",
+      "file": "375-rooms.png"
+    },
+    {
+      "width": 375,
+      "state": "binding",
+      "file": "375-binding.png"
+    },
+    {
+      "width": 375,
+      "state": "monitor",
+      "file": "375-monitor.png"
+    },
+    {
+      "width": 768,
+      "state": "login",
+      "file": "768-login.png"
+    },
+    {
+      "width": 768,
+      "state": "agreement",
+      "file": "768-agreement.png"
+    },
+    {
+      "width": 768,
+      "state": "overview",
+      "file": "768-overview.png"
+    },
+    {
+      "width": 768,
+      "state": "details",
+      "file": "768-details.png"
+    },
+    {
+      "width": 768,
+      "state": "calendar",
+      "file": "768-calendar.png"
+    },
+    {
+      "width": 768,
+      "state": "payment",
+      "file": "768-payment.png"
+    },
+    {
+      "width": 768,
+      "state": "rooms",
+      "file": "768-rooms.png"
+    },
+    {
+      "width": 768,
+      "state": "binding",
+      "file": "768-binding.png"
+    },
+    {
+      "width": 768,
+      "state": "monitor",
+      "file": "768-monitor.png"
+    },
+    {
+      "width": 1440,
+      "state": "login",
+      "file": "1440-login.png"
+    },
+    {
+      "width": 1440,
+      "state": "agreement",
+      "file": "1440-agreement.png"
+    },
+    {
+      "width": 1440,
+      "state": "overview",
+      "file": "1440-overview.png"
+    },
+    {
+      "width": 1440,
+      "state": "details",
+      "file": "1440-details.png"
+    },
+    {
+      "width": 1440,
+      "state": "calendar",
+      "file": "1440-calendar.png"
+    },
+    {
+      "width": 1440,
+      "state": "payment",
+      "file": "1440-payment.png"
+    },
+    {
+      "width": 1440,
+      "state": "rooms",
+      "file": "1440-rooms.png"
+    },
+    {
+      "width": 1440,
+      "state": "binding",
+      "file": "1440-binding.png"
+    },
+    {
+      "width": 1440,
+      "state": "monitor",
+      "file": "1440-monitor.png"
+    }
+  ]
+}

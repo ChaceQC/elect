@@ -1,0 +1,1143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DTO": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "DTO",
+      "type": "object"
+    },
+    "UserCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id"
+      ],
+      "title": "UserCommand",
+      "type": "object"
+    },
+    "AuthenticateLogin": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "format": "uuid",
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "browser_nonce_hash": {
+          "title": "Browser Nonce Hash",
+          "type": "string"
+        },
+        "challenge_id": {
+          "title": "Challenge Id",
+          "type": "string"
+        },
+        "student_id": {
+          "title": "Student Id",
+          "type": "string"
+        },
+        "password": {
+          "format": "password",
+          "title": "Password",
+          "type": "string",
+          "writeOnly": true
+        },
+        "captcha_answer": {
+          "title": "Captcha Answer",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "browser_nonce_hash",
+        "challenge_id",
+        "student_id",
+        "password",
+        "captcha_answer",
+        "request_id"
+      ],
+      "title": "AuthenticateLogin",
+      "type": "object"
+    },
+    "StagedCredential": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "format": "uuid",
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        },
+        "lookup_aliases": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Lookup Aliases",
+          "type": "object"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "credential_ref",
+        "credential_version",
+        "lookup_aliases",
+        "expires_at"
+      ],
+      "title": "StagedCredential",
+      "type": "object"
+    },
+    "ActivateCredential": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "attempt_id": {
+          "format": "uuid",
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "expected_credential_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expected Credential Version"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "attempt_id",
+        "credential_ref",
+        "expected_credential_version"
+      ],
+      "title": "ActivateCredential",
+      "type": "object"
+    },
+    "CredentialResult": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "staged",
+            "active",
+            "revoking",
+            "revoked",
+            "failed"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "credential_version",
+        "state"
+      ],
+      "title": "CredentialResult",
+      "type": "object"
+    },
+    "PrepareRetarget": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "target_binding_id": {
+          "format": "uuid",
+          "title": "Target Binding Id",
+          "type": "string"
+        },
+        "expected_preference_version": {
+          "minimum": 1,
+          "title": "Expected Preference Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "operation_id",
+        "target_binding_id",
+        "expected_preference_version"
+      ],
+      "title": "PrepareRetarget",
+      "type": "object"
+    },
+    "RetargetBarrier": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "monitor_id": {
+          "format": "uuid",
+          "title": "Monitor Id",
+          "type": "string"
+        },
+        "generation": {
+          "minimum": 1,
+          "title": "Generation",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "prepared",
+            "committed",
+            "compensated"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "cancel_pending": {
+          "title": "Cancel Pending",
+          "type": "boolean"
+        },
+        "in_flight_count": {
+          "title": "In Flight Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "operation_id",
+        "monitor_id",
+        "generation",
+        "state",
+        "cancel_pending",
+        "in_flight_count"
+      ],
+      "title": "RetargetBarrier",
+      "type": "object"
+    },
+    "CommitRetarget": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "target_binding_id": {
+          "format": "uuid",
+          "title": "Target Binding Id",
+          "type": "string"
+        },
+        "committed_preference_version": {
+          "minimum": 1,
+          "title": "Committed Preference Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "operation_id",
+        "target_binding_id",
+        "committed_preference_version"
+      ],
+      "title": "CommitRetarget",
+      "type": "object"
+    },
+    "RevokeCredential": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "expected_credential_version": {
+          "minimum": 1,
+          "title": "Expected Credential Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "operation_id",
+        "credential_ref",
+        "expected_credential_version"
+      ],
+      "title": "RevokeCredential",
+      "type": "object"
+    },
+    "RevokeBarrier": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "expected_credential_version": {
+          "minimum": 1,
+          "title": "Expected Credential Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "operation_id",
+        "credential_ref",
+        "expected_credential_version"
+      ],
+      "title": "RevokeBarrier",
+      "type": "object"
+    },
+    "AuthorizeSend": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "alert_slot_id": {
+          "format": "uuid",
+          "title": "Alert Slot Id",
+          "type": "string"
+        },
+        "job_id": {
+          "format": "uuid",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "generation": {
+          "minimum": 1,
+          "title": "Generation",
+          "type": "integer"
+        },
+        "email_version": {
+          "minimum": 1,
+          "title": "Email Version",
+          "type": "integer"
+        },
+        "execution_epoch": {
+          "minimum": 1,
+          "title": "Execution Epoch",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "alert_slot_id",
+        "job_id",
+        "generation",
+        "email_version",
+        "execution_epoch"
+      ],
+      "title": "AuthorizeSend",
+      "type": "object"
+    },
+    "SendPermit": {
+      "additionalProperties": false,
+      "properties": {
+        "permitted": {
+          "title": "Permitted",
+          "type": "boolean"
+        },
+        "permit_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Permit Id"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expires At"
+        },
+        "denial_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Denial Code"
+        }
+      },
+      "required": [
+        "permitted",
+        "permit_id",
+        "expires_at",
+        "denial_code"
+      ],
+      "title": "SendPermit",
+      "type": "object"
+    },
+    "DispatchBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "upstream_operation_id",
+        "candidate_id",
+        "credential_ref",
+        "credential_version"
+      ],
+      "title": "DispatchBinding",
+      "type": "object"
+    },
+    "DispatchOrder": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^(0|[1-9]\\d{0,11})\\.\\d{2}$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "const": "CNY",
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "upstream_operation_id",
+        "credential_ref",
+        "credential_version",
+        "binding_id",
+        "amount",
+        "currency"
+      ],
+      "title": "DispatchOrder",
+      "type": "object"
+    },
+    "UpstreamResult": {
+      "additionalProperties": false,
+      "properties": {
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "prepared",
+            "dispatched",
+            "confirmed",
+            "rejected",
+            "reconciling",
+            "unknown"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "dispatched_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dispatched At"
+        },
+        "result_ref": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Result Ref"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        }
+      },
+      "required": [
+        "upstream_operation_id",
+        "state",
+        "dispatched_at",
+        "result_ref",
+        "error_code"
+      ],
+      "title": "UpstreamResult",
+      "type": "object"
+    },
+    "QueryOperation": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "operation_id"
+      ],
+      "title": "QueryOperation",
+      "type": "object"
+    },
+    "PaymentSessionCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        },
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "step": {
+          "enum": [
+            "E01",
+            "E02",
+            "E03",
+            "E04"
+          ],
+          "title": "Step",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "order_id",
+        "upstream_operation_id",
+        "step"
+      ],
+      "title": "PaymentSessionCommand",
+      "type": "object"
+    },
+    "SessionIntrospection": {
+      "additionalProperties": false,
+      "properties": {
+        "session_token": {
+          "format": "password",
+          "title": "Session Token",
+          "type": "string",
+          "writeOnly": true
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_token",
+        "request_id"
+      ],
+      "title": "SessionIntrospection",
+      "type": "object"
+    },
+    "SessionContext": {
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "title": "Active",
+          "type": "boolean"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "User Id"
+        },
+        "session_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Session Version"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expires At"
+        }
+      },
+      "required": [
+        "active",
+        "user_id",
+        "session_version",
+        "expires_at"
+      ],
+      "title": "SessionContext",
+      "type": "object"
+    },
+    "AlertReservedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "alert_slot_id": {
+          "format": "uuid",
+          "title": "Alert Slot Id",
+          "type": "string"
+        },
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "generation": {
+          "minimum": 1,
+          "title": "Generation",
+          "type": "integer"
+        },
+        "email_version": {
+          "minimum": 1,
+          "title": "Email Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "alert_slot_id",
+        "owner_user_id",
+        "generation",
+        "email_version"
+      ],
+      "title": "AlertReservedPayload",
+      "type": "object"
+    },
+    "AuditPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "object_type": {
+          "title": "Object Type",
+          "type": "string"
+        },
+        "object_id": {
+          "format": "uuid",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "object_type",
+        "object_id",
+        "result"
+      ],
+      "title": "AuditPayload",
+      "type": "object"
+    },
+    "BindingConfirmedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "preference_version": {
+          "minimum": 1,
+          "title": "Preference Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "binding_id",
+        "owner_user_id",
+        "preference_version"
+      ],
+      "title": "BindingConfirmedPayload",
+      "type": "object"
+    },
+    "CredentialPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_id": {
+          "format": "uuid",
+          "title": "Credential Id",
+          "type": "string"
+        },
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "credential_id",
+        "owner_user_id",
+        "credential_version"
+      ],
+      "title": "CredentialPayload",
+      "type": "object"
+    },
+    "DeliveryReportedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "format": "uuid",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "alert_slot_id": {
+          "format": "uuid",
+          "title": "Alert Slot Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "sent",
+            "failed",
+            "delivery_unknown",
+            "cancelled"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "alert_slot_id",
+        "state"
+      ],
+      "title": "DeliveryReportedPayload",
+      "type": "object"
+    },
+    "HistorySyncPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "sync_id": {
+          "format": "uuid",
+          "title": "Sync Id",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sync_id",
+        "binding_id"
+      ],
+      "title": "HistorySyncPayload",
+      "type": "object"
+    },
+    "OrderRequestedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        },
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_id",
+        "owner_user_id"
+      ],
+      "title": "OrderRequestedPayload",
+      "type": "object"
+    },
+    "RunReadyPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "generation": {
+          "minimum": 1,
+          "title": "Generation",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "run_id",
+        "generation"
+      ],
+      "title": "RunReadyPayload",
+      "type": "object"
+    },
+    "EventEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "format": "uuid",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "credential.updated",
+            "credential.revoked",
+            "monitor.run_ready",
+            "monitor.alert_reserved",
+            "notification.delivery_reported",
+            "room.history_sync_requested",
+            "room.binding_confirmed",
+            "payment.order_requested",
+            "audit.recorded"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "producer": {
+          "enum": [
+            "identity",
+            "school_adapter",
+            "room",
+            "monitoring",
+            "notification",
+            "payment",
+            "gateway"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "aggregate_id": {
+          "format": "uuid",
+          "title": "Aggregate Id",
+          "type": "string"
+        },
+        "aggregate_version": {
+          "minimum": 1,
+          "title": "Aggregate Version",
+          "type": "integer"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CredentialPayload"
+            },
+            {
+              "$ref": "#/$defs/RunReadyPayload"
+            },
+            {
+              "$ref": "#/$defs/AlertReservedPayload"
+            },
+            {
+              "$ref": "#/$defs/DeliveryReportedPayload"
+            },
+            {
+              "$ref": "#/$defs/HistorySyncPayload"
+            },
+            {
+              "$ref": "#/$defs/BindingConfirmedPayload"
+            },
+            {
+              "$ref": "#/$defs/OrderRequestedPayload"
+            },
+            {
+              "$ref": "#/$defs/AuditPayload"
+            }
+          ],
+          "title": "Payload"
+        },
+        "dedupe_key": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Dedupe Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "producer",
+        "aggregate_id",
+        "aggregate_version",
+        "occurred_at",
+        "request_id",
+        "payload",
+        "dedupe_key"
+      ],
+      "title": "EventEnvelope",
+      "type": "object"
+    }
+  }
+}

@@ -15,6 +15,11 @@
 | [学校对接 API 文档](学校对接API文档.md) | 学校认证、寝室、历史、支付协议及验证范围 |
 | [Docker 部署配置说明](Docker部署配置说明.md) | 全栈容器部署、域名、证书、预检与更换流程 |
 | [开发说明](开发说明.md) | 正式工程的环境、构建、契约和验证入口 |
+| [公开/内部契约](contracts/README.md) | 28 个 API、DTO、版本/幂等、状态模型与恢复规则 |
+| [T0 实施决策](decisions/T0实施决策.md) | ID、调度锚点、邮箱、Secret、领域库与能力开关 |
+| [数据库基线](database/README.md) | 七域独立初始迁移、约束与空库验证 |
+| [T0 需求追踪](T0需求追踪表.md) | 页面字段、按钮、异步能力、模块和实现阶段 |
+| [T0 验收](acceptance/T0验收记录.md) | 交付物、测试结果和后续边界 |
 
 ## 统一目录
 
@@ -32,7 +37,7 @@ deploy/                      # Compose、Nginx 模板、基础服务配置和运
 example/                     # 页面和交互参考，不参加生产构建
 ```
 
-当前 frontend/ 已有独立入口和依赖锁，backend/ 已有 Python 工程、依赖锁与领域包；T0 的契约与迁移正在补齐，业务服务和部署按后续计划实现。参考材料自己的 README 保留在 example 内。
+T0 已完成：frontend 独立入口、依赖锁、类型与模拟场景；backend 独立工程、DTO/状态模型与七域迁移。deploy 已有公开配置与 Secret/账号清单；业务服务、Dockerfile/Compose 从 T1 开始实现。参考材料自己的 README 保留在 example 内。
 
 ## 部署约定
 

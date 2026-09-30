@@ -1,0 +1,121 @@
+schema_version: 1
+prefix: /internal/v1
+authentication:
+  scheme: short_lived_service_jwt
+  claims: [iss, sub, aud, exp, iat, jti]
+  ttl_seconds: 60
+  user_context: 单次请求的 user_id/session_version 经 Identity 校验，由 Gateway 签名；owner_user_id 必须匹配可信上下文。
+  enforcement: 接收方验证服务身份、权限、对象归属；拒绝任意 X-User-Id，禁止跨库访问。
+commands:
+  - name: introspect_session
+    receiver: identity
+    callers: [gateway]
+    method: POST
+    path: /sessions/introspect
+    request: schemas.json#/$defs/SessionIntrospection
+    response: schemas.json#/$defs/SessionContext
+    idempotency: 安全查询，每个写请求均实时验证，不缓存失效会话。
+  - name: authenticate_login
+    receiver: school_adapter
+    callers: [identity]
+    method: POST
+    path: /login-attempts/authenticate
+    request: schemas.json#/$defs/AuthenticateLogin
+    response: schemas.json#/$defs/StagedCredential
+    idempotency: attempt_id 唯一；challenge 只提交一次；明文只在内存/TLS 传输，失败不覆盖旧凭据。
+  - name: activate_credential
+    receiver: school_adapter
+    callers: [identity]
+    method: POST
+    path: /credentials/activate
+    request: schemas.json#/$defs/ActivateCredential
+    response: schemas.json#/$defs/CredentialResult
+    idempotency: attempt_id 唯一，重复激活返回原版本；旧凭据更新先协调当前监控屏障。
+  - name: prepare_retarget
+    receiver: monitoring
+    callers: [room]
+    method: POST
+    path: /monitor/prepare-retarget
+    request: schemas.json#/$defs/PrepareRetarget
+    response: schemas.json#/$defs/RetargetBarrier
+    idempotency: operation_id 唯一；无 monitor 时建立 disabled 记录，binding_id 可空，不自动开启。
+  - name: commit_retarget
+    receiver: monitoring
+    callers: [room]
+    method: POST
+    path: /monitor/commit-retarget
+    request: schemas.json#/$defs/CommitRetarget
+    response: schemas.json#/$defs/RetargetBarrier
+    idempotency: operation_id 唯一；回查 Room 已提交偏好版本，遵守最新 desired_enabled。
+  - name: compensate_retarget
+    receiver: monitoring
+    callers: [room]
+    method: POST
+    path: /monitor/compensate-retarget
+    request: schemas.json#/$defs/PrepareRetarget
+    response: schemas.json#/$defs/RetargetBarrier
+    idempotency: operation_id 唯一；只在 Room 未提交时恢复旧目标，使用新代次，不能复活旧运行。
+  - name: prepare_credential_revoke
+    receiver: monitoring
+    callers: [identity]
+    method: POST
+    path: /credentials/prepare-revoke
+    request: schemas.json#/$defs/RevokeBarrier
+    response: schemas.json#/$defs/RetargetBarrier
+    idempotency: operation_id 唯一；先提交代次/取消/停止新发送许可，之后撤销密文/token。
+  - name: revoke_credential
+    receiver: school_adapter
+    callers: [identity]
+    method: POST
+    path: /credentials/revoke
+    request: schemas.json#/$defs/RevokeCredential
+    response: schemas.json#/$defs/CredentialResult
+    idempotency: operation_id 唯一且 expected_credential_version 匹配；屏障已完成才撤销。
+  - name: authorize_send
+    receiver: monitoring
+    callers: [notification]
+    method: POST
+    path: /alert-slots/authorize-send
+    request: schemas.json#/$defs/AuthorizeSend
+    response: schemas.json#/$defs/SendPermit
+    idempotency: job_id/execution_epoch 唯一；当前代次、邮箱版本、序号和冷却原子检查；失联禁止发信。
+  - name: dispatch_binding
+    receiver: school_adapter
+    callers: [room]
+    method: POST
+    path: /upstream/bindings
+    request: schemas.json#/$defs/DispatchBinding
+    response: schemas.json#/$defs/UpstreamResult
+    idempotency: upstream_operation_id 唯一；相同摘要仅一次 dispatch；unknown 只回查 B02。
+  - name: dispatch_order
+    receiver: school_adapter
+    callers: [payment]
+    method: POST
+    path: /upstream/orders
+    request: schemas.json#/$defs/DispatchOrder
+    response: schemas.json#/$defs/UpstreamResult
+    idempotency: upstream_operation_id 唯一；只一次 D01，无 D03 自动备用写入。
+  - name: query_upstream_operation
+    receiver: school_adapter
+    callers: [room, payment]
+    method: POST
+    path: /upstream/operations/query
+    request: schemas.json#/$defs/QueryOperation
+    response: schemas.json#/$defs/UpstreamResult
+    idempotency: 只查询已登记的本人操作，查不到不能自动重发。
+  - name: payment_session_step
+    receiver: school_adapter
+    callers: [payment]
+    method: POST
+    path: /payment-sessions/step
+    request: schemas.json#/$defs/PaymentSessionCommand
+    response: schemas.json#/$defs/UpstreamResult
+    idempotency: order_id/step 持久台账；E02/E03 dispatched 后未知不能盲重发；CookieJar 与 SDGL token 隔离。
+  - name: query_public_operation
+    receiver: [identity, room, payment]
+    callers: [gateway]
+    method: POST
+    path: /operations/query
+    request: schemas.json#/$defs/QueryOperation
+    response: ../openapi.yaml#/components/schemas/Operation
+    idempotency: Gateway 固定白名单查询三域，域内再次校验归属；不接收客户端 URL，run/order 使用专用查询。
