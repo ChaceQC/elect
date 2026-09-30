@@ -11,5 +11,5 @@
     "noEmit": true,
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src", "tests/**/*.test.js", "tests/**/*.test.jsx"]
+  "include": ["src", "tests/setup.js", "tests/**/*.test.js", "tests/**/*.test.jsx"]
 }

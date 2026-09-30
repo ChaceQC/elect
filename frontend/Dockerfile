@@ -7,6 +7,11 @@ FROM dependencies AS test
 COPY . .
 CMD ["npm", "test"]
 
+FROM dependencies AS browser-test
+RUN npx playwright install --with-deps chromium
+COPY . .
+CMD ["npm", "run", "test:e2e"]
+
 FROM test AS build
 RUN npm run build
 

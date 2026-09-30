@@ -1,0 +1,19 @@
+name: 容器验证
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: 单元契约构建与浏览器
+        run: sh deploy/check.sh
+      - name: 空库与可靠事件容器集成
+        run: sh deploy/test-stack.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
+      - name: 清理本次测试容器
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/elect-t1/stack.env" ]; then
+            docker compose --env-file "$RUNNER_TEMP/elect-t1/stack.env" -f deploy/compose.yaml -f deploy/compose.test.yaml -p elect-test-ci down
+          fi

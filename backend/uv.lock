@@ -228,7 +228,7 @@ wheels = [
 
 [[package]]
 name = "elect-backend"
-version = "0.1.0"
+version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aio-pika" },

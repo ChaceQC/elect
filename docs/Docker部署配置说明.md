@@ -1,8 +1,8 @@
 # Docker 全栈部署与域名证书配置
 
-版本：1.0；编写日期：2026-10-01；状态：T1 实施中。
+版本：1.1；编写日期：2026-10-01；状态：T1 基础已实现并通过独立验收。
 
-本文统一[后端架构](后端架构详细设计.md)、[后端实施计划](后端实施计划.md)和[前端实施计划](前端实施计划.md)中的部署方式。T0 已建立 [公开变量模板](../deploy/.env.example)、[Secret/账号清单](../deploy/secrets.example.yaml)与七域迁移；T1 已建立两端镜像、Compose、Secret 生成、空卷 provisioning、持锁迁移、TLS 预检和公共运行设施，并通过独立容器基础验收。前端公共数据层及 CI 正在本阶段完成；学校业务不在本阶段开放。
+本文统一[后端架构](后端架构详细设计.md)、[后端实施计划](后端实施计划.md)和[前端实施计划](前端实施计划.md)中的部署方式。T0 已建立 [公开变量模板](../deploy/.env.example)、[Secret/账号清单](../deploy/secrets.example.yaml)与七域迁移；T1 已建立两端镜像、Compose、Secret 生成、空卷 provisioning、持锁迁移、TLS 预检和公共运行设施，并通过独立容器基础验收。前端公共数据层及 Docker CI 也已实现；学校业务不在本阶段开放。
 
 ## 1. 整套部署方式
 
@@ -38,7 +38,7 @@ ELECT_SECRETS_DIR=/opt/elect/secrets
 | ELECT_TLS_KEY_FILE | 配套 PEM 私钥文件绝对路径；一期使用可非交互读取的无口令私钥，由文件权限保护 |
 | ELECT_SECRETS_DIR | 其他数据库、服务认证、学校密钥等 Secret 文件所在的受限目录 |
 
-deploy/.env.example 还需列出 ELECT_IMAGE、ELECT_WEB_IMAGE、MYSQL_IMAGE、REDIS_IMAGE、RABBITMQ_IMAGE 等镜像变量；版本和基础镜像摘要由实施阶段验证后固定。ELECT_IMAGE/ELECT_WEB_IMAGE 是 Compose 构建后端/前端时使用的镜像名称。
+deploy/.env.example 已列出 ELECT_IMAGE、ELECT_WEB_IMAGE、MYSQL_IMAGE、REDIS_IMAGE、RABBITMQ_IMAGE 等镜像变量；版本和基础镜像摘要由实施阶段验证后固定。ELECT_IMAGE/ELECT_WEB_IMAGE 是 Compose 构建后端/前端时使用的镜像名称。
 
 域名 DNS 应指向部署入口，证书 SAN 应覆盖域名，证书在有效期内，私钥与证书公钥必须匹配。证书文件通过 Docker Secret 只读挂载，私钥限制文件读取权限。
 
@@ -90,13 +90,13 @@ tls-check 的入口为 backend/services/deployment/check_tls.py，在无网络�
 先复制 `deploy/.env.example` 为 `deploy/.env` 并配置域名、证书与受限 Secret 目录。完整首次生成流程只依赖 Docker：
 
 ```sh
-docker build -t elect-backend:v0.1.0 backend
+docker build -t elect-backend:v0.2.0 backend
 # 先创建目标空目录；生成器拒绝覆盖已有 Secret。
 mkdir -p /opt/elect/secrets
 chmod 700 /opt/elect/secrets
 docker run --rm --network none --user 0:0 \
   -v /opt/elect/secrets:/run/provision \
-  elect-backend:v0.1.0 python -m services.deployment.provision --output-dir /run/provision
+  elect-backend:v0.2.0 python -m services.deployment.provision --output-dir /run/provision
 ```
 
 生成器创建随机数据库/缓存/消息账号、每服务独立 Ed25519 私钥、公钥 trust bundle 和 runtime JSON，文件按接收容器 UID 设为 0400，目录 0700。MySQL 首次初始化从 SQL Secret 先创建 probe/七域库/app/ddl；已有卷不重复 provisioning，不可重新生成随机账号替换原 Secret。学校 KEK/SMTP 等后续业务密钥按阶段补齐。
@@ -146,3 +146,14 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --no-deps --f
 - 模板保留 Nginx 自身变量，密钥不进入镜像、日志或浏览器产物。
 - 证书替换后入口提供新证书，数据库状态与后台监控配置保留。
 - 命名卷、Secret、备份、镜像升级和回滚均有 docs 下的运维记录。
+
+## 7. 独立容器检查
+
+```sh
+sh deploy/check.sh
+sh deploy/test-stack.sh /absolute/new-test-directory elect-test-local
+```
+
+check 在容器中执行后端单元/契约/迁移 SQL、前端规则/类型/单元/构建和 Playwright；test-stack 创建明确命名的新项目，容器生成 Secret/临时自签证书，空库启动并执行可靠事件 smoke。测试端口绑定本机 18080/18443，须空闲；默认 `.env` 仍仅由 Nginx 发布 80/443。测试作业拒绝未声明一次性环境和已有输出目录。
+
+CI 位于 `.github/workflows/check.yaml`，不依赖宿主机语言环境、真实学校或 SMTP。操作完可用相同 env/Compose/项目名执行 `down` 停止本次环境，保留命名卷。真实恢复、备份、公网域名/受信任证书和业务容器联调留待 T7/T8。

@@ -1,10 +1,18 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { AuthGuard, FoundationPage } from './router.jsx'
+import { AppShell } from '../components/layout/AppShell.jsx'
+import { LoginPage } from '../features/auth/LoginPage.jsx'
+
 export default function App() {
-  return (
-    <main className="foundation">
-      <span className="brand">ELECT · 寝室电力</span>
-      <h1>寝室用电，心中有数。</h1>
-      <p>学校账号登录后，可管理寝室、查询电费并设置提醒。</p>
-      <p role="status">服务准备中，登录与电费查询将陆续开放。</p>
-    </main>
-  )
+  return <><a className="skip-link" href="#main-content">跳到正文</a><Routes>
+    <Route path="/login" element={<LoginPage />} />
+    <Route element={<AuthGuard />}><Route element={<AppShell />}>
+      <Route index element={<Navigate to="/overview" replace />} />
+      <Route path="/overview" element={<FoundationPage title="用电总览" description="了解寝室余额和最近的用电情况。" />} />
+      <Route path="/details" element={<FoundationPage title="电费明细" description="按日期查看消费趋势与采集记录。" />} />
+      <Route path="/rooms" element={<FoundationPage title="我的寝室" description="管理已绑定寝室和默认寝室。" />} />
+      <Route path="/monitor" element={<FoundationPage title="监控提醒" description="设置采集间隔和低余额提醒。" />} />
+    </Route></Route>
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes></>
 }

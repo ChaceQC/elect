@@ -2,6 +2,46 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T1/M0 完成
+
+### 已完成
+
+- T1-01..04、P1-01..08、F1-01..06 交付与验证完成；版本统一为 0.2.0，28 个公开 API 结构保持契约，学校业务仍明确关闭。
+- 前端四页路由/AppShell、初始化/认证守卫、同源客户端、Query/会话隔离、幂等恢复、202/unknown 轮询与草稿冲突保护；公共 Modal/状态/Toast/金额/上海日期工具与显式开发 MSW。
+- Docker 规则/契约/构建/Playwright 入口与 GitHub Actions；测试可挂载 docs/合成夹具，生产构建只使用各自源码/锁文件，排除递归 Python 缓存。
+- 新的独立项目仅用 Docker 构建两端、生成 Secret、自签证书、启动 19 个长期服务和两项一次性作业，实际空库/事件/权限检查通过。
+- 实际 MQ 中断/恢复、数据库拒绝 ready、三种基础服务重建后保留审计/Inbox、新证书预检/替换和错误 SAN 拒绝通过。
+- 同步根/子目录 README、AGENTS、总/前后端计划、架构/部署/开发/运行文档；保存 T1 验收与生产关闭状态的桌面/手机截图。
+
+### 进行中
+
+- 本阶段实现与本地验收已完成；正在提交最终批次并核对 GitHub 容器 CI。
+
+### 阻塞与风险
+
+- 无 T1 实现阻塞。测试仅使用 elect.test.local 自签证书，公网域名、受信任证书及完整运维演练留待 T7/T8。
+- T2 学校会话/登录、T3–T6 绑定/监控/邮件/支付及业务 Worker 未实现；四种副作用开关仍默认关闭。
+
+### 下一步
+
+- 按 T2-01/P2-01 抽取学校 RSA/CAS/SDGL 到正式 httpx Adapter，落实验证码会话隔离、重定向白名单、分阶段超时/总 deadline、每账号单飞和全局限流。
+- 随后推进 P2-02 验证码代理与 P2-03 加密凭据暂存/激活，不提前开放学校写入或邮件。
+
+### 主要文件或模块
+
+- frontend/src/app、api、features/auth、hooks、lib、components、mocks/browser 与 unit/component/e2e 测试。
+- deploy/check.sh、test-stack.sh、compose*.yaml；.github/workflows/check.yaml；两端 Dockerfile/锁文件与版本。
+- docs/acceptance/T1验收记录.md、frontend/T1公共层验收.md、t1 截图及根/子目录说明/计划。
+
+### 验证
+
+- `sh deploy/check.sh` 在容器实际通过：后端 ruff/60 passed/1 skipped、三类契约目录检查、七域离线 DDL；前端 contract/lint/typecheck/15 passed/build，Playwright 3 passed。
+- `sh deploy/test-stack.sh /tmp/elect-t1-docker-proof elect-test-proof` 全新空卷/Secret 实际通过；19 长期 healthy，migrate/tls-check 退出 0。
+- 实际 HTTPS 生产前端/Nginx/Gateway：直达/刷新、持久 FEATURE_DISABLED、跨站 ORIGIN_REJECTED、无注册 MSW；两种宽度截图已检查。
+- MQ 停止期间持久事件未标 published，恢复后自动投递且审计一条；MySQL 停止时 ready 503；重建 MySQL/Redis/MQ 后唯一审计与 Inbox 保留。
+- 新证书经 tls-check/nginx -t 后重建入口，实际 DER 与新证书一致；错误 SAN 在无网络一次性容器退出 1。
+- 修复并复验浏览器发现的弹窗反向 Tab 焦点循环；修复 Docker 检查缺失前端合成夹具只读挂载后完整通过。
+
 ## 2026-10-01 · T1 容器与可靠事件基础
 
 ### 已完成

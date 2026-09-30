@@ -2,6 +2,9 @@
 services:
   nginx:
     ports: !override ["127.0.0.1:18080:80", "127.0.0.1:18443:443"]
+    networks:
+      edge: {}
+      app: {aliases: [elect.test.local]}
   smoke:
     image: ${ELECT_IMAGE:?set-backend-image}
     profiles: [test]

@@ -18,3 +18,42 @@ body { margin: 0; }
 h1 { font-size: clamp(24px, 4vw, 34px); margin: 24px 0; }
 p { line-height: 1.8; overflow-wrap: anywhere; }
 [role="status"] { color: #536b84; margin-top: 32px; }
+button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 11px 18px; background: #3979ba; color: white; }
+button:disabled { opacity: .6; cursor: wait; }
+a { color: inherit; }
+button:focus-visible, a:focus-visible { outline: 3px solid #71b5ed; outline-offset: 4px; }
+.skip-link { position: absolute; left: 16px; top: -100px; background: white; padding: 12px; z-index: 10; }
+.skip-link:focus { top: 12px; }
+.app-shell { display: flex; min-height: 100dvh; }
+.sidebar { width: 246px; flex-shrink: 0; padding: 36px 24px; border-right: 1px solid #d8e8f6; background: #e6f1fc; display: flex; flex-direction: column; }
+.nav-caption { font-size: 13px; color: #6a86a2; margin: 24px 0; }
+.sidebar nav { display: grid; gap: 10px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 14px; text-decoration: none; border-radius: 12px; }
+.sidebar nav a.active { background: white; color: #2265a9; box-shadow: 0 3px 15px #477fa512; }
+.sidebar-note { margin-top: auto; padding-top: 40px; font-size: 12px; color: #6a86a2; }
+.workspace { flex: 1; min-width: 0; }
+.topbar { display: flex; justify-content: flex-end; align-items: center; padding: 22px 36px; background: #fff9; border-bottom: 1px solid #d8e8f6; }
+.account-button { display: flex; gap: 9px; align-items: center; background: #e5effa; color: #25415f; }
+.mobile-brand { display: none; }
+.page-content { max-width: 1120px; margin: auto; padding: 40px; }
+.eyebrow { font-size: 12px; color: #6a86a2; }
+.page-description { color: #6a86a2; margin-bottom: 36px; }
+.status-block { background: white; border: 1px solid #d8e8f6; border-radius: 16px; padding: 24px; margin-top: 24px; }
+.status-block h2 { margin-top: 0; font-size: 18px; }
+.status-error { border-color: #d1acaa; color: #793f3b; }
+.modal { border: 1px solid #d8e8f6; border-radius: 18px; width: min(480px, calc(100% - 32px)); padding: 28px; color: #25415f; }
+.modal::backdrop { background: #18364f66; }
+.modal-content header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.quiet { background: #eff6fd; color: #25415f; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); border-radius: 10px; background: #25415f; color: white; padding: 12px 20px; }
+@media (max-width: 760px) {
+  .app-shell { display: block; padding-bottom: 82px; }
+  .sidebar { position: fixed; bottom: 0; width: 100%; padding: 8px; border: 0; border-top: 1px solid #d8e8f6; z-index: 3; }
+  .sidebar > .brand, .nav-caption, .sidebar-note { display: none; }
+  .sidebar nav { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .sidebar nav a { flex-direction: column; gap: 6px; padding: 10px 2px; font-size: 12px; }
+  .mobile-brand { display: block; }
+  .topbar { justify-content: space-between; padding: 16px 20px; }
+  .page-content { padding: 24px 20px; }
+  .foundation { margin: 8vh auto; }
+}

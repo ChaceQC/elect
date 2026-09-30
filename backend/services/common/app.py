@@ -33,7 +33,9 @@ def create_app(service: str):
             if engine:
                 await engine.dispose()
 
-    app = FastAPI(title=f"elect-{service}", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(
+        title=f"elect-{service}", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
+    )
     install_http(app, service)
 
     @app.get("/internal/v1/context")
