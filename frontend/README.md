@@ -15,4 +15,4 @@ npm test
 npm run build
 ```
 
-依赖与源码均独立于 example。锁文件使用固定 Node 容器生成；生产 Dockerfile 属于 T1。详细开发、契约与测试入口见 [开发说明](../docs/开发说明.md)。
+依赖与源码均独立于 example。锁文件使用固定 Node 容器生成；T1 已建立 Node 编译 → Nginx 运行镜像，在仓库根执行 `docker build -t elect-frontend:v0.1.0 frontend`。路由与数据层仍在本阶段接入。详细开发、契约与测试入口见 [开发说明](../docs/开发说明.md)。

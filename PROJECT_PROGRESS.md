@@ -2,6 +2,38 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T1 第一批：镜像与服务入口
+
+### 已完成
+
+- 两端独立多阶段 Dockerfile；Node 22.23.2 编译后仅输出 Nginx 静态站点，Python 3.12.10/uv 锁定安装后以 UID/GID 10001 运行。
+- 八个 FastAPI 骨架、运行 Secret 的身份/领域连接校验、上限连接池与 UTC 会话、请求 UUID、白名单 JSON 日志和脱敏错误；公开业务暂返回 FEATURE_DISABLED。
+- 无网络 TLS 预检入口，检查域名、整条链有效期、SAN（含单层通配符）与公私钥匹配。
+- 为当前开发环境补齐 Docker Compose 2.39.4 与 uv 0.8.22；正式交付仍仅需 Docker Engine/Compose。
+
+### 进行中
+
+- T1-02/04：正式 provisioning、持锁迁移、Compose、服务认证、Outbox/Inbox/审计和前端路由/数据层。
+
+### 阻塞与风险
+
+- 无实现阻塞。宿主机 80 端口已有无关服务，验收使用独立项目与临时端口，不停止现有服务。
+- 尚未进行 Compose 空库启动与真实域名证书验收，不将独立构建视为 M0 已完成；学校业务仍未开放。
+
+### 下一步
+
+- 创建 Ed25519 短期 JWT 与可信用户上下文、租约 Outbox/事务 Inbox 和 Audit 幂等消费者，然后以 Compose 验证重复事件与 MQ 故障恢复。
+
+### 主要文件或模块
+
+- backend/Dockerfile、services/common、services/deployment/check_tls.py、各域 app/__main__、tests/unit；frontend/Dockerfile。
+- 根与子工程 README、AGENTS、docs/开发说明.md。
+
+### 验证
+
+- 两端 `docker build` 实际成功；后端 ruff 通过，新增 TLS/运行入口测试 8 passed。
+- 新增应用入口测试前的全量 pytest 为 43 passed / 1 skipped；完整 Compose 验收留待下一批。
+
 ## 2026-10-01 · T0 完成
 
 ### 已完成

@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.1.0。T0 工程与契约基线已完成：独立前后端、28 个 API 契约、七域初始迁移、状态模型和前端场景/参考截图已验证。业务功能与 Docker 部署从 T1 开始实施，当前不提供可使用的学校业务服务。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.1.0。T0 工程与契约基线已完成；T1 正在实施，两端 Dockerfile、服务工厂、健康/错误/日志基础和 TLS 预检已建立。Compose、服务认证与公共数据层正在接入，当前不提供可使用的学校业务服务。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -26,7 +26,7 @@ deploy/                # 公开变量与Secret/领域库所有权约定，Compos
 example/               # 独立界面与交互参考
 ```
 
-部署变量与 Secret 约定已在 `deploy/` 建立，Dockerfile/Compose 待 T1；生产源码与镜像构建不依赖 `example/`。
+部署变量与 Secret 约定已在 `deploy/` 建立，两端镜像可独立构建，Compose 待本阶段完成；生产源码与镜像构建不依赖 `example/`。
 
 ## 启动界面参考
 
