@@ -14,6 +14,7 @@ TARGETS = {
     "school_adapter": "https://school-adapter:8000",
     "room": "http://room:8000",
     "monitoring": "http://monitoring:8000",
+    "payment": "http://payment:8000",
 }
 
 

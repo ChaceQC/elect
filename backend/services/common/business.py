@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 
 
 def register(app, service):
-    if service in {"gateway", "identity", "school_adapter", "room", "monitoring"}:
+    if service in {"gateway", "identity", "school_adapter", "room", "monitoring", "payment"}:
         from importlib import import_module
 
         app.include_router(import_module(f"services.{service}.api").router)
@@ -20,6 +20,9 @@ def register(app, service):
         from services.gateway.query_api import router as query_router
 
         app.include_router(query_router)
+        from services.gateway.payment_api import router as payment_router
+
+        app.include_router(payment_router)
     if service == "room":
         from services.room.control_api import router
 
@@ -49,7 +52,15 @@ def register(app, service):
 
 
 async def initialize(app, service):
-    if service in {"gateway", "identity", "room", "monitoring", "school_adapter", "notification"}:
+    if service in {
+        "gateway",
+        "identity",
+        "room",
+        "monitoring",
+        "school_adapter",
+        "notification",
+        "payment",
+    }:
         from .service_client import ServiceClient
 
         app.state.service_client = ServiceClient(app.state.runtime)
@@ -66,7 +77,8 @@ async def initialize(app, service):
         app.state.email_crypto = EmailCrypto.load(os.environ["ELECT_EMAIL_KEY_FILE"])
         app.state.smtp = (
             SmtpTransport(SmtpConfig.load(os.environ["ELECT_SMTP_CONFIG_FILE"]))
-            if side_effect_policy().real_smtp else None
+            if side_effect_policy().real_smtp
+            else None
         )
     if service == "identity":
         from services.identity.application.login import LoginSaga

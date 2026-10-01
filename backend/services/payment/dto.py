@@ -36,6 +36,7 @@ class Capabilities(DTO):
     amount_step: PositiveMoney
     unavailable_reason: str | None
     unresolved_order: OrderReference | None
+    amount_policy_source: Literal["application_policy"] = "application_policy"
 
 
 class OrderRequest(DTO):
@@ -57,6 +58,11 @@ class Order(OrderReference):
     qr_status: QRStatus
     qr_expires_at: Timestamp | None
     error_code: str | None
+    qr_error_code: str | None = None
+    balance_refresh_state: Literal["not_required", "pending", "succeeded", "failed"] = (
+        "not_required"
+    )
+    balance_refresh_operation_id: UUID | None = None
 
     @model_validator(mode="after")
     def payment_confirmation(self) -> "Order":

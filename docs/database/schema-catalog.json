@@ -3800,7 +3800,7 @@
     },
     "payment": {
       "database": "elect_payment",
-      "revision": "payment_0001",
+      "revision": "payment_0002",
       "tables": {
         "payment_orders": {
           "columns": {
@@ -3914,6 +3914,46 @@
               "nullable": true,
               "primary_key": false,
               "computed": "IF(state IN ('created','submitting','awaiting_payment','submit_unknown','status_unknown'), binding_id, NULL)"
+            },
+            "qr_status": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "qr_error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "qr_expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "next_check_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "check_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "check_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "balance_refresh_state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "balance_refresh_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [
@@ -3937,6 +3977,10 @@
           ],
           "foreign_keys": [],
           "indexes": [
+            [
+              "next_check_at",
+              "check_lease_until"
+            ],
             [
               "state",
               "last_checked_at"
@@ -4019,9 +4063,18 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "open_order_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(state IN ('accepted','running','reconciling','unknown'), order_id, NULL)"
             }
           },
           "unique": [
+            [
+              "open_order_id"
+            ],
             [
               "owner_user_id",
               "kind",
@@ -4164,6 +4217,19 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "payment_owners": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
             }
           },
           "unique": [],

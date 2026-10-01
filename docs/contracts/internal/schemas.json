@@ -1390,6 +1390,11 @@
           "title": "Request Id",
           "type": "string"
         },
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        },
         "upstream_operation_id": {
           "format": "uuid",
           "title": "Upstream Operation Id",
@@ -1424,6 +1429,7 @@
       "required": [
         "owner_user_id",
         "request_id",
+        "order_id",
         "upstream_operation_id",
         "credential_ref",
         "credential_version",
@@ -1714,6 +1720,21 @@
         "step"
       ],
       "title": "PaymentSessionCommand",
+      "type": "object"
+    },
+    "OrderQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_id"
+      ],
+      "title": "OrderQuery",
       "type": "object"
     },
     "SessionIntrospection": {

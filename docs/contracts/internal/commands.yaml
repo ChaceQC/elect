@@ -105,7 +105,7 @@ commands:
     idempotency: Adapter 激活/撤销前自行读取并核对屏障，调用者不能自报屏障成功。
   - name: query_credential_control
     receiver: school_adapter
-    callers: [identity, monitoring]
+    callers: [identity, monitoring, payment]
     method: POST
     path: /credentials/control-view
     request: 已签名用户上下文

@@ -234,6 +234,7 @@ class DispatchBinding(UserCommand):
 
 
 class DispatchOrder(UserCommand):
+    order_id: UUID
     upstream_operation_id: UUID
     credential_ref: UUID
     credential_version: Version
@@ -283,6 +284,10 @@ class PaymentSessionCommand(UserCommand):
     order_id: UUID
     upstream_operation_id: UUID
     step: Literal["E01", "E02", "E03", "E04"]
+
+
+class OrderQuery(DTO):
+    order_id: UUID
 
 
 class SessionIntrospection(DTO):

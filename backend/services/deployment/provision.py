@@ -60,6 +60,7 @@ def keys_and_trust():
                     "captcha:create",
                     "room:browser",
                     "monitor:browser",
+                    "payment:browser",
                 ],
                 "identity": [
                     "credential:authenticate",
@@ -90,6 +91,12 @@ def keys_and_trust():
                     "room:balance-commit",
                 ],
                 "notification": ["monitor:authorize-send", "monitor:alert-read"],
+                "payment": [
+                    "room:browser",
+                    "room:query",
+                    "credential:control-read",
+                    "school:payment",
+                ],
             }.get(service, []),
         }
     return private, trust

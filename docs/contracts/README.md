@@ -70,3 +70,7 @@ GET/PATCH monitor 已接通，首次幂等创建 disabled 记录；版本匹配�
 ## T5投递与状态
 
 AlertSlotQuery/AlertSnapshot仅Notification受限本人上下文读取，包含邮箱明文仅在内部请求中传输，不能进入MQ。投递事件增加execution_epoch及retry_wait/脱敏error_code/next_retry_at；结果由job版本/许可epoch与Inbox防重。Monitor.failed_cycles与NotificationSummary.delivery_enabled为兼容新增字段，发送默认关闭。slot镜像持久错误/重试时间，unknown永久占一个名额。当前首次投递后最多三次重试，1/5/15分钟，固定Message-ID不代表SMTP去重。见 [T5决策](../decisions/T5低余额与邮件.md)。
+
+## T6订单增量
+
+能力、建单和订单读取接入本人会话与内部 payment:browser 权限。capabilities.amount_policy_source=application_policy，金额初始为1–500元整数；不是学校确认上限。原键重放返回原订单，键同内容不同409，同用户/寝室未解决订单以409 existing_operation_id恢复，不能换键重建。订单新增qr_error_code、balance_refresh_state/operation_id（兼容默认）；尚未确认付款时不计算充值后余额。学校写入/二维码/真实状态继续实施，普通部署开关仍关闭。

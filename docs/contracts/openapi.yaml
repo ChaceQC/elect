@@ -5685,6 +5685,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/OrderReference'
           - type: 'null'
+        amount_policy_source:
+          const: application_policy
+          default: application_policy
+          title: Amount Policy Source
+          type: string
       required:
       - enabled
       - currency
@@ -5814,6 +5819,28 @@ components:
           - type: string
           - type: 'null'
           title: Error Code
+        qr_error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Qr Error Code
+        balance_refresh_state:
+          default: not_required
+          enum:
+          - not_required
+          - pending
+          - succeeded
+          - failed
+          title: Balance Refresh State
+          type: string
+        balance_refresh_operation_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          default: null
+          title: Balance Refresh Operation Id
       required:
       - order_id
       - binding_id

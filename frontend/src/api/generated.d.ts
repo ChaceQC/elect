@@ -1393,6 +1393,12 @@ export interface components {
             /** Unavailable Reason */
             unavailable_reason: string | null;
             unresolved_order: components["schemas"]["OrderReference"] | null;
+            /**
+             * Amount Policy Source
+             * @default application_policy
+             * @constant
+             */
+            amount_policy_source: "application_policy";
         };
         /** OrderRequest */
         OrderRequest: {
@@ -1469,6 +1475,22 @@ export interface components {
             qr_expires_at: string | null;
             /** Error Code */
             error_code: string | null;
+            /**
+             * Qr Error Code
+             * @default null
+             */
+            qr_error_code: string | null;
+            /**
+             * Balance Refresh State
+             * @default not_required
+             * @enum {string}
+             */
+            balance_refresh_state: "not_required" | "pending" | "succeeded" | "failed";
+            /**
+             * Balance Refresh Operation Id
+             * @default null
+             */
+            balance_refresh_operation_id: string | null;
         };
         /** QRPending */
         QRPending: {

@@ -1,3 +1,3 @@
 from services.common.app import create_app
 
-app = create_app("payment")
+app = create_app("payment", business=True)
