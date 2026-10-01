@@ -1,6 +1,12 @@
 name: 容器验证
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+    branches: [main]
 permissions: {contents: read}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     runs-on: ubuntu-latest

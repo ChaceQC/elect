@@ -6,7 +6,8 @@ task_project=$2
 case "$task_project" in elect-test-*) ;; *) exit 2 ;; esac
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 task_fault="$task_dir/t4-fault"
-mkdir -m 700 "$task_fault"
+# 保留宿主机属主；容器通过 GID 10001 写状态，Runner 仍可写日志/检查就绪文件。
+mkdir -m 770 "$task_fault"
 compose() {
   docker compose --env-file "$task_dir/stack.env" -f "$task_root/deploy/compose.yaml" \
     -f "$task_root/deploy/compose.test.yaml" -p "$task_project" "$@"
@@ -18,7 +19,7 @@ fault() {
     python -m scripts.t4_dependency_smoke --record /run/fault/state.json --mode "$1"
 }
 compose run --rm --no-deps --user 0:0 --cap-add CHOWN --cap-add DAC_OVERRIDE \
-  --entrypoint sh -v "$task_fault:/run/fault" smoke -c 'chown 10001:10001 /run/fault'
+  --entrypoint sh -v "$task_fault:/run/fault" smoke -c 'chgrp 10001 /run/fault'
 compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay
 fault prepare
 compose stop redis
