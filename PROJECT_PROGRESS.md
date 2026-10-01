@@ -2,6 +2,38 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T3 默认切换与绑定流程暂停交接
+
+### 已完成
+
+- 凭据协调/撤回、发送许可和 F2-06 已验证，提交 dfff247 并推送 origin/dev。
+- 核对 P3b、默认切换 Saga、B04 一次 dispatch/B02 回查与 F3 异步界面的契约和现有表结构。
+
+### 进行中
+
+- 用户明确要求暂停并换对话接续；此后不继续实现或执行业务验证。
+- 已在工作区新增 Room 的 preference_store.py、mirror.py、defaults.py、control_jobs.py、default_saga.py 草稿：偏好锁、B02 镜像抽取、默认受理/提交、控制任务租约与恢复/补偿编排。尚未接入现有 repository/worker/API，未格式化、未测试、未提交，不应作为已交付功能使用。
+- 学校绑定候选校验、Adapter 一次 dispatch/unknown 回查、绑定操作受理和前端 F3/F5 尚未实现。本轮用户明确要求默认切换和绑定流程也必须完成，新对话须保留这个完整范围。
+
+### 阻塞与风险
+
+- 无实现阻塞；当前为用户主动暂停。真实 batchAdd 未指定新增目标，不执行真实绑定写入；用合成学校和实际 MySQL 验证后保持真实写开关关闭。
+
+### 下一步
+
+- 先复查/格式化上述五份默认草稿，将镜像和偏好锁接入 RoomRepository，增加 Room 默认 API、首次成功同步后的稳定默认初始化与后台控制任务入口；注意统一 preference → operation → sync_state/绑定的锁顺序，并保留只读 sync_tick 供 T2 夹具使用。
+- 随后实现绑定：Room 保存 candidate_id/目标/凭据版本/上游操作 ID 和默认子操作，Adapter 保存 prepared/dispatched 台账、加密候选及脱敏 B02 结果；同用户/目标未解决操作阻断换键，POST 后只回查，不因重启或空列表再次 dispatch。
+- 接通 F3 绑定/默认/独立查看与刷新恢复、F5 配置草稿/冲突/独立关闭；完成真实 MySQL 竞态、合成学校一次 POST/unknown/各阶段故障及前后端容器验收后，再同步契约/文档、提交推送。不能仅交付凭据一批就结束默认/绑定范围。
+
+### 主要文件或模块
+
+- backend/services/room、school_adapter、gateway、common，Room/Adapter 迁移、部署权限、前端 rooms/monitoring 和合成验收脚本。
+
+### 验证
+
+- 前一批 90 项后端、23 项前端、8 项浏览器及实际 MySQL/Redis 故障与权限检查通过，提交 dfff247 已推送 origin/dev；本批五份草稿未验证。
+- 最近验收环境是 `/tmp/elect-t3-credentials-proof/stack.env`、Compose 项目 `elect-test-t3-credentials-proof`；暂停时停止该独立测试项目并保留命名卷。未改动其他服务或真实学校绑定。
+
 ## 2026-10-01 · T3 凭据协调与发送许可完成
 
 ### 已完成
