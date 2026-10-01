@@ -15,7 +15,7 @@
 
 ### 进行中
 
-- T2 实现与本地验证已结束；整理最终提交、推送与主分支交付记录。
+- 暂无本阶段实现任务进行中；T2 本地/真实学校/云端容器验证和主分支交付均完成。
 
 ### 阻塞与风险
 
@@ -38,7 +38,8 @@
 - 容器前端 contract/lint/typecheck、20 passed、build 通过；容器 Playwright 6 passed，1440/375px 截图已查看，无横向溢出。
 - 全新 `/tmp/elect-t2-release-proof` 仅 Docker 构建/初始化与内部 TLS/JWT/域权限、Outbox/Inbox/Audit、共享限流/Redis 失败、登录恢复/同步租约等检查全部通过；22 长期 healthy，migrate/tls-check 退出 0。
 - 最新生产前端真实浏览器与后台恢复记录均 passed，不存原始页面/trace 或输出真实认证材料；源码/文档的本地凭据扫描通过。
-- 前两批 50bc0ec、bcd7f16 已推送 origin/dev；最终交付提交及 Git 状态继续在收尾记录。
+- 三批实现 50bc0ec、bcd7f16、713a000 已推送 origin/dev；已快进合并并推送 origin/main。工作区回到 dev；本轮测试容器停止，保留命名卷，不影响原有服务。
+- [GitHub CI](https://github.com/ChaceQC/elect/actions/runs/36805828351) 对交付代码 713a000 实际 success，离线/浏览器与全新隔离容器检查均通过。
 
 ## 2026-10-01 · T2 后端真实学校闭环
 
