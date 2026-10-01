@@ -80,7 +80,7 @@ class RetargetControls:
                 ":generation,'prepared',:digest)",
                 id=command.operation_id.bytes,
                 owner=command.owner_user_id.bytes,
-                target=command.target_binding_id.bytes,
+                target=command.target_binding_id.bytes if command.target_binding_id else None,
                 previous=monitor["binding_id"],
                 version=command.expected_preference_version,
                 generation=monitor["generation"] + 1,
@@ -150,7 +150,9 @@ class RetargetControls:
 
     @staticmethod
     def validate_finish(command, operation, proof, compensate):
-        if operation["target_binding_id"] != command.target_binding_id.bytes:
+        if operation["target_binding_id"] != (
+            command.target_binding_id.bytes if command.target_binding_id else None
+        ):
             raise ApiError(409, ErrorCode.IDEMPOTENCY_CONFLICT, "切换目标与原操作不一致")
         expected = operation["expected_preference_version"]
         # 终态重放只验证原请求，不因后来其他 Saga 更新了 Room 偏好而改变旧结果。
@@ -173,7 +175,8 @@ class RetargetControls:
                 command.committed_preference_version == expected + 1
                 and proof.get("committed") is True
                 and proof.get("preference_version") == command.committed_preference_version
-                and proof.get("binding_id") == str(command.target_binding_id)
+                and proof.get("binding_id")
+                == (str(command.target_binding_id) if command.target_binding_id else None)
             )
         if not valid or proof.get("operation_id") != str(command.operation_id):
             raise ApiError(409, ErrorCode.VERSION_CONFLICT, "Room 尚未确认此偏好提交状态")

@@ -13,7 +13,7 @@ from .rooms import room_record
 
 
 def digest(command):
-    value = command.model_dump(mode="json", exclude={"request_id"})
+    value = command.model_dump(mode="json", exclude={"request_id", "lease_owner"})
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).digest()
 
 
@@ -34,17 +34,18 @@ def result(row):
 
 
 class BindingLedger:
-    def __init__(self, engine, crypto):
-        self.engine, self.crypto = engine, crypto
+    def __init__(self, engine, crypto, kind="bind_room"):
+        self.engine, self.crypto, self.kind = engine, crypto, kind
 
     async def get(self, owner, operation):
         async with self.engine.connect() as conn:
             return await first(
                 conn,
                 "SELECT * FROM upstream_operations WHERE id=:id "
-                "AND owner_user_id=:owner AND operation_type='bind_room'",
+                "AND owner_user_id=:owner AND operation_type=:kind",
                 id=operation.bytes,
                 owner=owner.bytes,
+                kind=self.kind,
             )
 
     @staticmethod
@@ -54,7 +55,7 @@ class BindingLedger:
         return row
 
     async def prepare(self, command, value):
-        record = room_record(value["record"])
+        record = room_record(value["record"]) if self.kind == "bind_room" else value["record"]
         async with self.engine.begin() as conn:
             credential = await self.lock_credential(conn, command)
             row = await first(
@@ -79,9 +80,10 @@ class BindingLedger:
                 conn,
                 "INSERT INTO upstream_operations (id,owner_user_id,operation_type,"
                 "target_ref,request_digest,credential_version,state,candidate_ciphertext) "
-                "VALUES (:id,:owner,'bind_room',:target,:digest,:version,'prepared',:candidate)",
+                "VALUES (:id,:owner,:kind,:target,:digest,:version,'prepared',:candidate)",
                 id=command.upstream_operation_id.bytes,
                 owner=command.owner_user_id.bytes,
+                kind=self.kind,
                 target=record["room_id"],
                 digest=digest(command),
                 version=credential["version"],
@@ -129,7 +131,9 @@ class BindingLedger:
             await record_audit(
                 conn,
                 "school_adapter",
-                "school.binding_dispatched",
+                "school.unbinding_dispatched"
+                if self.kind == "unbind_room"
+                else "school.binding_dispatched",
                 "operation",
                 command.upstream_operation_id,
                 command.request_id,
@@ -177,7 +181,7 @@ class BindingLedger:
                 await record_audit(
                     conn,
                     "school_adapter",
-                    f"school.binding_{state}",
+                    f"school.{'unbinding' if self.kind == 'unbind_room' else 'binding'}_{state}",
                     "operation",
                     operation,
                     request_id,

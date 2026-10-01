@@ -7,6 +7,7 @@ OperationType = Literal[
     "credential_revoke",
     "binding_sync",
     "bind_room",
+    "unbind_room",
     "switch_default",
     "balance_refresh",
     "history_sync",
@@ -32,7 +33,7 @@ class OperationSummary(DTO):
 
 
 class Operation(OperationSummary):
-    binding_status: Literal["pending", "confirmed", "failed", "unknown"] | None
+    binding_status: Literal["pending", "confirmed", "removed", "failed", "unknown"] | None
     default_status: Literal["pending", "switching", "confirmed", "unchanged", "failed"] | None
     retryable: bool
     error_code: str | None

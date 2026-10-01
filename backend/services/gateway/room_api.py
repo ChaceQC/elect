@@ -28,6 +28,25 @@ async def binding(id: UUID, request: Request):
     return success(request, value)
 
 
+@router.delete("/room-bindings/{id}", status_code=202)
+async def unbind(
+    id: UUID,
+    request: Request,
+    idempotency_key: Annotated[str, Header(min_length=16, max_length=128)],
+):
+    principal, csrf = await session(request)
+    require_browser_write(request, csrf)
+    value = await request.app.state.service_client.call(
+        "room",
+        "/browser/unbind",
+        "room:browser",
+        principal.request_id,
+        {"binding_id": str(id), "idempotency_key": idempotency_key},
+        principal=principal,
+    )
+    return success(request, value, status=202)
+
+
 @router.put("/room-preferences/default")
 async def set_default(command: DefaultRequest, request: Request):
     principal, csrf = await session(request)

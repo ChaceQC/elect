@@ -1,9 +1,18 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 
-from services.common.internal_dto import CommitRetarget, PrepareRetarget, RevokeBarrier
+from services.common.errors import ErrorCode
+from services.common.http import ApiError
+from services.common.internal_dto import (
+    CommitRetarget,
+    OperationQuery,
+    PrepareRetarget,
+    RevokeBarrier,
+)
 from services.common.security import Principal, authorize_owner, require_user_principal
+from services.common.sql import first
 
 from .barriers import RetargetControls
 from .configuration import MonitorConfiguration
@@ -34,6 +43,32 @@ async def patch(command: MonitorPatch, request: Request, principal: Browser):
 async def prepare(command: PrepareRetarget, request: Request, principal: Retarget):
     authorize_owner(principal, command.owner_user_id)
     return await RetargetControls(request.app.state.database).prepare(command)
+
+
+@router.post("/monitor/retarget-barrier")
+async def retarget_barrier(
+    command: OperationQuery,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("monitor:retarget-read"))],
+):
+    async with request.app.state.database.connect() as conn:
+        row = await first(
+            conn,
+            "SELECT * FROM control_operations WHERE id=:id AND owner_user_id=:owner "
+            "AND type='retarget'",
+            id=command.operation_id.bytes,
+            owner=principal.user_id.bytes,
+        )
+    if not row:
+        raise ApiError(404, ErrorCode.NOT_FOUND, "切换屏障不存在")
+    return {
+        "operation_id": str(command.operation_id),
+        "state": row["state"],
+        "target_binding_id": str(UUID(bytes=row["target_binding_id"]))
+        if row["target_binding_id"]
+        else None,
+        "expected_preference_version": row["expected_preference_version"],
+    }
 
 
 async def finish_retarget(command, request, principal, compensate):

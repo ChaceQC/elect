@@ -6,7 +6,7 @@
 
 ## T3 控制基础升级
 
-T3 启用 Monitoring 配置/屏障/发送许可和 Identity 持久撤回，当前 head 为 `identity_0003`、`school_0004`、`room_0003`、`monitoring_0003`。`monitoring_encryption_key_bundle` 是独立 AES-256-GCM 多版本邮箱密钥，只挂载 Monitoring API，不与学校 KEK 共用。首次 provision 自动生成；已有 T2/第一批 T3 Secret 目录必须保留，按以下顺序重复升级：
+T3 启用 Monitoring 配置/屏障/发送许可和 Identity 持久撤回，当前 head 为 `identity_0003`、`school_0005`、`room_0004`、`monitoring_0003`。`monitoring_encryption_key_bundle` 是独立 AES-256-GCM 多版本邮箱密钥，只挂载 Monitoring API，不与学校 KEK 共用。首次 provision 自动生成；已有 T2/第一批 T3 Secret 目录必须保留，按以下顺序重复升级：
 
 ```sh
 docker build -t elect-backend:local backend
@@ -188,3 +188,7 @@ T2 新增应用恢复字段、学校账号占位/授权与 Room 同步租约/状
 ## T3 绑定与默认增量
 
 Room 既有 Worker 同时扫描同步、默认和绑定，无新增进程。已有第二批 T3 部署重复执行上述 upgrade_controls 后迁移 room_0003/school_0004，再重建服务加载新 scope；不能回改已发布迁移或删除未知台账。deploy/test-stack.sh 增加默认 Saga 与绑定一次 dispatch/unknown/Outbox 故障验证，均使用隔离基础服务和合成学校。真实新增仅在明确指定目标的验收项目临时开启 ELECT_ALLOW_SCHOOL_BINDING_WRITES，验收后关闭，支付/SMTP 始终保持 false。
+
+## T3 删除增量升级
+
+保留原 Secret 和卷，重复 upgrade_controls 增加 Room 的凭据证明读取、Adapter 的 Room 租约/默认屏障读取；迁移 room_0004/school_0005 后重建 Gateway/Room/Adapter/Monitoring 及 Room Worker，读取新 head 与 scope。学校删除仍受 ELECT_ALLOW_SCHOOL_BINDING_WRITES 控制，普通值 false；指定验收临时 true，完成后重建 Room/Adapter 恢复 false。脚本 t3_removal_smoke 只在显式隔离环境运行，并在恢复真实 Worker 前终结合成待执行任务。

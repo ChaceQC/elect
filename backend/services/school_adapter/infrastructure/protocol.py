@@ -1,7 +1,7 @@
 """正式学校认证/读取及受持久台账保护的 B04 单次写入。"""
 
 from dataclasses import dataclass
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote
 
 import httpx
 
@@ -164,5 +164,23 @@ class SchoolProtocol:
                 pool="background",
                 json={"roomUsers": [record]},
                 headers={"Authorization": f"Bearer {token}"},
+            )
+            return parse_json(response, authenticated=True, check_code=False)
+
+    async def remove_one(self, token, relation_id, deadline):
+        async with self.transport.client() as client:
+            response = await self.transport.request(
+                client,
+                "POST",
+                f"{API}/base/roomUser/{quote(relation_id, safe='')}",
+                deadline,
+                authenticated=True,
+                read_timeout=15,
+                pool="background",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "X-HTTP-Method-Override": "DELETE",
+                    "Content-Type": "application/json",
+                },
             )
             return parse_json(response, authenticated=True, check_code=False)

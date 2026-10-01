@@ -2,13 +2,134 @@
 openapi: 3.1.0
 info:
   title: 寝室电费学生端 API
-  version: 0.6.0
+  version: 0.7.0
   description: T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，时间戳带时区。202 仅表示持久受理。业务服务按 x-stage
     实现。
 servers:
 - url: /api/v1
 paths:
   /room-bindings/{id}:
+    delete:
+      operationId: unbind_room
+      tags:
+      - room
+      summary: unbind_room
+      x-owner: room
+      x-stage: T3
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 持久受理，按查询接口跟踪
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AcceptedOperation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      x-result-query: /operations/{id}
+      x-persistence: room.room_operations
     get:
       operationId: get_binding
       tags:
@@ -3924,6 +4045,7 @@ components:
           - credential_revoke
           - binding_sync
           - bind_room
+          - unbind_room
           - switch_default
           - balance_refresh
           - history_sync
@@ -3971,6 +4093,7 @@ components:
           - credential_revoke
           - binding_sync
           - bind_room
+          - unbind_room
           - switch_default
           - balance_refresh
           - history_sync
@@ -4003,6 +4126,7 @@ components:
           - enum:
             - pending
             - confirmed
+            - removed
             - failed
             - unknown
             type: string
@@ -4450,6 +4574,21 @@ components:
             type: string
           - type: 'null'
           title: Default Switch Operation Id
+        binding_removal_operation_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          default: null
+          title: Binding Removal Operation Id
+        preference_state:
+          default: ready
+          enum:
+          - ready
+          - switching
+          - blocked
+          title: Preference State
+          type: string
         sync_status:
           enum:
           - ready

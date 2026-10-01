@@ -47,6 +47,7 @@
 | [B05](#b05) | SDGL | `GET /api/base/baseBuildings/getBuildList` | 楼栋筛选列表 | 当前页面声明与指定目标只读核验 |
 | [B06](#b06) | SDGL | `GET /api/base/rooms/getAllFoolNumByBuildId` | 按楼栋取得楼层 | 当前页面声明与指定目标只读核验 |
 | [B07](#b07) | SDGL | `GET /api/base/rooms/getRoomListByBuildIdAndFloor` | 按楼栋/楼层取得房间 | 当前页面声明与指定目标只读核验 |
+| [B08](#b08) | SDGL | `POST /api/base/roomUser/{bruId}` + DELETE 方法覆盖头 | 删除本人学校绑定 | 指定枫苑5号-402 的生产前端/B02/台账真实删除通过 |
 | [C01](#c01) | SDGL | `GET /api/base/record/queryUsageByTime` | 查询用量记录 | 有数据，日期窗口语义受限 |
 | [C02](#c02) | SDGL | `GET /api/base/record/queryRecordByTime` | 查询扣费／用电记录 | 2026-09-30 返回区间内明细 |
 | [C03](#c03) | SDGL | `GET /api/home/queryEleTrendByTimeType` | 统计趋势 | `timeType=0` 通过，单寝室范围未确认 |
@@ -473,6 +474,25 @@ batchAdd({ roomUsers });
 **2026-10-01 证据与范围**：学校 `pages/module/search` 为楼栋 → 楼层 → 房间三级选择，绑定页面接收 roomId。脚本 [pages-module-search.cd6846bf.js](https://sdgl.hbue.edu.cn/mobile/static/js/pages-module-search.cd6846bf.js)，SHA-256 `efc39c0ee773001cbca2ded59637ac8395865ee1648d892986128ac0d8b7206c`；请求声明在前述主包。指定账号只读实测唯一定位到枫苑5号、4 层和 402，B03 roomId 返回唯一匹配、楼栋/房号一致，B02 当时尚无该目标。用户说明直接搜索无效，正式前端改为筛选配合当前列表内搜索，不把非空 searchValue 当作已验证精确搜索。
 
 实际新增 B04 在台账与容器验证后单独执行并记录；本节只读证据不表示已完成新增绑定。
+
+<a id="b08"></a>
+### B08 学校页面解绑 roomUserremove
+
+**当前页面实际请求**：`POST https://sdgl.hbue.edu.cn/api/base/roomUser/{bruId}`，带当前学校 Bearer token 和 `X-HTTP-Method-Override: DELETE`。没有业务 JSON 请求体。
+
+学校绑定列表页 `jiebang` 冻结选中关系，确认按钮调用 `roomUserremove([selected.bruId])`；单元素数组拼为路径中的 bruId。主包的 request 声明是 POST + 方法覆盖头。另有 `deleteRoomUser` 的直接 DELETE 声明，本系统遵循当前页面主路径，不把其他写接口作为超时后的备用。
+
+| 参数 | 来源 | 约束 |
+| --- | --- | --- |
+| 路径 bruId | 本人 B02 的绑定关系 ID | 与 roomId/本应用 Binding UUID 区分；不接受浏览器给出学校 ID |
+| Authorization | 当前学校账号 token | 由 Adapter 保管 |
+| X-HTTP-Method-Override | 固定 DELETE | 与页面行为一致 |
+
+先校验本应用本人目标和持久凭据版本，再查询 B02 核对同一关系；关系 ID 变化时要求同步，不删除后来新建的关系。首次发送前登记 dispatched；超时/断连/5xx 或重启只回查 B02，不重复 POST。明确业务拒绝终结；code 200 本身不表示关系已消失。连续两次成功缺席、数据库时间至少间隔 30 秒后才确认；一次空列表、查询失败或重新出现都会阻止/重置确认。10 分钟未确认转 unknown，保留目标屏障。
+
+默认目标先建立监控 retarget-to-null 屏障；本地关系 inactive、清空默认与审计 Outbox 同事务，再由 Monitoring 读取偏好证明确认。默认删除后不擅自选择其他寝室，监控等待明确的新默认；关闭意图和已采集历史保留。非默认删除保持原默认与监控目标。
+
+来源：[绑定列表页](https://sdgl.hbue.edu.cn/mobile/static/js/pages-bindingAccount-index.0a617094.js)，SHA-256 `5ecd47fc6bf85992fc1e11e81d25e77101c09fc6bdca2716a621863d1a7ad769`，及 B04 所列主包。本轮 MySQL/合成学校已验证单次写入、缺席/重现、unknown、关闭与默认恢复；用户指定枫苑5号-402 做真实删除，尚待完成该结果验证。
 
 ## 4. 历史用电与统计趋势
 
@@ -1713,3 +1733,7 @@ def create_order_and_qr(client, user_id, room_id, amount, *, confirmed=False):
 ## T3 真实新增补充（2026-10-01）
 
 用户明确授权的枫苑5号-402 已通过生产前端执行 B05–B07 筛选、B03 精确核验与 B04 单次写入，并经 B02 和持久台账确认。绑定数 1 → 2，原默认保留，临时写开关恢复 false；记录见 [真实分类结果](acceptance/school/2026-10-01-T3-binding.json)。本例仍不证明学校累计上限、重复写入行为、最小必填字段或其他目标均可绑定。用户追加了同一目标的删除验收，删除尚未执行。
+
+## T3 真实删除补充（2026-10-01）
+
+用户指定的同一枫苑5号-402 已通过生产前端执行 B08。一次上游方法覆盖写入、正常间隔30秒的两次 B02 缺席及本域 inactive/缓存保留通过，绑定数2→1、原默认保留，写开关恢复 false；[真实分类证据](acceptance/school/2026-10-01-T3-removal.json)。此为指定账号/目标的删除验收，学校全量错误码、任意目标权限与其他接口仍不自动视为已验证。

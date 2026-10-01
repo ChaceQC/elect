@@ -552,7 +552,7 @@
     },
     "school_adapter": {
       "database": "elect_school",
-      "revision": "school_0004",
+      "revision": "school_0005",
       "tables": {
         "school_credentials": {
           "columns": {
@@ -864,7 +864,12 @@
               "type": "VARCHAR(128) COLLATE utf8mb4_bin",
               "nullable": true,
               "primary_key": false,
-              "computed": "IF(operation_type='bind_room' AND state IN ('prepared','dispatched','reconciling','unknown'),target_ref,NULL)"
+              "computed": "IF(operation_type IN ('bind_room','unbind_room') AND state IN ('prepared','dispatched','reconciling','unknown'),target_ref,NULL)"
+            },
+            "absence_first_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [
@@ -875,7 +880,7 @@
           ],
           "checks": [
             "credential_version >= 1",
-            "operation_type IN ('bind_room', 'create_order', 'E01', 'E02', 'E03', 'E04')",
+            "operation_type IN ('bind_room','unbind_room','create_order','E01','E02','E03','E04')",
             "state IN ('prepared', 'dispatched', 'confirmed', 'rejected', 'reconciling', 'unknown')"
           ],
           "foreign_keys": [],
@@ -1141,7 +1146,7 @@
     },
     "room": {
       "database": "elect_room",
-      "revision": "room_0003",
+      "revision": "room_0004",
       "tables": {
         "rooms": {
           "columns": {
@@ -1358,12 +1363,6 @@
               "nullable": false,
               "primary_key": false
             },
-            "open_binding_target": {
-              "type": "BINARY(16)",
-              "nullable": true,
-              "primary_key": false,
-              "computed": "IF(type = 'bind_room' AND state IN ('accepted', 'running', 'reconciling', 'unknown'), target_room_id, NULL)"
-            },
             "open_switch_owner": {
               "type": "BINARY(16)",
               "nullable": true,
@@ -1409,6 +1408,17 @@
               "type": "BINARY(16)",
               "nullable": true,
               "primary_key": false
+            },
+            "open_binding_target": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(type IN ('bind_room','unbind_room') AND state IN ('accepted','running','reconciling','unknown'),target_room_id,NULL)"
+            },
+            "removal_was_default": {
+              "type": "BOOL",
+              "nullable": false,
+              "primary_key": false
             }
           },
           "unique": [
@@ -1426,11 +1436,11 @@
             ]
           ],
           "checks": [
-            "binding_status IN ('pending','confirmed','failed','unknown')",
+            "binding_status IN ('pending','confirmed','removed','failed','unknown')",
             "credential_version >= 1",
             "default_status IN ('pending','switching','confirmed','unchanged','failed')",
             "state IN ('accepted', 'running', 'reconciling', 'unknown', 'succeeded', 'failed', 'cancelled')",
-            "type IN ('binding_sync', 'bind_room', 'switch_default', 'balance_refresh', 'history_sync')"
+            "type IN ('binding_sync','bind_room','unbind_room','switch_default','balance_refresh','history_sync')"
           ],
           "foreign_keys": [
             {
@@ -1489,6 +1499,11 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "removal_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [],
@@ -1505,6 +1520,14 @@
               "targets": [
                 "room_bindings.id",
                 "room_bindings.owner_user_id"
+              ]
+            },
+            {
+              "columns": [
+                "removal_operation_id"
+              ],
+              "targets": [
+                "room_operations.id"
               ]
             },
             {

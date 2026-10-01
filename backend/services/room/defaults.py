@@ -8,11 +8,12 @@ from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.sql import execute, first
 
-from .preference_store import lock_preference, locked_operation
+from .preference_store import lock_preference, locked_operation, require_no_removal
 
 
 async def accept_default(conn, owner, target, expected, request_id):
     preference = await lock_preference(conn, owner)
+    require_no_removal(preference)
     if preference["switch_operation_id"]:
         previous = await first(
             conn, "SELECT * FROM room_operations WHERE id=:id", id=preference["switch_operation_id"]
@@ -70,7 +71,12 @@ async def accept_default(conn, owner, target, expected, request_id):
 
 async def initialize_default(conn, owner, request_id):
     preference = await lock_preference(conn, owner)
-    if preference["default_binding_id"] or preference["switch_operation_id"]:
+    if (
+        preference["default_binding_id"]
+        or preference["switch_operation_id"]
+        or preference["removal_operation_id"]
+        or preference["state"] == "blocked"
+    ):
         return None
     first_binding = await first(
         conn,

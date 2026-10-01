@@ -23,6 +23,10 @@ class BindCommand(BindRequest, SyncCommand):
     pass
 
 
+class RemoveCommand(BindingQuery, SyncCommand):
+    pass
+
+
 @router.post("/bindings")
 async def bindings(command: RoomQuery, request: Request, principal: Browser):
     return await RoomRepository(request.app.state.database).list(
@@ -119,6 +123,23 @@ async def bind(command: BindCommand, request: Request, principal: Browser):
 
     operation = await accept(
         request.app.state, principal, command.candidate_id, command.idempotency_key
+    )
+    current = await RoomRepository(request.app.state.database).operation(
+        principal.user_id, operation
+    )
+    return {
+        "operation_id": str(operation),
+        "state": current["state"],
+        "poll_url": f"/api/v1/operations/{operation}",
+    }
+
+
+@router.post("/unbind")
+async def unbind(command: RemoveCommand, request: Request, principal: Browser):
+    from .removals import accept
+
+    operation = await accept(
+        request.app.state, principal, command.binding_id, command.idempotency_key
     )
     current = await RoomRepository(request.app.state.database).operation(
         principal.user_id, operation

@@ -69,9 +69,18 @@ def keys_and_trust():
                     "credential:control-read",
                     "credential:revoke",
                 ],
-                "room": ["school:rooms", "school:binding", "monitor:retarget"],
+                "room": [
+                    "school:rooms",
+                    "school:binding",
+                    "monitor:retarget",
+                    "credential:control-read",
+                ],
                 "monitoring": ["room:control", "credential:control-read"],
-                "school_adapter": ["monitor:credential-read"],
+                "school_adapter": [
+                    "monitor:credential-read",
+                    "monitor:retarget-read",
+                    "room:remove-read",
+                ],
                 "notification": ["monitor:authorize-send"],
             }.get(service, []),
         }

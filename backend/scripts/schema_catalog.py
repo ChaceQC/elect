@@ -46,6 +46,14 @@ class Recorder:
     def create_check_constraint(self, name, table, condition):
         self.metadata.tables[table].append_constraint(sa.CheckConstraint(condition, name=name))
 
+    def drop_constraint(self, name, table, **options):
+        target = self.metadata.tables[table]
+        target.constraints.remove(next(item for item in target.constraints if item.name == name))
+
+    def drop_column(self, table, column):
+        target = self.metadata.tables[table]
+        target._columns.remove(target.c[column])
+
 
 def table_schema(table):
     columns = {}

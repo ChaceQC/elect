@@ -11,6 +11,7 @@ export function useBindings({ q = '', page = 1, pageSize = 10 } = {}) {
       q, page: String(page), page_size: String(pageSize) })}`, { signal })).data),
     refetchInterval: (query) => query.state.data?.sync_status === 'loading' ||
       query.state.data?.default_switch_operation_id ||
+      query.state.data?.binding_removal_operation_id ||
       query.state.data?.pending_operations.some(item => ['accepted', 'running', 'reconciling'].includes(item.state)) ? 2000 : false,
   })
 }

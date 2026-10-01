@@ -1,7 +1,7 @@
 // 显式真实学校验收；认证材料仅在内存，禁止 trace/截图/原始请求输出。
 import { writeFile } from 'node:fs/promises'
 import { chromium, expect } from '@playwright/test'
-import { readAuth, solve } from './live-school-helpers.mjs'
+import { schoolLogin } from './live-school-helpers.mjs'
 
 const dateParts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai',
   year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()).map(part => [part.type, part.value]))
@@ -15,34 +15,7 @@ const browser = await chromium.launch({ executablePath: process.env.ELECT_BROWSE
   args: ['--host-resolver-rules=MAP elect.test.local:443 127.0.0.1:18443'] })
 try {
   const page = await browser.newPage({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 } })
-  record.stage = 'login_form'
-  await page.goto('https://elect.test.local/rooms')
-  await expect(page.getByRole('form', { name: '学校账号登录' })).toBeVisible()
-  await expect(page.getByAltText('学校算式验证码')).toBeVisible({ timeout: 35_000 })
-  let answer = ''
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    answer = /** @type {string} */ (await solve(/** @type {string} */ (await page.getByAltText('学校算式验证码').getAttribute('src'))))
-    if (answer) break
-    if (attempt === 0) { await page.getByRole('button', { name: '换一张' }).click(); await expect(page.getByAltText('学校算式验证码')).toBeVisible() }
-  }
-  if (!answer) throw new Error('CAPTCHA_NOT_SOLVED')
-  const auth = await readAuth(authFile)
-  await page.getByLabel('学校账号', { exact: true }).fill(auth.student)
-  await page.getByLabel('学校密码').fill(auth.password)
-  await page.getByLabel('验证码答案').fill(answer)
-  await page.getByRole('button', { name: '阅读应用协议' }).click()
-  await page.locator('.agreement-content').evaluate(element => { element.scrollTop = element.scrollHeight })
-  await page.getByRole('button', { name: '我已阅读' }).click()
-  await page.getByLabel('我同意应用使用协议').check()
-  await page.getByLabel('允许后台使用加密凭据恢复学校认证').check()
-  record.stage = 'school_login'
-  const loginResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/auth/login')
-  await page.getByRole('button', { name: '登录', exact: true }).click()
-  const login = await loginResponse
-  if (!login.ok()) { record.failure_code = (await login.json()).error?.code; throw new Error('LOGIN_FAILED') }
-  await expect(page.getByRole('heading', { name: '我的寝室', exact: true })).toBeVisible({ timeout: 70_000 })
-  record.authentication = 'passed'
-  await expect(page.getByLabel('学校密码')).toHaveCount(0)
+  const auth = await schoolLogin(page, authFile, record)
   record.password_state_cleared = true
   record.stage = 'binding_sync'
   const accepted = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/room-bindings/sync')

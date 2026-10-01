@@ -39,7 +39,8 @@ async def confirm_binding(conn, owner, record):
     )
     binding = await first(
         conn,
-        "SELECT id FROM room_bindings WHERE owner_user_id=:owner AND room_id=:room",
+        "SELECT id FROM room_bindings WHERE owner_user_id=:owner AND status<>'inactive' AND "
+        "room_id=:room",
         owner=owner,
         room=room["id"],
     )
@@ -59,7 +60,9 @@ async def mirror_bindings(conn, owner, records):
     previous = (
         (
             await execute(
-                conn, "SELECT id FROM room_bindings WHERE owner_user_id=:owner", owner=owner
+                conn,
+                "SELECT id FROM room_bindings WHERE owner_user_id=:owner AND status<>'inactive'",
+                owner=owner,
             )
         )
         .scalars()

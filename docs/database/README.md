@@ -5,8 +5,8 @@
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
 | Identity | elect_identity | identity_0003 | 7 |
-| School Adapter | elect_school | school_0004 | 9 |
-| Room | elect_room | room_0003 | 11 |
+| School Adapter | elect_school | school_0005 | 9 |
+| Room | elect_room | room_0004 | 11 |
 | Monitoring | elect_monitoring | monitoring_0003 | 13 |
 | Payment | elect_payment | payment_0001 | 4 |
 | Notification | elect_notification | notification_0001 | 4 |
@@ -33,3 +33,5 @@ T3 第一批 monitoring_0002 增加 monitors.preference_version、credential_ope
 暂存清理先按 attempt 查询激活结果，未激活且过期才能清；expired lease 提升 epoch 后恢复，不删除任务；unknown 操作/投递/订单保留台账；快照先清成员后清快照。日常清理及归档在容量/恢复验收后启用。细节见 [T0 决策](../decisions/T0实施决策.md)。
 
 第三批 school_0004 增加 upstream_operations 加密候选/脱敏 B02 确认记录、binary 目标比较与同用户未解决目标唯一约束；room_0003 增加候选/凭据快照、绑定/默认状态和默认子操作引用。学校 dispatched 后不能重新发送，unknown 不能普通过期清除。详见 [绑定决策](../decisions/T3绑定筛选与异步界面.md)。
+
+删除增量 room_0004 增加 unbind_room/removed 状态、新增与解绑共用目标唯一屏障、removal_was_default 和 room_preferences.removal_operation_id；school_0005 扩展解绑类型/目标约束及 absence_first_at。inactive 保留缓存/历史，不进行物理删除，显式清空默认后 preference.state=blocked 防止下一次同步擅自重选。

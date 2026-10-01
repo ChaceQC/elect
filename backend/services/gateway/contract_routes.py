@@ -22,6 +22,18 @@ class Endpoint:
 
 
 ENDPOINTS = (
+    Endpoint(
+        "delete",
+        "/room-bindings/{id}",
+        "unbind_room",
+        "room",
+        "T3",
+        "AcceptedOperation",
+        statuses=(202,),
+        idempotent=True,
+        recovery="/operations/{id}",
+        persistence="room.room_operations",
+    ),
     Endpoint("get", "/room-bindings/{id}", "get_binding", "room", "T3", "Binding"),
     Endpoint("get", "/room-candidates/buildings", "list_buildings", "room", "T3", "FilterChoices"),
     Endpoint(

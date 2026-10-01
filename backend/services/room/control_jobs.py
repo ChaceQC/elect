@@ -12,7 +12,8 @@ async def claim(engine):
     async with engine.begin() as conn:
         row = await first(
             conn,
-            "SELECT * FROM room_operations WHERE type IN ('switch_default','bind_room') "
+            "SELECT * FROM room_operations WHERE type IN ('switch_default','bind_room',"
+            "'unbind_room') "
             "AND (state IN ('accepted','running','reconciling','unknown') OR (state='failed' "
             "AND saga_step='compensating')) "
             "AND next_reconcile_at<=UTC_TIMESTAMP(6) "

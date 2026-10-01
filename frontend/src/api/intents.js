@@ -3,11 +3,15 @@ import { apiClient } from './client.js'
 /** @typedef {'operation'|'run'|'order'} ResourceKind */
 /** @typedef {Record<string,string|number|boolean|null>} SafeBody */
 /** @typedef {{key: string, path: string, body: SafeBody, kind: ResourceKind,
- * id: string|null, createdAt: number}} Intent */
+ * id: string|null, createdAt: number, method?: 'POST'|'DELETE'}} Intent */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const fields = new Set(['candidate_id', 'binding_id', 'amount', 'expected_version', 'make_default',
   'start_date', 'end_date'])
 const safePath = /^\/(room-bindings(?:\/sync|\/[0-9a-f-]{36}\/(?:balance-refresh|history-sync))?|monitor\/runs|payment-orders(?:\/[0-9a-f-]{36}\/qr-refresh)?)$/i
+
+const deletePath = /^\/room-bindings\/[0-9a-f-]{36}$/i
+/** @param {string} path @param {string} [method] */
+const safeRequest = (path, method = 'POST') => method === 'DELETE' ? deletePath.test(path) : method === 'POST' && safePath.test(path)
 
 function availableStorage() {
   try { return sessionStorage } catch { return null }
@@ -54,10 +58,10 @@ export class OperationController {
     return intent
   }
 
-  /** @param {string} path @param {SafeBody} [body] @param {ResourceKind} [kind] */
-  create(path, body = {}, kind = 'operation') {
-    if (!safePath.test(path)) throw new Error('仅登记的幂等接口可保存重试请求')
-    return this.remember(Object.freeze({ key: crypto.randomUUID(), path, body: sanitize(body), kind,
+  /** @param {string} path @param {SafeBody} [body] @param {ResourceKind} [kind] @param {'POST'|'DELETE'} [method] */
+  create(path, body = {}, kind = 'operation', method = 'POST') {
+    if (!safeRequest(path, method)) throw new Error('仅登记的幂等接口可保存重试请求')
+    return this.remember(Object.freeze({ key: crypto.randomUUID(), path, body: sanitize(body), kind, method,
       id: null, createdAt: Date.now() }))
   }
 
@@ -73,7 +77,7 @@ export class OperationController {
 
   /** @param {Intent} intent */
   async send(intent) {
-    const result = await this.client.request(intent.path, { method: 'POST', body: intent.body,
+    const result = await this.client.request(intent.path, { method: intent.method ?? 'POST', body: intent.method === 'DELETE' ? undefined : intent.body,
       headers: { 'Idempotency-Key': intent.key } })
     const field = { operation: 'operation_id', run: 'run_id', order: 'order_id' }[intent.kind]
     const id = result.data?.[field]
@@ -88,12 +92,12 @@ export class OperationController {
         if (!key.startsWith(`elect.intent.${this.userId}.`)) continue
         try {
           const item = JSON.parse(this.storage?.getItem(key) ?? '')
-          if (!UUID.test(item.key) || (!safePath.test(item.path) && !(item.path === '' && UUID.test(item.id))) ||
+          if (!UUID.test(item.key) || (!safeRequest(item.path, item.method ?? 'POST') && !(item.path === '' && UUID.test(item.id))) ||
             !['operation', 'run', 'order'].includes(item.kind) ||
             !(item.id === null || typeof item.id === 'string' && UUID.test(item.id)) ||
             !Number.isFinite(item.createdAt) || key !== `elect.intent.${this.userId}.${item.key}`) throw new Error('invalid')
           this.memory.set(item.key, Object.freeze({ key: item.key, path: item.path, kind: item.kind,
-            id: item.id, createdAt: item.createdAt, body: sanitize(item.body) }))
+            id: item.id, createdAt: item.createdAt, method: item.method ?? 'POST', body: sanitize(item.body) }))
         } catch { this.storage?.removeItem(key) }
       }
     } catch { /* sessionStorage 可被浏览器策略禁用。 */ }

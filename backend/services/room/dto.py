@@ -44,6 +44,8 @@ class Bindings(Page):
     default_binding_id: UUID | None
     preference_version: Version
     default_switch_operation_id: UUID | None
+    binding_removal_operation_id: UUID | None = None
+    preference_state: Literal["ready", "switching", "blocked"] = "ready"
     sync_status: ComponentState
     last_synced_at: Timestamp | None
     pending_operations: Annotated[list[OperationSummary], Field(max_length=20)]

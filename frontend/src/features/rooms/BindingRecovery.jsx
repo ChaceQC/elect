@@ -7,7 +7,7 @@ import { ApiError } from '../../api/client.js'
 export function BindingRecovery({ onAccepted }) {
   const { controller, submit, busy } = useRequestIntent()
   const [error, setError] = useState('')
-  const pending = controller?.restore().filter(item => item.path === '/room-bindings' && !item.id) ?? []
+  const pending = controller?.restore().filter(item => (item.path === '/room-bindings' || item.method === 'DELETE') && !item.id) ?? []
   /** @param {import('../../api/intents.js').Intent} intent */
   async function retry(intent) {
     setError('')
@@ -18,8 +18,8 @@ export function BindingRecovery({ onAccepted }) {
       if (cause instanceof ApiError && [400, 403, 404, 409, 422].includes(cause.status)) controller?.forget(intent.key)
     }
   }
-  return <>{pending.map(intent => <StatusBlock key={intent.key} title="有一笔学校绑定受理尚未确认">
-    <p>可用原候选和原幂等键查询受理；已受理操作会返回原编号。</p>
+  return <>{pending.map(intent => <StatusBlock key={intent.key} title={intent.method === 'DELETE' ? '有一笔删除绑定受理尚未确认' : '有一笔学校绑定受理尚未确认'}>
+    <p>请使用原目标和原幂等键查询受理；已受理操作会返回原编号。</p>
     <button disabled={busy} onClick={() => { void retry(intent) }}>重试原受理请求</button>
   </StatusBlock>)}{error && <StatusBlock title={error} error />}</>
 }

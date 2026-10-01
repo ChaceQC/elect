@@ -7,6 +7,30 @@ authentication:
   user_context: 单次请求的 user_id/session_version 经 Identity 校验，由 Gateway 签名；owner_user_id 必须匹配可信上下文。
   enforcement: 接收方验证服务身份、权限、对象归属；拒绝任意 X-User-Id，禁止跨库访问。
 commands:
+  - name: dispatch_binding_removal
+    receiver: school_adapter
+    callers: [room]
+    method: POST
+    path: /upstream/removals
+    request: schemas.json#/$defs/DispatchRemoval
+    response: schemas.json#/$defs/UpstreamResult
+    idempotency: school:binding 权限；永久摘要不含易变lease_owner；发送前自行回查Room租约/槽位和默认屏障，dispatched后只回查。
+  - name: query_removal_intent
+    receiver: room
+    callers: [school_adapter]
+    method: POST
+    path: /controls/removal
+    request: schemas.json#/$defs/RemovalProofQuery
+    response: schemas.json#/$defs/RemovalProof
+    idempotency: room:remove-read 权限；本人操作/lease/撤除槽与脱敏目标事实，调用者不能自报租约有效。
+  - name: query_retarget_barrier
+    receiver: monitoring
+    callers: [school_adapter]
+    method: POST
+    path: /monitor/retarget-barrier
+    request: schemas.json#/$defs/OperationQuery
+    response: 本人retarget操作的state/target_binding_id/expected_preference_version
+    idempotency: monitor:retarget-read 权限；默认解绑发送前必须为prepared、空目标与原偏好版本。
   - name: read_room_filters
     receiver: school_adapter
     callers: [room]

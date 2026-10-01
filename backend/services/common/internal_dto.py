@@ -115,7 +115,7 @@ class VerifiedCandidate(DTO):
 
 class PrepareRetarget(UserCommand):
     operation_id: UUID
-    target_binding_id: UUID
+    target_binding_id: UUID | None
     expected_preference_version: Version
 
 
@@ -130,7 +130,7 @@ class RetargetBarrier(DTO):
 
 class CommitRetarget(UserCommand):
     operation_id: UUID
-    target_binding_id: UUID
+    target_binding_id: UUID | None
     committed_preference_version: Version
 
 
@@ -194,6 +194,30 @@ class DispatchOrder(UserCommand):
     binding_id: UUID
     amount: PositiveMoney
     currency: Literal["CNY"]
+
+
+class DispatchRemoval(UserCommand):
+    upstream_operation_id: UUID
+    room_operation_id: UUID
+    room_id: Annotated[str, Field(min_length=1, max_length=128)]
+    credential_ref: UUID
+    credential_version: Version
+    lease_owner: Annotated[str, Field(min_length=1, max_length=128)]
+
+
+class RemovalProofQuery(OperationQuery):
+    lease_owner: Annotated[str, Field(min_length=1, max_length=128)]
+
+
+class RemovalProof(DTO):
+    room_operation_id: UUID
+    upstream_operation_id: UUID
+    record: SchoolBindingRecord
+    was_default: bool
+    expected_preference_version: Version
+    credential_ref: UUID
+    credential_version: Version
+    can_dispatch: bool
 
 
 class UpstreamResult(DTO):

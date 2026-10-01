@@ -11,6 +11,22 @@ const user = '0199a10c-0000-7000-8000-000000000001'
 const order = '0199a10c-0000-7000-8000-000000000002'
 beforeEach(() => sessionStorage.clear())
 
+it('删除恢复保持DELETE方法与原幂等键，网络响应丢失不生成新目标', async () => {
+  const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('network'))
+    .mockResolvedValue(Response.json({ data: { operation_id: order, state: 'accepted', poll_url: `/api/v1/operations/${order}` },
+      meta: { request_id: user } }, { status: 202 }))
+  const controller = new OperationController(user, new ApiClient(fetcher))
+  const path = `/room-bindings/${order}`
+  expect(() => controller.create(path)).toThrow('幂等')
+  const intent = controller.create(path, {}, 'operation', 'DELETE')
+  await expect(controller.submit(intent)).rejects.toMatchObject({ code: 'NETWORK_ERROR' })
+  const restored = new OperationController(user, controller.client).restore()[0]
+  await controller.submit(restored)
+  expect(fetcher.mock.calls.map(([, options]) => options.method)).toEqual(['DELETE', 'DELETE'])
+  expect(fetcher.mock.calls.map(([, options]) => options.headers.get('Idempotency-Key'))).toEqual([intent.key, intent.key])
+  expect(fetcher.mock.calls[1][1].body).toBeUndefined()
+})
+
 it('网络失败保留原幂等键/原请求，202 只记录受理 ID，刷新不重提交', async () => {
   const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('network'))
     .mockResolvedValue(Response.json({ data: { order_id: order, state: 'created', poll_url: 'https://foreign.example/' },

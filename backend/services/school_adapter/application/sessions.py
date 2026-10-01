@@ -161,6 +161,18 @@ class SchoolSessions:
                     raise
 
     async def bind_once(self, command, record, reserve):
+        async def send(token, school_user, deadline):
+            return await self.protocol.bind_one(token, {**record, "userId": school_user}, deadline)
+
+        return await self.write_once(command, reserve, send)
+
+    async def remove_once(self, command, relation_id, reserve):
+        async def send(token, school_user, deadline):
+            return await self.protocol.remove_one(token, relation_id, deadline)
+
+        return await self.write_once(command, reserve, send)
+
+    async def write_once(self, command, reserve, send):
         deadline = Deadline(60)
         try:
             async with asyncio.timeout(deadline.remaining()):
@@ -182,8 +194,6 @@ class SchoolSessions:
                         raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化")
                     if not await reserve():
                         return None
-                    return await self.protocol.bind_one(
-                        token, {**record, "userId": school_user}, deadline
-                    )
+                    return await send(token, school_user, deadline)
         except TimeoutError:
             raise ApiError(504, ErrorCode.SCHOOL_TIMEOUT, "学校绑定结果待确认", True) from None

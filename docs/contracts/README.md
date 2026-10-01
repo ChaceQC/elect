@@ -1,10 +1,10 @@
 # API 契约
 
-当前版本：0.6.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.7.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
 
 ## 公开 API
 
-[openapi.yaml](openapi.yaml)包含全部 32 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
+[openapi.yaml](openapi.yaml)包含全部 33 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
 
 - 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。
 - 匿名验证码/登录使用浏览器 nonce、Origin 与限流；已有会话的重认证还要校验当前会话与 CSRF，登录接口不得静默切账号，账号不同返回 `409 REAUTH_ACCOUNT_MISMATCH`。
@@ -62,3 +62,7 @@ GET/PATCH monitor 已接通，首次幂等创建 disabled 记录；版本匹配�
 ## T3 筛选与绑定增量
 
 新增本人 GET /room-candidates/buildings、/floors（building_id 必填）、/rooms（building_id/floor 必填）和 /room-bindings/{id}；统一 FilterChoices 返回 items[].id/label，读取绑定返回 Binding。前端按三级筛选取得列表后在列表内搜索，选择 roomId 再核对精确候选。写绑定必须使用服务器候选和原幂等键，existing_operation_id 仅返回本人的未解决操作。详见 [绑定决策](../decisions/T3绑定筛选与异步界面.md)。
+
+## 删除绑定增量
+
+`DELETE /room-bindings/{id}` 使用 Idempotency-Key、Origin/CSRF，返回持久 202 并查询原 operation；无学校 ID/正文/自动重试。Operation 新增 unbind_room 和 binding_status=removed；Bindings 独立返回 binding_removal_operation_id 与 preference_state，避免摘要截断影响恢复。默认删除保留旧显示直到学校确认，再清空默认并等待监控确认；未知态保留操作槽。详见 [删除决策](../decisions/T3删除绑定.md)。

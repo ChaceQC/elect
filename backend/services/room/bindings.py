@@ -15,7 +15,7 @@ from services.common.sql import execute, first
 
 from .defaults import initialize_default
 from .mirror import confirm_binding, upsert_room
-from .preference_store import lock_preference, locked_operation
+from .preference_store import lock_preference, locked_operation, require_no_removal
 
 
 async def replay(conn, owner, key, candidate_id):
@@ -49,10 +49,11 @@ async def accept(state, principal, candidate_id, key):
         )
     )
     async with state.database.begin() as conn:
-        await lock_preference(conn, principal.user_id)
+        preference = await lock_preference(conn, principal.user_id)
         previous = await replay(conn, principal.user_id, key, candidate_id)
         if previous:
             return previous
+        require_no_removal(preference)
         room = await upsert_room(conn, value.record.model_dump())
         pending = await first(
             conn,

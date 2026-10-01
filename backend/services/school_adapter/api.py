@@ -10,6 +10,7 @@ from services.common.internal_dto import (
     ChallengeCommand,
     CredentialProof,
     DispatchBinding,
+    DispatchRemoval,
     QueryOperation,
     RevokeCredential,
     RoomFilterQuery,
@@ -192,9 +193,36 @@ async def upstream_operation(
     request: Request,
     principal: Annotated[Principal, Depends(require_user_principal("school:binding"))],
 ):
+    from services.common.errors import ErrorCode
+    from services.common.http import ApiError
+    from services.common.sql import first
+
     from .application.binding_writes import BindingWrites
+    from .application.removal_writes import RemovalWrites
 
     authorize_owner(principal, command.owner_user_id)
-    return await BindingWrites(request.app.state).query(
+    async with request.app.state.database.connect() as conn:
+        row = await first(
+            conn,
+            "SELECT operation_type FROM upstream_operations WHERE id=:id AND owner_user_id=:owner",
+            id=command.operation_id.bytes,
+            owner=principal.user_id.bytes,
+        )
+    if not row or row["operation_type"] not in {"bind_room", "unbind_room"}:
+        raise ApiError(404, ErrorCode.NOT_FOUND, "上游操作不存在")
+    writes = RemovalWrites if row["operation_type"] == "unbind_room" else BindingWrites
+    return await writes(request.app.state).query(
         principal.user_id, command.operation_id, principal.request_id
     )
+
+
+@router.post("/upstream/removals")
+async def removal(
+    command: DispatchRemoval,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("school:binding"))],
+):
+    from .application.removal_writes import RemovalWrites
+
+    authorize_owner(principal, command.owner_user_id)
+    return await RemovalWrites(request.app.state).dispatch(command, principal)

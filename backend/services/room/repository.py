@@ -9,7 +9,7 @@ from services.common.sql import execute, first
 
 from .defaults import initialize_default
 from .mirror import mirror_bindings
-from .preference_store import lock_preference, locked_operation
+from .preference_store import lock_preference, locked_operation, require_no_removal
 from .queries import RoomQueries
 
 
@@ -20,7 +20,7 @@ class RoomRepository(RoomQueries):
     async def accept_sync(self, owner, key):
         digest = hashlib.sha256(key.encode()).digest()
         async with self.engine.begin() as conn:
-            await lock_preference(conn, owner)
+            require_no_removal(await lock_preference(conn, owner))
             await execute(
                 conn,
                 "INSERT IGNORE INTO room_sync_state (owner_user_id,state) "

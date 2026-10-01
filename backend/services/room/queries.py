@@ -17,7 +17,7 @@ class RoomQueries:
             preference = await first(
                 conn, "SELECT * FROM room_preferences WHERE owner_user_id=:owner", owner=owner.bytes
             )
-            predicate = "b.owner_user_id=:owner"
+            predicate = "b.owner_user_id=:owner AND b.status<>'inactive'"
             if q:
                 predicate += " AND (LOCATE(:q,r.building_name)>0 OR LOCATE(:q,r.room_no)>0)"
             params = dict(owner=owner.bytes, q=q, offset=(page - 1) * page_size, size=page_size)
@@ -68,6 +68,10 @@ class RoomQueries:
             default_switch_operation_id=UUID(bytes=preference["switch_operation_id"])
             if preference and preference["switch_operation_id"]
             else None,
+            binding_removal_operation_id=UUID(bytes=preference["removal_operation_id"])
+            if preference and preference["removal_operation_id"]
+            else None,
+            preference_state=preference["state"] if preference else "ready",
             sync_status=sync_state,
             last_synced_at=aware(state["last_synced_at"]) if state else None,
             pending_operations=[
@@ -156,7 +160,7 @@ class RoomQueries:
             and (
                 row["type"] == "switch_default"
                 and row["state"] == "succeeded"
-                or row.get("binding_status") == "confirmed"
+                or row.get("binding_status") in {"confirmed", "removed"}
             )
             else None,
             "result_order_id": None,

@@ -15,7 +15,8 @@ export interface paths {
         get: operations["get_binding"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** unbind_room */
+        delete: operations["unbind_room"];
         options?: never;
         head?: never;
         patch?: never;
@@ -609,7 +610,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "credential_revoke" | "binding_sync" | "bind_room" | "switch_default" | "balance_refresh" | "history_sync" | "qr_refresh";
+            type: "credential_revoke" | "binding_sync" | "bind_room" | "unbind_room" | "switch_default" | "balance_refresh" | "history_sync" | "qr_refresh";
             /**
              * State
              * @enum {string}
@@ -634,7 +635,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "credential_revoke" | "binding_sync" | "bind_room" | "switch_default" | "balance_refresh" | "history_sync" | "qr_refresh";
+            type: "credential_revoke" | "binding_sync" | "bind_room" | "unbind_room" | "switch_default" | "balance_refresh" | "history_sync" | "qr_refresh";
             /**
              * State
              * @enum {string}
@@ -648,7 +649,7 @@ export interface components {
              */
             created_at: string;
             /** Binding Status */
-            binding_status: ("pending" | "confirmed" | "failed" | "unknown") | null;
+            binding_status: ("pending" | "confirmed" | "removed" | "failed" | "unknown") | null;
             /** Default Status */
             default_status: ("pending" | "switching" | "confirmed" | "unchanged" | "failed") | null;
             /** Retryable */
@@ -859,6 +860,17 @@ export interface components {
             preference_version: number;
             /** Default Switch Operation Id */
             default_switch_operation_id: string | null;
+            /**
+             * Binding Removal Operation Id
+             * @default null
+             */
+            binding_removal_operation_id: string | null;
+            /**
+             * Preference State
+             * @default ready
+             * @enum {string}
+             */
+            preference_state: "ready" | "switching" | "blocked";
             /**
              * Sync Status
              * @enum {string}
@@ -1497,6 +1509,145 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Binding"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS, SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description PRECONDITION_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    unbind_room: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+                /** @description 按用户+操作类型分区，原请求摘要一致才能重放，至少保留 180 天 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 持久受理，按查询接口跟踪 */
+            202: {
+                headers: {
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AcceptedOperation"];
                         meta: components["schemas"]["Meta"];
                     };
                 };

@@ -11,6 +11,7 @@ import { CandidateSearch } from './CandidateSearch.jsx'
 import { BindingDialog } from './BindingDialog.jsx'
 import { BindingRecovery } from './BindingRecovery.jsx'
 import { RoomOperationStatus } from './RoomOperationStatus.jsx'
+import { RemoveBindingDialog } from './RemoveBindingDialog.jsx'
 
 export function RoomsPage() {
   const { user } = useSession()
@@ -21,6 +22,7 @@ export function RoomsPage() {
   const [error, setError] = useState('')
   const [candidate, setCandidate] = useState(/** @type {import('./CandidateSearch.jsx').Candidate|null} */ (null))
   const [defaultBusy, setDefaultBusy] = useState(false)
+  const [removal, setRemoval] = useState(/** @type {import('../../api/generated').components['schemas']['Binding']|null} */ (null))
   const changingDefault = useRef(false)
   const query = useBindings({ q, page })
   const cache = useQueryClient()
@@ -61,12 +63,12 @@ export function RoomsPage() {
     <p className="page-description">从学校同步本人已绑定的寝室与最近余额。</p>
     <div className="room-toolbar"><label className="search-label">搜索本人寝室<input value={q} maxLength={128}
       onChange={event => { setQ(event.target.value); setPage(1) }} placeholder="楼栋或房号" /></label>
-      <button onClick={() => { void sync() }} disabled={busy || !!pending}>{busy || pending ? '正在同步…' : '同步学校绑定'}</button></div>
+      <button onClick={() => { void sync() }} disabled={busy || !!pending || !!query.data?.binding_removal_operation_id}>{busy || pending ? '正在同步…' : '同步学校绑定'}</button></div>
     {error && <StatusBlock title={error} error />}
     {location.state?.roomUnavailable && <StatusBlock title="所查看的寝室已不可用，已返回本人列表" />}
     {query.isPending && <StatusBlock title="正在读取本人寝室…" />}
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '重新读取', onClick: () => { void query.refetch() } }} />}
-    {[...new Set([operationId, query.data?.default_switch_operation_id,
+    {[...new Set([operationId, query.data?.default_switch_operation_id, query.data?.binding_removal_operation_id,
       ...(query.data?.pending_operations.map(item => item.id) ?? [])].filter(/** @returns {id is string} */ id => !!id))]
       .map(id => <RoomOperationStatus key={id} id={id} />)}
     <BindingRecovery onAccepted={accepted} />
@@ -84,14 +86,18 @@ export function RoomsPage() {
           <strong>{binding.balance?.amount == null ? '未知' : moneyLabel(binding.balance.amount)}</strong>
           <div className="room-actions"><Link to={`/rooms/${binding.id}`}>查看寝室</Link>
             <button className="quiet" disabled={binding.status !== 'active' || binding.id === data.default_binding_id ||
-              !!data.default_switch_operation_id || defaultBusy} onClick={() => { void setDefault(binding.id) }}>设为默认</button></div></div>
+              !!data.default_switch_operation_id || !!data.binding_removal_operation_id || defaultBusy} onClick={() => { void setDefault(binding.id) }}>设为默认</button>
+            <button className="quiet" disabled={binding.status !== 'active' || !!data.default_switch_operation_id ||
+              !!data.binding_removal_operation_id || defaultBusy} onClick={() => setRemoval(binding)}>删除绑定</button></div></div>
       </li>)}</ul>
-      {data.items.length > 0 && !data.default_binding_id && <p className="muted">首次同步会按学校房间标识的稳定顺序初始化默认，完成前以操作进度为准。</p>}
+      {data.items.length > 0 && !data.default_binding_id && <p className="muted">{data.preference_state === 'blocked' ? '默认已清空，请重新选择默认寝室；监控等待新的目标。' : '首次同步会按学校房间标识的稳定顺序初始化默认，完成前以操作进度为准。'}</p>}
       {data.pending_operations_truncated && <p className="muted">待完成操作较多，当前仅展示最近 20 条；默认切换进度单独保留。</p>}
       <div className="pagination"><button className="quiet" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</button>
         <span>第 {page} 页</span><button className="quiet" disabled={page * 10 >= data.total} onClick={() => setPage(page + 1)}>下一页</button></div>
     </>}
     <CandidateSearch onBind={setCandidate} />
     {candidate && <BindingDialog key={candidate.candidate_id} candidate={candidate} onClose={() => setCandidate(null)} onAccepted={accepted} />}
+    {removal && <RemoveBindingDialog key={removal.id} binding={removal} isDefault={removal.id === data?.default_binding_id}
+      onClose={() => setRemoval(null)} onAccepted={accepted} />}
   </>
 }

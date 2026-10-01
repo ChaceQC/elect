@@ -577,9 +577,16 @@
           "type": "string"
         },
         "target_binding_id": {
-          "format": "uuid",
-          "title": "Target Binding Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Binding Id"
         },
         "expected_preference_version": {
           "minimum": 1,
@@ -663,9 +670,16 @@
           "type": "string"
         },
         "target_binding_id": {
-          "format": "uuid",
-          "title": "Target Binding Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Binding Id"
         },
         "committed_preference_version": {
           "minimum": 1,
@@ -1098,6 +1112,140 @@
         "currency"
       ],
       "title": "DispatchOrder",
+      "type": "object"
+    },
+    "DispatchRemoval": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "room_operation_id": {
+          "format": "uuid",
+          "title": "Room Operation Id",
+          "type": "string"
+        },
+        "room_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Room Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        },
+        "lease_owner": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Lease Owner",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "upstream_operation_id",
+        "room_operation_id",
+        "room_id",
+        "credential_ref",
+        "credential_version",
+        "lease_owner"
+      ],
+      "title": "DispatchRemoval",
+      "type": "object"
+    },
+    "RemovalProofQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "lease_owner": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Lease Owner",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id",
+        "lease_owner"
+      ],
+      "title": "RemovalProofQuery",
+      "type": "object"
+    },
+    "RemovalProof": {
+      "additionalProperties": false,
+      "properties": {
+        "room_operation_id": {
+          "format": "uuid",
+          "title": "Room Operation Id",
+          "type": "string"
+        },
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "record": {
+          "$ref": "#/$defs/SchoolBindingRecord"
+        },
+        "was_default": {
+          "title": "Was Default",
+          "type": "boolean"
+        },
+        "expected_preference_version": {
+          "minimum": 1,
+          "title": "Expected Preference Version",
+          "type": "integer"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        },
+        "can_dispatch": {
+          "title": "Can Dispatch",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "room_operation_id",
+        "upstream_operation_id",
+        "record",
+        "was_default",
+        "expected_preference_version",
+        "credential_ref",
+        "credential_version",
+        "can_dispatch"
+      ],
+      "title": "RemovalProof",
       "type": "object"
     },
     "UpstreamResult": {
