@@ -7,7 +7,7 @@ from services.monitoring.configuration import MonitorConfiguration
 from services.monitoring.dto import MonitorPatch
 
 
-async def seed_alerts(engine, crypto, owner):
+async def seed_alerts(engine, crypto, owner, states=("reserved", "authorized", "sent")):
     execution, _ = await running(engine, owner)
     episode = new_id()
     async with engine.begin() as conn:
@@ -24,12 +24,14 @@ async def seed_alerts(engine, crypto, owner):
             conn,
             "INSERT INTO alert_episodes (id,monitor_id,binding_id,generation,opened_at,"
             "state,threshold,recovery_threshold,sent_count,reserved_count) VALUES "
-            "(:id,:monitor,:binding,1,UTC_TIMESTAMP(6),'open',20,21,1,2)",
+            "(:id,:monitor,:binding,1,UTC_TIMESTAMP(6),'open',20,21,:sent,:reserved)",
             id=episode.bytes,
             monitor=execution.monitor_id.bytes,
             binding=execution.binding_id.bytes,
+            sent=states.count("sent"),
+            reserved=sum(state in {"reserved", "authorized"} for state in states),
         )
-        for ordinal, state in enumerate(["reserved", "authorized", "sent"], 1):
+        for ordinal, state in enumerate(states, 1):
             await execute(
                 conn,
                 "INSERT INTO alert_slots (id,episode_id,ordinal,sample_id,generation,"
@@ -45,10 +47,11 @@ async def seed_alerts(engine, crypto, owner):
         await execute(
             conn,
             "UPDATE monitors SET current_episode_id=:episode,repeat_limit=3,"
-            "email_ciphertext=:email WHERE id=:id",
+            "email_ciphertext=:email,last_sample_id=:sample WHERE id=:id",
             episode=episode.bytes,
             email=crypto.seal("synthetic@example.invalid", owner, 1),
             id=execution.monitor_id.bytes,
+            sample=sample["id"],
         )
     return episode
 

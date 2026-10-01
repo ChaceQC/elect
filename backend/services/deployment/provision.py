@@ -62,11 +62,17 @@ def keys_and_trust():
                     "monitor:browser",
                 ],
                 "identity": [
-                    "credential:authenticate", "credential:activate", "credential:read",
+                    "credential:authenticate",
+                    "credential:activate",
+                    "credential:read",
                     "monitor:credential",
+                    "credential:control-read",
+                    "credential:revoke",
                 ],
                 "room": ["school:rooms", "monitor:retarget"],
-                "monitoring": ["room:control"],
+                "monitoring": ["room:control", "credential:control-read"],
+                "school_adapter": ["monitor:credential-read"],
+                "notification": ["monitor:authorize-send"],
             }.get(service, []),
         }
     return private, trust
@@ -191,7 +197,7 @@ def provision_transport(directory):
                 "user": service,
                 "vhost": "elect",
                 "exchange": "elect.events",
-                "write": "^(audit\\.recorded|credential\\.(updated|requires_reauth))$"
+                "write": "^(audit\\.recorded|credential\\.(updated|requires_reauth|revoked))$"
                 if service == "school_adapter"
                 else "^audit\\.recorded$",
                 "read": "^audit\\.recorded$",

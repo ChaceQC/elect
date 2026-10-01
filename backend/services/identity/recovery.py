@@ -7,12 +7,16 @@ from services.common.sql import execute
 
 
 async def recover_tick(app):
+    from .revocation import recover_revocation
+
+    if await recover_revocation(app):
+        return True
     async with app.state.database.begin() as conn:
         await execute(
             conn,
             "UPDATE login_attempts SET state='expired',updated_at=UTC_TIMESTAMP(6) "
             "WHERE expires_at <= UTC_TIMESTAMP(6) AND state IN "
-            "('created','authenticating','staged','identity_committed','activating','activated')",
+            "('created','authenticating','staged')",
         )
         rows = (
             (
@@ -47,5 +51,7 @@ async def recover_tick(app):
                 error.code not in {ErrorCode.NOT_FOUND, ErrorCode.RATE_LIMITED}
                 and error.status < 500
             ):
-                await saga.state(attempt_id, "failed", error=error.code)
+                current = await saga.read(attempt_id)
+                if current["state"] not in {"identity_committed", "activating"}:
+                    await saga.state(attempt_id, "failed", error=error.code)
     return bool(rows)

@@ -78,6 +78,12 @@ class AppSessions:
             )
             if user["status"] != "active":
                 raise ApiError(401, ErrorCode.APP_SESSION_EXPIRED, "应用账户不可用")
+            if (
+                user["credential_operation_id"] is not None
+                or user["credential_status"] not in {"active", "requires_reauth"}
+                or user["credential_version"] != row["credential_version"]
+            ):
+                raise ApiError(409, ErrorCode.VERSION_CONFLICT, "凭据授权已变化，请重新认证")
             if row["issued_session_id"]:
                 await execute(
                     conn,

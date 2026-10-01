@@ -3,6 +3,7 @@ import { apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useSession } from './SessionProvider.jsx'
 import { LoginForm } from './LoginForm.jsx'
+import { RevokeCredential } from './RevokeCredential.jsx'
 
 /** @param {{onClose: ()=>void}} props */
 export function AccountContent({ onClose }) {
@@ -18,13 +19,14 @@ export function AccountContent({ onClose }) {
     finally { setBusy(false) }
   }
   return <><p>{user?.school}</p><p>学校账号：{user?.student_id}</p>
-    <p>学校认证：{user?.credential_status === 'active' ? '可用' : '需要修复或已撤回'}</p>
+    <p>学校认证：{({ active: '可用', requires_reauth: '需要重新认证', revoking: '正在撤回',
+      revoked: '已撤回', missing: '未连接' })[user?.credential_status ?? 'missing']}</p>
     <p>后台凭据使用：{user?.consent.credential_use_allowed ? '已授权' : '未授权'}</p>
     <p className="muted">退出应用不会关闭已授权的后台监控。</p>
     {error && <StatusBlock title={error} error />}
-    {repairing ? <LoginForm reauthenticate onSuccess={onClose} /> :
-      <button className="quiet" onClick={() => setRepairing(true)}>重新学校认证</button>}
-    <p className="muted">撤回后台授权功能尚未开放。</p>
+    {repairing && user?.credential_status !== 'revoking' ? <LoginForm reauthenticate onSuccess={onClose} /> :
+      <button className="quiet" disabled={user?.credential_status === 'revoking'} onClick={() => setRepairing(true)}>重新学校认证</button>}
+    <RevokeCredential />
     <button onClick={() => { void logout() }} disabled={busy}>{busy ? '正在退出…' : '退出应用'}</button>
   </>
 }

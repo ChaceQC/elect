@@ -2,7 +2,7 @@
 
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.common.sql import execute
+from services.common.sql import execute, first
 
 from .barriers import digest, operation_for, replay, result
 from .repository import audit, invalidate, lock_monitor
@@ -77,10 +77,13 @@ class CredentialControls:
                 monitor["credential_operation_id"] != command.operation_id.bytes
                 or proof.get("credential_ref") != str(command.credential_ref)
                 or proof.get("credential_version") != expected
-                or proof.get("state") != ("revoked" if revoke else "active")
+                or proof.get("state")
+                not in ({"revoked"} if revoke else {"active", "requires_reauth"})
             ):
                 raise ApiError(409, ErrorCode.VERSION_CONFLICT, "凭据尚未确认激活或撤销")
-            allowed = not revoke and proof.get("use_allowed") is True
+            allowed = (
+                not revoke and proof.get("use_allowed") is True and proof.get("state") == "active"
+            )
             state = monitor["state"]
             if state != "retargeting":
                 state = "disabled"
@@ -107,3 +110,66 @@ class CredentialControls:
             )
             await audit(conn, monitor, command.request_id, f"monitor.{kind}_committed")
             return await result(conn, monitor, await operation_for(conn, command, kind))
+
+    async def abort_update(self, command, proof):
+        async with self.engine.begin() as conn:
+            monitor = await lock_monitor(conn, command.owner_user_id)
+            operation = await replay(conn, command, "credential_update")
+            if not operation:
+                raise ApiError(404, ErrorCode.NOT_FOUND, "凭据屏障不存在")
+            if operation["state"] == "compensated":
+                return await result(conn, monitor, operation)
+            if operation["state"] != "prepared" or (
+                proof.get("credential_version") != command.expected_credential_version
+                or proof.get("credential_ref") not in {None, str(command.credential_ref)}
+            ):
+                raise ApiError(409, ErrorCode.VERSION_CONFLICT, "凭据已变化，不能补偿")
+            allowed = proof.get("state") == "active" and proof.get("use_allowed") is True
+            state = (
+                "disabled"
+                if not monitor["desired_enabled"]
+                else ("active" if allowed and monitor["binding_id"] else "requires_reauth")
+            )
+            if monitor["state"] == "retargeting":
+                state = "retargeting"
+            await execute(
+                conn,
+                "UPDATE monitors SET credential_operation_id=NULL,credential_allowed=:allowed,"
+                "state=:state,version=version+1,generation=generation+1,"
+                "next_run_at=IF(:state='active',UTC_TIMESTAMP(6),NULL) WHERE id=:id",
+                allowed=allowed,
+                state=state,
+                id=monitor["id"],
+            )
+            await execute(
+                conn,
+                "UPDATE control_operations SET state='compensated',generation=:generation "
+                "WHERE id=:id",
+                generation=monitor["generation"] + 1,
+                id=operation["id"],
+            )
+            await audit(conn, monitor, command.request_id, "monitor.credential_update_compensated")
+            return await result(
+                conn, monitor, await operation_for(conn, command, "credential_update")
+            )
+
+    async def read(self, owner, operation):
+        async with self.engine.connect() as conn:
+            row = await first(
+                conn,
+                "SELECT * FROM control_operations WHERE id=:id AND owner_user_id=:owner "
+                "AND type IN ('credential_revoke','credential_update')",
+                id=operation.bytes,
+                owner=owner.bytes,
+            )
+        if not row:
+            raise ApiError(404, ErrorCode.NOT_FOUND, "凭据屏障不存在")
+        from uuid import UUID
+
+        return {
+            "operation_id": str(operation),
+            "credential_ref": str(UUID(bytes=row["credential_ref"])),
+            "expected_credential_version": row["credential_version"],
+            "kind": row["type"],
+            "state": row["state"],
+        }

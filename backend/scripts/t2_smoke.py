@@ -28,7 +28,7 @@ from services.school_adapter.infrastructure.protocol import SchoolProtocol
 from services.school_adapter.infrastructure.redis_store import SharedStore
 from services.school_adapter.infrastructure.transport import SchoolTransport
 
-SERVICES = ["gateway", "identity", "school_adapter", "room"]
+SERVICES = ["gateway", "identity", "school_adapter", "room", "monitoring"]
 
 
 async def fixture_apps():
@@ -50,7 +50,7 @@ async def fixture_apps():
                 request.method, str(request.url), headers=request.headers, content=request.content
             )
 
-    for name in ["gateway", "identity", "room"]:
+    for name in SERVICES:
         apps[name].state.service_client = ServiceClient(
             apps[name].state.runtime, transport=httpx.MockTransport(dispatch)
         )
@@ -75,6 +75,11 @@ async def fixture_apps():
         repository, store, protocol, lookup, solver=lambda image: "3"
     )
     identity = apps["identity"].state
+    from services.monitoring.email_crypto import EmailCrypto
+
+    apps["monitoring"].state.email_crypto = EmailCrypto.load(
+        "/run/secrets/monitoring_encryption_key_bundle"
+    )
     pepper = base64.b64decode(read_secret("/run/secrets/identity_session_pepper"))
     identity.app_sessions = AppSessions(identity.database, pepper)
     identity.login_saga = LoginSaga(

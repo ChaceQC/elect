@@ -12,7 +12,6 @@ from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.internal_dto import StagedCredential
-from services.common.security import Principal
 from services.common.sql import aware, execute, first
 
 from ..agreement import agreement
@@ -138,7 +137,17 @@ class LoginSaga:
             else:
                 if user["status"] != "active":
                     raise ApiError(401, ErrorCode.APP_SESSION_EXPIRED, "应用账户不可用")
+                if user["credential_operation_id"] not in {None, row["id"]}:
+                    raise ApiError(
+                        503, ErrorCode.DEPENDENCY_UNAVAILABLE, "凭据操作正在完成，请稍后重试", True
+                    )
                 user_id = UUID(bytes=user["id"])
+            await execute(
+                conn,
+                "UPDATE users SET credential_operation_id=:operation WHERE id=:id",
+                operation=row["id"],
+                id=user_id.bytes,
+            )
             await execute(
                 conn,
                 "UPDATE login_attempts SET state='identity_committed',user_id=:user,"
@@ -185,23 +194,9 @@ class LoginSaga:
             row = await self.read(attempt_id)
         if row["state"] in {"identity_committed", "activating"}:
             await self.state(attempt_id, "activating")
-            principal = Principal("identity", UUID(bytes=row["user_id"]), 1, request_id)
-            await self.client.call(
-                "school_adapter",
-                "/credentials/activate",
-                "credential:activate",
-                request_id,
-                {
-                    "attempt_id": str(attempt_id),
-                    "owner_user_id": str(principal.user_id),
-                    "request_id": str(request_id),
-                    "credential_ref": str(UUID(bytes=row["credential_ref"])),
-                    "expected_credential_version": row["expected_credential_version"],
-                    "credential_use_allowed": bool(row["credential_use_allowed"]),
-                },
-                principal=principal,
-            )
-            await self.state(attempt_id, "activated")
+            from .credential_activation import CredentialActivation
+
+            await CredentialActivation(self.engine, self.client).activate(row, request_id)
             row = await self.read(attempt_id)
         return row
 
@@ -214,6 +209,8 @@ class LoginSaga:
                 row = await self.advance(row, request_id, login=login, nonce_hash=nonce_hash)
             except ApiError as error:
                 if error.status < 500 and error.status != 429:
-                    await self.state(attempt_id, "failed", error=error.code)
+                    current = await self.read(attempt_id)
+                    if current["state"] not in {"identity_committed", "activating"}:
+                        await self.state(attempt_id, "failed", error=error.code)
                 raise
             return await self.sessions.issue(row, request_id)

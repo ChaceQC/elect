@@ -7,6 +7,8 @@ from services.common.internal_dto import (
     AttemptQuery,
     AuthenticateLogin,
     ChallengeCommand,
+    CredentialProof,
+    RevokeCredential,
     RoomQuery,
 )
 from services.common.security import (
@@ -48,6 +50,16 @@ async def activate(
     principal: Annotated[Principal, Depends(require_principal("credential:activate"))],
 ):
     authorize_owner(principal, command.owner_user_id)
+    from .credential_control import require_barrier
+
+    await require_barrier(
+        request.app,
+        principal,
+        command.attempt_id,
+        command.credential_ref,
+        command.expected_credential_version or 0,
+        "credential_update",
+    )
     return await request.app.state.school_auth.activate(command)
 
 
@@ -57,13 +69,55 @@ async def credential_view(
     principal: Annotated[Principal, Depends(require_user_principal("credential:read"))],
 ):
     row = await request.app.state.school_credentials.current(principal.user_id)
-    payload = request.app.state.school_credentials.payload(row)
+    from .credential_control import display_aad
+
+    repository = request.app.state.school_credentials
+    if row["status"] == "revoked":
+        from uuid import UUID
+
+        student = repository.crypto.open(
+            row["account_display"], display_aad(principal.user_id, UUID(bytes=row["id"]))
+        )
+    else:
+        student = repository.payload(row)["student_id"]
     return {
-        "student_id": payload["student_id"],
+        "student_id": student,
         "school": "湖北经济学院",
         "credential_version": row["version"],
         "credential_status": row["status"],
     }
+
+
+@router.post("/credentials/control-view", response_model=CredentialProof)
+async def control_view(
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("credential:control-read"))],
+):
+    from .credential_control import proof
+
+    return await proof(request.app.state.school_credentials, principal.user_id)
+
+
+@router.post("/credentials/revoke")
+async def revoke_credential(
+    command: RevokeCredential,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("credential:revoke"))],
+):
+    from .credential_control import require_barrier, revoke
+
+    authorize_owner(principal, command.owner_user_id)
+    await require_barrier(
+        request.app,
+        principal,
+        command.operation_id,
+        command.credential_ref,
+        command.expected_credential_version,
+        "credential_revoke",
+    )
+    return await revoke(
+        request.app.state.school_credentials, request.app.state.school_store, command
+    )
 
 
 @router.post("/rooms/bound")

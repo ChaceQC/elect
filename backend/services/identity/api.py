@@ -38,17 +38,34 @@ async def current_me(app, row, principal):
             "SELECT * FROM consents WHERE user_id=:id ORDER BY accepted_at DESC,id DESC LIMIT 1",
             id=user_id.bytes,
         )
+        revoke = await first(
+            conn,
+            "SELECT * FROM credential_operations WHERE owner_user_id=:id "
+            "AND state IN ('accepted','running','reconciling','unknown') "
+            "ORDER BY created_at DESC LIMIT 1",
+            id=user_id.bytes,
+        )
     if not consent:
         raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE, "授权记录暂时不可用", True)
     return Me(
         id=user_id,
-        **view,
+        **{**view, **({"credential_status": "revoking"} if revoke else {})},
         csrf_token=row["csrf_token"],
-        credential_revoke_operation=None,
+        credential_revoke_operation={
+            "id": UUID(bytes=revoke["id"]),
+            "type": "credential_revoke",
+            "state": revoke["state"],
+            "target_binding_id": None,
+            "created_at": aware(revoke["created_at"]),
+        }
+        if revoke
+        else None,
         consent={
             "agreement_version": consent["agreement_version"],
             "accepted_at": aware(consent["accepted_at"]),
-            "credential_use_allowed": bool(consent["credential_use_allowed"]),
+            "credential_use_allowed": bool(
+                consent["credential_use_allowed"] and not consent["revoked_at"]
+            ),
             "revoked_at": aware(consent["revoked_at"]),
         },
     )

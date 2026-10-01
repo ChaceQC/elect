@@ -10,23 +10,18 @@ from scripts.t3_control_alerts import verify_alert_boundary
 from scripts.t3_control_compensation import verify_compensation, verify_transaction_rollback
 from scripts.t3_control_fixtures import assert_no_sample, invalid_executions, running, write_sample
 from scripts.t3_control_protocol import (
-    connect_monitoring,
     verify_credential_update,
     verify_proof_api,
     verify_result_race,
 )
-from services.common.app import create_app
-from services.common.database import create_database
 from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.internal_dto import CommitRetarget, PrepareRetarget, RevokeBarrier
-from services.common.runtime import Runtime, read_secret
 from services.common.sql import execute, first
 from services.monitoring.barriers import RetargetControls
 from services.monitoring.configuration import MonitorConfiguration
 from services.monitoring.credentials import CredentialControls
 from services.monitoring.dto import MonitorPatch
-from services.monitoring.email_crypto import EmailCrypto
 from services.monitoring.fences import fenced_transaction
 from services.monitoring.runs import cancel_run
 
@@ -187,7 +182,7 @@ async def verify_browser(apps, engine, crypto):
                 client.patch(
                     "/api/v1/monitor",
                     json={
-                        "expected_version": 1,
+                        "expected_version": view["version"],
                         "interval_minutes": value,
                         "email": "synthetic@example.invalid",
                     },
@@ -224,14 +219,8 @@ async def main():
     if os.environ.get("ELECT_TEST_DISPOSABLE") != "1":
         raise RuntimeError("仅能使用显式一次性测试环境")
     apps, _ = await fixture_apps()
-    monitoring = create_app("monitoring", business=True)
-    runtime = Runtime.model_validate_json(read_secret("/run/secrets/monitoring_runtime.json"))
-    monitoring.state.runtime = runtime
-    engine = create_database(runtime.db_url.get_secret_value())
-    crypto = EmailCrypto.load("/run/secrets/monitoring_encryption_key_bundle")
-    monitoring.state.database, monitoring.state.email_crypto = engine, crypto
-    apps["monitoring"] = monitoring
-    connect_monitoring(apps)
+    monitoring = apps["monitoring"]
+    engine, crypto = monitoring.state.database, monitoring.state.email_crypto
     try:
         await verify_fences(engine, crypto)
         await verify_retarget(engine, crypto)

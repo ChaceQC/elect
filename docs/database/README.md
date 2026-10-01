@@ -1,13 +1,13 @@
 # 数据结构与初始化
 
-更新日期：2026-10-01。七个库共有 49 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+更新日期：2026-10-01。七个库共有 51 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
 
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
-| Identity | elect_identity | identity_0002 | 7 |
-| School Adapter | elect_school | school_0002 | 8 |
+| Identity | elect_identity | identity_0003 | 7 |
+| School Adapter | elect_school | school_0003 | 9 |
 | Room | elect_room | room_0002 | 11 |
-| Monitoring | elect_monitoring | monitoring_0002 | 12 |
+| Monitoring | elect_monitoring | monitoring_0003 | 13 |
 | Payment | elect_payment | payment_0001 | 4 |
 | Notification | elect_notification | notification_0001 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
@@ -27,5 +27,7 @@
 T1 已通过正式 provisioning/Compose 验收。T2 新增 Identity 登录恢复元数据、School 账号占位/授权标记和 Room 同步状态/任务租约，已在实际 MySQL 8.4 验证。运行事务采用 READ COMMITTED、学校 room ID 使用 binary collation，详情见 [T2 决策](../decisions/T2认证与读取.md)。
 
 T3 第一批 monitoring_0002 增加 monitors.preference_version、credential_operation_id、credential_allowed，以及 control_operations.request_digest、previous_binding_id、credential_version；支持幂等控制、补偿及凭据屏障，不回改初始迁移。邮箱密文使用独立多版本 AES-GCM 密钥，AAD 绑定 owner/email_version。
+
+第二批 identity_0003 增加 users.credential_version/status/operation_id 与 credential_operations 用户+版本唯一键；school_0003 增加 account_display 密文和 credential_revocations；monitoring_0003 增加 send_permits，job_id/execution_epoch 唯一且引用本域 slot。撤回会清空当前凭据和全部历史 activated/staged 密码暂存，展示账号单独加密，旧 token 清理可恢复。见 [凭据/许可决策](../decisions/T3凭据协调与发送许可.md)。
 
 暂存清理先按 attempt 查询激活结果，未激活且过期才能清；expired lease 提升 epoch 后恢复，不删除任务；unknown 操作/投递/订单保留台账；快照先清成员后清快照。日常清理及归档在容量/恢复验收后启用。细节见 [T0 决策](../decisions/T0实施决策.md)。

@@ -641,6 +641,90 @@
       "title": "RevokeBarrier",
       "type": "object"
     },
+    "UpdateCredentialBarrier": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "expected_credential_version": {
+          "minimum": 0,
+          "title": "Expected Credential Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "operation_id",
+        "credential_ref",
+        "expected_credential_version"
+      ],
+      "title": "UpdateCredentialBarrier",
+      "type": "object"
+    },
+    "CredentialProof": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Credential Ref"
+        },
+        "credential_version": {
+          "minimum": 0,
+          "title": "Credential Version",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "active",
+            "requires_reauth",
+            "revoking",
+            "revoked",
+            "missing"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "use_allowed": {
+          "title": "Use Allowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "credential_version",
+        "state",
+        "use_allowed"
+      ],
+      "title": "CredentialProof",
+      "type": "object"
+    },
     "AuthorizeSend": {
       "additionalProperties": false,
       "properties": {

@@ -26,6 +26,8 @@ class CredentialRepository:
             )
 
     def stage_result(self, row):
+        if row["state"] not in {"staged", "activated"} or not row["encrypted_payload"]:
+            raise ApiError(400, ErrorCode.CAPTCHA_EXPIRED, "登录暂存已失效，请重新认证")
         aad = credential_aad(
             UUID(bytes=row["credential_ref"]),
             UUID(bytes=row["attempt_id"]),
@@ -41,7 +43,22 @@ class CredentialRepository:
             expires_at=aware(row["expires_at"]),
         )
 
-    async def stage(self, attempt_id, student_id, password, school_user_id, aliases):
+    async def observe(self, aliases):
+        async with self.engine.connect() as conn:
+            for version, digest in aliases.items():
+                row = await first(
+                    conn,
+                    "SELECT c.id,c.version,c.revoked_at FROM school_credentials c "
+                    "JOIN account_lookup a ON a.credential_id=c.id "
+                    "WHERE a.school_id='hbue' AND a.key_version=:version AND a.lookup_hash=:hash",
+                    version=version,
+                    hash=bytes.fromhex(digest),
+                )
+                if row:
+                    return dict(row)
+        return None
+
+    async def stage(self, attempt_id, student_id, password, school_user_id, aliases, *, observed):
         async with self.engine.begin() as conn:
             existing = await first(
                 conn,
@@ -77,9 +94,10 @@ class CredentialRepository:
             for version, digest in aliases.items():
                 await execute(
                     conn,
-                    "INSERT IGNORE INTO account_reservations "
+                    "INSERT INTO account_reservations "
                     "(school_id,key_version,lookup_hash,credential_id) "
-                    "VALUES ('hbue',:version,:hash,:id)",
+                    "VALUES ('hbue',:version,:hash,:id) "
+                    "ON DUPLICATE KEY UPDATE credential_id=credential_id",
                     version=version,
                     hash=bytes.fromhex(digest),
                     id=credential.bytes,
@@ -95,8 +113,14 @@ class CredentialRepository:
                 if reserved["credential_id"] != credential.bytes:
                     raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS, "账号正在建立，请稍后重试")
             current = await first(
-                conn, "SELECT version FROM school_credentials WHERE id=:id", id=credential.bytes
+                conn,
+                "SELECT id,version,revoked_at FROM school_credentials WHERE id=:id FOR UPDATE",
+                id=credential.bytes,
             )
+            if (dict(current) if current else None) != observed:
+                raise ApiError(
+                    409, ErrorCode.VERSION_CONFLICT, "认证期间学校授权已变化，请重新认证"
+                )
             version = current["version"] + 1 if current else 1
             payload = {
                 "student_id": student_id,
@@ -131,6 +155,11 @@ class CredentialRepository:
 
     async def activate(self, command):
         async with self.engine.begin() as conn:
+            current = await first(
+                conn,
+                "SELECT * FROM school_credentials WHERE id=:id FOR UPDATE",
+                id=command.credential_ref.bytes,
+            )
             staged = await first(
                 conn,
                 "SELECT * FROM credential_staging WHERE attempt_id=:id FOR UPDATE",
@@ -144,11 +173,6 @@ class CredentialRepository:
                 return staged["candidate_version"]
             if staged["state"] != "staged" or aware(staged["expires_at"]) <= datetime.now(UTC):
                 raise ApiError(400, ErrorCode.CAPTCHA_EXPIRED, "登录暂存已过期，请重新认证")
-            current = await first(
-                conn,
-                "SELECT * FROM school_credentials WHERE id=:id FOR UPDATE",
-                id=command.credential_ref.bytes,
-            )
             if current and current["owner_user_id"] != command.owner_user_id.bytes:
                 raise ApiError(404, ErrorCode.NOT_FOUND, "凭据不存在")
             version = staged["candidate_version"]
@@ -197,9 +221,10 @@ class CredentialRepository:
             for key, digest in payload["aliases"].items():
                 await execute(
                     conn,
-                    "INSERT IGNORE INTO account_lookup "
+                    "INSERT INTO account_lookup "
                     "(school_id,key_version,lookup_hash,credential_id) "
-                    "VALUES ('hbue',:key,:hash,:id)",
+                    "VALUES ('hbue',:key,:hash,:id) "
+                    "ON DUPLICATE KEY UPDATE credential_id=credential_id",
                     key=key,
                     hash=bytes.fromhex(digest),
                     id=command.credential_ref.bytes,
@@ -214,19 +239,27 @@ class CredentialRepository:
             await self.activation_events(conn, command, version)
             return version
 
-    async def activation_events(self, conn, command, version):
+    async def activation_events(
+        self,
+        conn,
+        command,
+        version,
+        *,
+        event_type="credential.updated",
+        action="credential.activated",
+    ):
         await append_event(
             conn,
             EventEnvelope(
                 event_id=new_id(),
-                type="credential.updated",
+                type=event_type,
                 schema_version=1,
                 producer="school_adapter",
                 aggregate_id=command.credential_ref,
                 aggregate_version=version,
                 occurred_at=datetime.now(UTC),
                 request_id=command.request_id,
-                dedupe_key=f"credential:{command.credential_ref}:{version}",
+                dedupe_key=f"credential:{command.credential_ref}:{version}:{event_type}",
                 payload=CredentialPayload(
                     credential_id=command.credential_ref,
                     owner_user_id=command.owner_user_id,
@@ -237,7 +270,7 @@ class CredentialRepository:
         await record_audit(
             conn,
             "school_adapter",
-            "credential.activated",
+            action,
             "credential",
             command.credential_ref,
             command.request_id,

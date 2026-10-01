@@ -19,10 +19,20 @@ def register(app, service):
         from services.room.control_api import router
 
         app.include_router(router)
+    if service == "monitoring":
+        from services.monitoring.credential_api import router
+        from services.monitoring.permit_api import router as permit_router
+
+        app.include_router(router)
+        app.include_router(permit_router)
+    if service == "identity":
+        from services.identity.revocation_api import router
+
+        app.include_router(router)
 
 
 async def initialize(app, service):
-    if service in {"gateway", "identity", "room", "monitoring"}:
+    if service in {"gateway", "identity", "room", "monitoring", "school_adapter"}:
         from .service_client import ServiceClient
 
         app.state.service_client = ServiceClient(app.state.runtime)

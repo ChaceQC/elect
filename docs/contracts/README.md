@@ -51,4 +51,10 @@ T2 默认 id 始终为已有偏好或 null，不自行初始化。首次成功�
 
 GET/PATCH monitor 已接通，首次幂等创建 disabled 记录；版本匹配且配置无变化不增加 version/generation，旧版本即便重放相同值仍 409（含 current_version），响应丢失先 GET。缺 expected_version 为 428。等待重新认证仍可保存参数；关闭不调用学校/缓存/MQ/SMTP。
 
-内部 retarget 完成必须查询 Room 持久操作证明，新增 OperationQuery/PreferenceProof。单次取消和凭据协调仅完成本域原语，公开 run/撤回入口仍按阶段关闭；默认切换、真实绑定及前端控制尚未开放。T3 第一批不运行采集/邮件。详见 [控制决策](../decisions/T3监控控制基础.md)。
+内部 retarget 完成必须查询 Room 持久操作证明，新增 OperationQuery/PreferenceProof。单次取消已完成本域原语，公开 run 接口按 T4 接入；默认切换、真实绑定及监控设置界面继续按阶段实施。T3 控制不运行采集/邮件。详见 [控制决策](../decisions/T3监控控制基础.md)。
+
+## T3 第二批增量
+
+公开撤回返回持久 202，使用 credential_version；同用户/旧版本重放返回原操作。me 返回真实 revoked/revoking 状态和待完成摘要，Gateway 在 Room/Identity 固定白名单查询本人 operation。应用会话保留，consent 记录 revoked_at；旧登录重放不能重新签发已撤回版本的会话。
+
+内部新增 UpdateCredentialBarrier、CredentialProof、prepare/commit/abort-update、barrier/control-view、commit-revoke；Adapter 自行读取持久屏障，Monitoring 自行读取当前凭据证明。Notification 发送许可已实现 job/epoch 持久去重、30 秒到期和当前代次/邮箱/样本/冷却检查；实际 SMTP 留待 T5。详见 [凭据与许可决策](../decisions/T3凭据协调与发送许可.md)。

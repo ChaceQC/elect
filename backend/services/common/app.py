@@ -92,7 +92,9 @@ def create_app(service: str, *, business=False):
             raise ApiError(403, ErrorCode.FEATURE_DISABLED, "该功能尚未开放")
 
         for endpoint in ENDPOINTS:
-            if business and (endpoint.stage == "T2" or endpoint.path == "/monitor"):
+            if business and (
+                endpoint.stage == "T2" or endpoint.path in {"/monitor", "/auth/school-credential"}
+            ):
                 continue
             app.add_api_route(
                 f"/api/v1{endpoint.path}",

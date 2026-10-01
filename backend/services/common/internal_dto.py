@@ -7,7 +7,7 @@ from pydantic import Field, SecretStr, model_validator
 
 from services.identity.dto import LoginRequest
 
-from .dto import DTO, PositiveMoney, Timestamp, Version
+from .dto import DTO, Count, PositiveMoney, Timestamp, Version
 from .events import EVENTS, EventPayload
 
 
@@ -112,6 +112,19 @@ class RevokeCredential(UserCommand):
 
 class RevokeBarrier(RevokeCredential):
     pass
+
+
+class UpdateCredentialBarrier(UserCommand):
+    operation_id: UUID
+    credential_ref: UUID
+    expected_credential_version: Count
+
+
+class CredentialProof(DTO):
+    credential_ref: UUID | None
+    credential_version: Count
+    state: Literal["active", "requires_reauth", "revoking", "revoked", "missing"]
+    use_allowed: bool
 
 
 class AuthorizeSend(UserCommand):

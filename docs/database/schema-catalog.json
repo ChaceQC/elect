@@ -3,7 +3,7 @@
   "databases": {
     "identity": {
       "database": "elect_identity",
-      "revision": "identity_0002",
+      "revision": "identity_0003",
       "tables": {
         "users": {
           "columns": {
@@ -40,6 +40,21 @@
             "updated_at": {
               "type": "DATETIME(6)",
               "nullable": false,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_status": {
+              "type": "VARCHAR(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
               "primary_key": false
             }
           },
@@ -389,6 +404,10 @@
             [
               "owner_user_id",
               "expected_credential_version"
+            ],
+            [
+              "owner_user_id",
+              "expected_credential_version"
             ]
           ],
           "checks": [
@@ -533,7 +552,7 @@
     },
     "school_adapter": {
       "database": "elect_school",
-      "revision": "school_0002",
+      "revision": "school_0003",
       "tables": {
         "school_credentials": {
           "columns": {
@@ -615,6 +634,11 @@
             "use_allowed": {
               "type": "BOOL",
               "nullable": false,
+              "primary_key": false
+            },
+            "account_display": {
+              "type": "LONGBLOB",
+              "nullable": true,
               "primary_key": false
             }
           },
@@ -1049,6 +1073,46 @@
           },
           "unique": [],
           "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "credential_revocations": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "credential_version>=1"
+          ],
           "foreign_keys": [],
           "indexes": []
         }
@@ -1982,7 +2046,7 @@
     },
     "monitoring": {
       "database": "elect_monitoring",
-      "revision": "monitoring_0002",
+      "revision": "monitoring_0003",
       "tables": {
         "monitors": {
           "columns": {
@@ -3135,6 +3199,65 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
+          "indexes": []
+        },
+        "send_permits": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "alert_slot_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "job_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "execution_epoch": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "job_id",
+              "execution_epoch"
+            ]
+          ],
+          "checks": [
+            "execution_epoch>=1"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "alert_slot_id"
+              ],
+              "targets": [
+                "alert_slots.id"
+              ]
+            }
+          ],
           "indexes": []
         }
       }

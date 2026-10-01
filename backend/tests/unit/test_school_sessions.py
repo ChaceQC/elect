@@ -110,3 +110,21 @@ def test_denied_background_authorization_never_submits_password():
         assert repo.row["status"] == "requires_reauth"
 
     asyncio.run(run())
+
+
+def test_revocation_during_cache_write_discards_late_token():
+    async def run():
+        repo, store, protocol = Repository(), Store(token=None), Protocol([])
+        original = store.put_secret
+
+        async def revoke_before_write(key, value):
+            repo.row["status"] = "revoked"
+            await original(key, value)
+
+        store.put_secret = revoke_before_write
+        with pytest.raises(ApiError) as result:
+            await sessions(repo, store, protocol).read(new_id(), new_id(), "/rooms", {})
+        assert result.value.code == ErrorCode.SCHOOL_REAUTH_REQUIRED
+        assert store.token is None and protocol.reads == 0
+
+    asyncio.run(run())

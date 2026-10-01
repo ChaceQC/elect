@@ -7,7 +7,7 @@ import { clearRecovery } from '../../api/intents.js'
 /** @typedef {{status: 'initializing'|'authenticated'|'signed_out'|'unavailable', user: Me|null,
  * error: ApiError|null}} SessionState */
 /** @typedef {SessionState & {initialize: ()=>Promise<void>, acceptUser: (user: Me|null)=>Promise<void>,
- * endSession: ()=>Promise<void>}} SessionContextValue */
+ * endSession: ()=>Promise<void>, refreshUser: ()=>Promise<void>}} SessionContextValue */
 const SessionContext = createContext(/** @type {SessionContextValue|null} */ (null))
 
 /** @param {unknown} input @returns {Me} */
@@ -28,6 +28,7 @@ export function SessionProvider({ children }) {
   const [state, setState] = useState(/** @type {SessionState} */ ({ status: 'initializing', user: null, error: null }))
   const currentUser = useRef(/** @type {Me|null} */ (null))
   const sequence = useRef(0)
+  const refreshSequence = useRef(0)
   const pending = useRef(/** @type {AbortController|null} */ (null))
 
   const acceptUser = useCallback(/** @param {Me|null} user */ async (user) => {
@@ -46,6 +47,18 @@ export function SessionProvider({ children }) {
   }, [queryClient])
 
   const endSession = useCallback(() => acceptUser(null), [acceptUser])
+  const refreshUser = useCallback(async () => {
+    const request = sequence.current
+    const refresh = ++refreshSequence.current
+    const expected = currentUser.current?.id
+    const result = await apiClient.request('/auth/me')
+    if (request !== sequence.current || refresh !== refreshSequence.current) return
+    const user = parseSession(result.data)
+    if (user.id !== expected) { await acceptUser(user); return }
+    currentUser.current = user
+    apiClient.csrfToken = user.csrf_token
+    setState({ status: 'authenticated', user, error: null })
+  }, [acceptUser])
   const initialize = useCallback(async () => {
     const request = ++sequence.current
     pending.current?.abort()
@@ -72,7 +85,7 @@ export function SessionProvider({ children }) {
     const request = pending
     return () => { ++counter.current; request.current?.abort(); apiClient.onSessionExpired = null }
   }, [initialize, endSession])
-  return <SessionContext.Provider value={{ ...state, initialize, acceptUser, endSession }}>{children}</SessionContext.Provider>
+  return <SessionContext.Provider value={{ ...state, initialize, acceptUser, endSession, refreshUser }}>{children}</SessionContext.Provider>
 }
 
 export function useSession() {

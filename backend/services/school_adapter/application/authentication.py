@@ -6,6 +6,7 @@ from services.common.http import ApiError
 
 from ..infrastructure.crypto import lookup_aliases
 from ..infrastructure.transport import Deadline
+from .token_cache import cache_token
 
 
 class Authentication:
@@ -42,6 +43,7 @@ class Authentication:
             challenge = await self.store.consume_challenge(
                 command.browser_nonce_hash, command.challenge_id
             )
+            observed = await self.repository.observe(aliases)
             token, school_user_id = await self.protocol.authenticate(
                 command.student_id,
                 command.password.get_secret_value(),
@@ -55,6 +57,7 @@ class Authentication:
                 command.password.get_secret_value(),
                 school_user_id,
                 aliases,
+                observed=observed,
             )
             await self.store.put_secret(
                 f"school_adapter:staged_token:{command.attempt_id}", {"token": token}, ttl=600
@@ -65,11 +68,16 @@ class Authentication:
         version = await self.repository.activate(command)
         staged = await self.store.get_secret(f"school_adapter:staged_token:{command.attempt_id}")
         row = await self.repository.current(command.owner_user_id)
-        if row["version"] != version:
+        if row["version"] != version or row["status"] != "active":
             raise ApiError(409, ErrorCode.VERSION_CONFLICT, "登录凭据已被更新，请重新认证")
         if staged:
-            await self.store.put_secret(
-                f"school_adapter:token:{command.credential_ref}:{version}", staged
+            await cache_token(
+                self.repository,
+                self.store,
+                command.owner_user_id,
+                command.credential_ref,
+                version,
+                staged,
             )
         return {
             "credential_ref": str(command.credential_ref),

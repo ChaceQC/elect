@@ -2,6 +2,46 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T3 凭据协调与发送许可完成
+
+### 已完成
+
+- 第一批控制基础已提交并推送 origin/dev：5411fb4；本轮独立测试容器已停止并保留命名卷。
+- P5a-04：完成 Identity 每用户凭据操作槽、三域登录激活屏障、撤回持久受理/查询/恢复；Adapter 自行读取屏障后激活/撤销，未确认不签发会话或报告撤回成功。
+- 撤回保留应用会话、删除密码/DEK/学校身份和全部历史密码暂存，清理旧版本/暂存 token；人工认证前观察版本/撤销时间，token 写入前后复核持久授权，旧登录/旧撤回与迟到认证不能恢复授权。
+- P5a-05：完成 job/epoch 唯一持久发送许可、30 秒到期、当前代次/邮箱/序号/最后新鲜低余额样本/冷却检查，与关闭按同一 monitor 锁串行；在途事实保留，尚未运行 SMTP。
+- F2-06：账户撤回确认、去重、202 进度、刷新/响应丢失恢复、终态刷新 me/monitor；同账户刷新保留弹窗且丢弃较早的并发响应。
+- 新增 identity_0003/school_0003/monitoring_0003，更新 Secret/服务/MQ 升级、内部协议与表目录；项目/契约/前后端和锁文件统一为 0.4.0。同步 README/AGENTS、子目录说明、计划、架构、部署、决策和验收；无 AGENT.md。
+
+### 进行中
+
+- T3 整体继续进行；T3-01/P5a/F2 已完成，Room 默认/绑定 Saga 和 F3/F5 控制界面尚未交付，M1 保持未完成。
+
+### 阻塞与风险
+
+- 本批无实现阻塞。未使用 auth.txt，学校上游为合成夹具，不能将本批描述为新的真实学校联调。
+- 真实 batchAdd 尚无指定目标寝室，绑定写开关继续关闭；真实采集、SMTP/投递恢复和支付依赖 T4/T5/T6。
+
+### 下一步
+
+- 按 P3b-04 实现 Room 持久默认切换 Saga 与首次同步默认初始化，补齐 prepare/偏好提交/monitor commit 的崩溃恢复、补偿和切换中关闭竞态；随后推进 P3b-01..03 的绑定一次 dispatch 台账与 F3/F5 界面。
+
+### 主要文件或模块
+
+- backend/services/identity/{application/credential_activation,revocation,sessions,recovery}、school_adapter/{credential_control,application/token_cache,infrastructure/credentials}、monitoring/{credentials,credential_api,permits,permit_api}、Gateway/common 与三域迁移。
+- scripts/t3_credential_smoke、t3_credential_faults、t3_permit_smoke，T2/T3 合成公共夹具，deploy/test-stack.sh、provision/upgrade_controls。
+- frontend/features/auth 的账户撤回与 SessionProvider、三项组件/两项浏览器检查；docs/decisions/T3凭据协调与发送许可.md、acceptance/T3凭据与许可验收记录.md 和受影响契约/计划/说明。
+
+### 验证
+
+- 将 CredentialActivation 从 LoginSaga 拆出，避免登录文件混合三域控制；新增 token_cache 统一两条认证路径的迟到缓存复核。普通源码均低于 400 行；凭据仓储 338 行、单一仓储职责，保持本批范围。
+- `sh deploy/check.sh` 容器检查通过：后端 90 passed / 1 skipped、ruff、OpenAPI/内部协议/七域 head 与离线 DDL；前端 contract/lint/typecheck、23 项单元/组件、build，Playwright 8 项（含 1440/375px 撤回/刷新/会话保留）。
+- 末轮增加人工认证观察值后，重新构建后端检查镜像，90 passed / 1 skipped、ruff/契约/DDL 全部通过；前端源码未继续修改。
+- 全新 `/tmp/elect-t3-credentials-proof` Docker/MySQL/Redis/MQ 空库、权限、重复/并发迁移、可靠事件、T2 合成隔离/恢复、九组控制基础及凭据/许可故障检查通过；22 个长期服务 healthy，migrate/tls-check 退出 0。
+- 实际数据库验证屏障/激活/确认响应丢失恢复、暂存过期补偿、旧执行拒绝、当前及历史密码暂存清除、迟到 Redis token 与迟到人工认证拒绝、旧登录/旧撤回重放、发送许可幂等/过期/取消并发及输入检查。
+- 最新脚本在上述容器只读挂载复验：撤回缺版本 428、错误 CSRF 403、旧版本 409、匿名操作查询 401、跨用户操作查询 404；凭据槽与可访问学校的合成同步任务均终结后才恢复真实 Worker。
+- 两端版本/锁文件仅同步项目版本；真实凭据、依赖和构建产物忽略/未跟踪检查、219 项本地文档链接、shell 语法与 git diff --check 通过。独立测试项目最终用 down 停止并保留命名卷，不更改其他服务。
+
 ## 2026-10-01 · T3 第一批监控控制基础
 
 ### 已完成

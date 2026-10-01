@@ -6,6 +6,7 @@ from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from services.common.browser_security import require_browser_write, require_origin
+from services.common.dto import VersionRequest
 from services.common.errors import ErrorCode
 from services.common.http import ApiError, metadata
 from services.common.security import Principal
@@ -190,12 +191,33 @@ async def candidates(
 @router.get("/operations/{id}")
 async def operation(id: UUID, request: Request):
     principal, _ = await session(request)
+    for receiver in ["room", "identity"]:
+        try:
+            value = await request.app.state.service_client.call(
+                receiver,
+                "/browser/operation",
+                f"{receiver}:browser",
+                principal.request_id,
+                {"operation_id": str(id)},
+                principal=principal,
+            )
+            return success(request, value)
+        except ApiError as error:
+            if error.status != 404:
+                raise
+    raise ApiError(404, ErrorCode.NOT_FOUND, "操作不存在")
+
+
+@router.delete("/auth/school-credential", status_code=202)
+async def revoke_credential(command: VersionRequest, request: Request):
+    principal, csrf = await session(request)
+    require_browser_write(request, csrf)
     value = await request.app.state.service_client.call(
-        "room",
-        "/browser/operation",
-        "room:browser",
+        "identity",
+        "/browser/revoke",
+        "identity:browser",
         principal.request_id,
-        {"operation_id": str(id)},
+        command.model_dump(),
         principal=principal,
     )
-    return success(request, value)
+    return success(request, value, status=202)

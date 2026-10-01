@@ -6,7 +6,7 @@
 
 ## T3 控制基础升级
 
-本批启用 Monitoring 配置/屏障 API，增加 `monitoring_0002` 与 `monitoring_encryption_key_bundle`（AES-256-GCM 多版本邮箱密钥）。只挂载 Monitoring API，不与学校 KEK 共用。首次 provision 自动生成；已有 T2 Secret 目录必须保留，按以下顺序升级：
+T3 启用 Monitoring 配置/屏障/发送许可和 Identity 持久撤回，当前 head 为 `identity_0003`、`school_0003`、`monitoring_0003`。`monitoring_encryption_key_bundle` 是独立 AES-256-GCM 多版本邮箱密钥，只挂载 Monitoring API，不与学校 KEK 共用。首次 provision 自动生成；已有 T2/第一批 T3 Secret 目录必须保留，按以下顺序重复升级：
 
 ```sh
 docker build -t elect-backend:local backend
@@ -19,9 +19,9 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml run --rm migrate
 docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --force-recreate
 ```
 
-将 `/opt/elect/secrets` 替换为实际受限目录；离线升级不输出 Secret，重复运行保留邮箱密钥、连接凭据及既有签名私钥，只增加所需服务 scope。数据库须已运行，迁移完成后再启动新 Monitoring API；新 API 健康检查要求 monitoring_0002。备份需包含新邮箱密钥及历史版本。升级前备份流程仍按本文对应章节执行。
+将 `/opt/elect/secrets` 替换为实际受限目录；离线升级不输出 Secret，重复运行保留邮箱密钥、连接凭据及既有签名私钥，增加所需服务 scope 与 credential.revoked 的 MQ 写权限。数据库须已运行，迁移完成后再启动新 API；健康检查核对各域当前 head。MQ 与应用服务须重建以加载新权限。备份需包含新邮箱密钥及历史版本。升级前备份流程仍按本文对应章节执行。
 
-`monitor:browser` 仅授 Gateway，`monitor:retarget` 授 Room，`monitor:credential` 授 Identity，`room:control` 授 Monitoring。内部控制事务只使用本域 MySQL；没有新增采集/邮件 Worker，22 个长期服务数量不变。独立验收入口包含 T3 控制/竞态脚本，真实绑定/邮件/支付开关仍关闭。
+`monitor:browser` 仅授 Gateway，`monitor:retarget` 授 Room，`monitor:credential`/`credential:revoke` 授 Identity；`credential:control-read` 授 Identity/Monitoring，`monitor:credential-read` 授 Adapter，`monitor:authorize-send` 授 Notification，`room:control` 授 Monitoring。内部控制事务只使用本域 MySQL；沿用 Identity 恢复器，没有新增采集/邮件 Worker，22 个长期服务数量不变。独立验收入口包含 T3 控制与凭据/许可竞态脚本，真实绑定/邮件/支付开关仍关闭。
 
 ## 1. 整套部署方式
 

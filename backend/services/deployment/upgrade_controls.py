@@ -13,9 +13,11 @@ from .upgrade_auth import replace_secret
 
 SCOPES = {
     "gateway": ["monitor:browser"],
-    "identity": ["monitor:credential"],
+    "identity": ["monitor:credential", "credential:control-read", "credential:revoke"],
     "room": ["monitor:retarget"],
-    "monitoring": ["room:control"],
+    "monitoring": ["room:control", "credential:control-read"],
+    "school_adapter": ["monitor:credential-read"],
+    "notification": ["monitor:authorize-send"],
 }
 
 
@@ -43,6 +45,14 @@ def upgrade(directory):
         for entry in value["trust_bundle"].values():
             entry["scopes"] = sorted(set(entry["scopes"] + SCOPES.get(entry["issuer"], [])))
         replace_secret(path, value)
+    definitions = directory / "rabbitmq_definitions.json"
+    value = json.loads(definitions.read_text())
+    for permission in value["topic_permissions"]:
+        if permission["user"] == "school_adapter":
+            permission["write"] = (
+                "^(audit\\.recorded|credential\\.(updated|requires_reauth|revoked))$"
+            )
+    replace_secret(definitions, value)
 
 
 def main():

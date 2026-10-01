@@ -15,4 +15,4 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build
 
 仅依赖 Docker 的离线检查：`sh deploy/check.sh`；全新集成：`sh deploy/test-stack.sh /absolute/new-directory elect-test-local`。T2 认证 Secret、内部 TLS、学校出口与资源配置见 [实施决策](../docs/decisions/T2认证与读取.md)。已通过基础范围见 [T1 验收](../docs/acceptance/T1验收记录.md)。
 
-T3 控制基础启用 Monitoring API，新增 `monitoring_encryption_key_bundle` 和 `monitoring_0002`；已有 T2 部署须按部署说明离线执行 `services.deployment.upgrade_controls` 再重建应用，不能重新 provision 覆盖既有 Secret。集成入口增加 `scripts.t3_control_smoke`，使用实际数据库和合成运行验证控制屏障，未启动采集 Worker。
+T3 启用 Monitoring 控制/发送许可和 Identity 持久撤回，新增独立邮箱密钥及 identity_0003/school_0003/monitoring_0003；已有 T2/第一批 T3 部署须重复执行 `services.deployment.upgrade_controls`，迁移后重建 MQ/应用加载新增权限，不能重新 provision 覆盖既有 Secret。集成入口包含 `scripts.t3_control_smoke` 和 `scripts.t3_credential_smoke`，使用合成学校及实际数据库验证故障/竞态；合成任务终结后再恢复真实 Worker，未启动采集或 SMTP Worker。见 [凭据与许可决策](../docs/decisions/T3凭据协调与发送许可.md)。

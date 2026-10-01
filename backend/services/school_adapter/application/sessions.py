@@ -9,6 +9,7 @@ from services.common.http import ApiError
 from ..infrastructure.crypto import lookup_aliases
 from ..infrastructure.ocr import solve_image
 from ..infrastructure.transport import Deadline
+from .token_cache import cache_token
 
 
 class SchoolSessions:
@@ -102,7 +103,9 @@ class SchoolSessions:
                 raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化，请重试")
             if school_user != payload["school_user_id"]:
                 raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校用户标识发生变化")
-            await self.store.put_secret(key, {"token": token})
+            await cache_token(
+                self.repository, self.store, owner, credential, row["version"], {"token": token}
+            )
             return token, school_user, row
 
     async def read(self, owner, request_id, path, params, *, include_user=False):
