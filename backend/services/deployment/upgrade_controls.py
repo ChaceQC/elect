@@ -21,6 +21,7 @@ SCOPES = {
         "monitor:retarget-read",
         "room:remove-read",
         "room:query",
+        "room:balance-commit",
     ],
     "notification": ["monitor:authorize-send"],
 }
@@ -57,6 +58,9 @@ def upgrade(directory):
             permission["write"] = (
                 "^(audit\\.recorded|credential\\.(updated|requires_reauth|revoked))$"
             )
+    from .query_queues import configure
+
+    configure(value)
     replace_secret(definitions, value)
 
 

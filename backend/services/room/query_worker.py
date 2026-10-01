@@ -43,8 +43,9 @@ async def query_tick(app):
                 },
                 principal=principal,
             )
-            error, retryable = None, False
+            error, retryable, retry_after = None, False, None
         except ApiError as failure:
             value, error, retryable = None, failure.code, failure.retryable
-        await finish_history(app.state.database, history, value, error, retryable)
+            retry_after = failure.retry_after_seconds
+        await finish_history(app.state.database, history, value, error, retryable, retry_after)
     return bool(row or history)

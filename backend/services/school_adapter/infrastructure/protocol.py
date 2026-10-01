@@ -137,7 +137,7 @@ class SchoolProtocol:
             raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校用户信息缺少必要标识")
         return token, str(uid)
 
-    async def read(self, path, token, params, *, deadline=None, pool="background"):
+    async def read(self, path, token, params, *, deadline=None, pool="background", read_timeout=12):
         deadline = deadline or Deadline(25)
         async with self.transport.client() as client:
             response = await self.transport.request(
@@ -148,6 +148,7 @@ class SchoolProtocol:
                 params=params,
                 authenticated=True,
                 pool=pool,
+                read_timeout=read_timeout,
                 headers={"Authorization": f"Bearer {token}"},
             )
             return parse_json(response, authenticated=True)

@@ -24,3 +24,5 @@ uv run python -m scripts.migrations --domain all --sql --output-dir /tmp/elect-d
 容器检查在仓库根执行 `sh deploy/check.sh`，全新一次性集成使用 `sh deploy/test-stack.sh /absolute/new-directory elect-test-name`，包含 T2 合成上游、T3 控制及凭据/发送许可竞态检查，不调用真实学校或 SMTP。显式真实学校烟测独立执行，不进入 CI。Room 默认受理/恢复/补偿与首次同步默认初始化已接通；scripts.t3_default_smoke 验证响应丢失、迟到租约、目标失效和切换中关闭。绑定已实现幂等台账/一次 dispatch/B02 回查及默认子操作，三级筛选与本人 Binding 读取已接通；指定目标真实新增已通过 [绑定验收](../docs/acceptance/T3绑定与界面验收记录.md)。删除已接通单次 POST 方法覆盖/两次缺席/默认清空屏障与租约证明，指定同一目标真实删除通过 [删除验收](../docs/acceptance/T3删除绑定验收记录.md)。M1 已完成；真实采集/邮件/支付进入 T4/T5/T6。
 
 T4 查询首批已接通余额/刷新、C02持久窗口/内容快照、日周月聚合和总览后端；[增量验收](../docs/acceptance/T4查询验收记录.md)记录逐寝室余额隔离与数据库故障验证。采集与前端继续接入；未知日期不补零，覆盖证据未确认时不返回 complete。
+
+T4采集引擎见 [增量验收](../docs/acceptance/T4采集引擎验收记录.md)。新增monitor-scheduler/monitor-worker/monitor-recovery、运行/取消/采集快照与内部指标；head为monitoring_0004。只采余额，未发送邮件，前端与阶段故障回归继续接入。

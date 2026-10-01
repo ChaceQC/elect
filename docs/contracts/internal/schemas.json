@@ -487,6 +487,33 @@
       "title": "HistoryWindowQuery",
       "type": "object"
     },
+    "BalanceObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "amount": {
+          "pattern": "^-?(0|[1-9]\\d{0,11})\\.\\d{2}$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "fetched_at": {
+          "format": "date-time",
+          "title": "Fetched At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "amount",
+        "fetched_at"
+      ],
+      "title": "BalanceObservation",
+      "type": "object"
+    },
     "SampleQuery": {
       "additionalProperties": false,
       "properties": {

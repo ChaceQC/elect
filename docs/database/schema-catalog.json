@@ -2132,7 +2132,7 @@
     },
     "monitoring": {
       "database": "elect_monitoring",
-      "revision": "monitoring_0003",
+      "revision": "monitoring_0004",
       "tables": {
         "monitors": {
           "columns": {
@@ -2707,6 +2707,11 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "capture_interval_minutes": {
+              "type": "INTEGER",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [
@@ -2715,6 +2720,7 @@
             ]
           ],
           "checks": [
+            "capture_interval_minutes IS NULL OR capture_interval_minutes BETWEEN 60 AND 1440",
             "credential_version >= 1",
             "quality IN ('balance_only', 'meter_not_realtime', 'meter_inconsistent', 'meter_negative_delta')"
           ],

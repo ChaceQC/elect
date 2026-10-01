@@ -108,8 +108,10 @@ class SchoolSessions:
             )
             return token, school_user, row
 
-    async def read(self, owner, request_id, path, params, *, include_user=False):
-        deadline = Deadline(25)
+    async def read(
+        self, owner, request_id, path, params, *, include_user=False, budget=25, read_timeout=12
+    ):
+        deadline = Deadline(budget)
         try:
             async with asyncio.timeout(deadline.remaining()):
                 row = await self.repository.current(owner)
@@ -125,7 +127,7 @@ class SchoolSessions:
                     )
                     query = {**params, **({"userId": school_user} if include_user else {})}
                     value, row = await self.read_attempts(
-                        owner, request_id, path, query, token, row, deadline
+                        owner, request_id, path, query, token, row, deadline, read_timeout
                     )
                     latest = await self.repository.current(owner)
                     if latest["version"] != row["version"] or latest["status"] != "active":
@@ -138,10 +140,14 @@ class SchoolSessions:
                 504, ErrorCode.SCHOOL_TIMEOUT, "学校查询超时，请稍后重试", True
             ) from None
 
-    async def read_attempts(self, owner, request_id, path, query, token, row, deadline):
+    async def read_attempts(
+        self, owner, request_id, path, query, token, row, deadline, read_timeout
+    ):
         for attempt in range(2):
             try:
-                return await self.protocol.read(path, token, query, deadline=deadline), row
+                return await self.protocol.read(
+                    path, token, query, deadline=deadline, read_timeout=read_timeout
+                ), row
             except ApiError as error:
                 if error.code == ErrorCode.SCHOOL_REAUTH_REQUIRED:
                     if attempt == 1:

@@ -1,5 +1,6 @@
 """受内部身份保护的本人学校历史与监控余额读取。"""
 
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
@@ -46,6 +47,8 @@ async def history(
             "startTimeStr": command.start_date.strftime("%Y%m%d"),
             "endTimeStr": command.end_date.strftime("%Y%m%d"),
         },
+        budget=40,
+        read_timeout=20,
     )
     return {
         "items": records(value, command.start_date, command.end_date),
@@ -66,10 +69,28 @@ async def collect(
         "/base/roomUser/selectRoomListByUserId",
         {},
         include_user=True,
+        budget=85,
+        read_timeout=15,
     )
     record = next(
         (row for row in bound_rooms(value) if row["room_id"] == target["school_room_id"]), None
     )
     if not record or record["balance"] is None:
         raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "本人绑定未返回有效余额")
+    try:
+        await request.app.state.service_client.call(
+            "room",
+            "/controls/balance-observed",
+            "room:balance-commit",
+            principal.request_id,
+            {
+                "binding_id": str(command.binding_id),
+                "amount": record["balance"],
+                "fetched_at": datetime.now(UTC).isoformat(),
+            },
+            principal=principal,
+        )
+    except ApiError:
+        # 缓存更新失败不把本次已取得的余额作废；样本仍受monitor栅栏保护。
+        pass
     return {"balance": record["balance"]}

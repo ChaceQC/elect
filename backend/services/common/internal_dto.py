@@ -87,6 +87,11 @@ class HistoryWindowQuery(BindingQuery, DateRange):
     pass
 
 
+class BalanceObservation(BindingQuery):
+    amount: Money
+    fetched_at: Timestamp
+
+
 class SampleQuery(BindingQuery, DateRange):
     page: Annotated[int, Field(ge=1)] = 1
     page_size: Annotated[int, Field(ge=1, le=100)] = 10

@@ -26,6 +26,7 @@ class QuerySchool:
         self.bound_reads, self.history_reads = 0, 0
         self.missing_second, self.empty_history = False, False
         self.amount = "1.50"
+        self.first_balance = "25.50"
 
     def handler(self, request):
         if request.url.path.endswith("queryRecordByTime"):
@@ -48,6 +49,8 @@ class QuerySchool:
         if request.url.path.endswith("selectRoomListByUserId") and response.status_code == 200:
             self.bound_reads += 1
             value = response.json()
+            if value["data"]:
+                value["data"][0]["balance"] = self.first_balance
             if value["data"] and not self.missing_second:
                 second = {
                     **value["data"][0],

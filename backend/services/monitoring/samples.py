@@ -1,0 +1,157 @@
+"""固定实际成员的30分钟快照；不靠时间上界排除迟到提交。"""
+
+import hashlib
+import secrets
+from datetime import UTC
+from uuid import UUID
+
+from services.common.dates import utc_bounds
+from services.common.errors import ErrorCode
+from services.common.http import ApiError
+from services.common.ids import new_id
+from services.common.sql import aware, execute, first
+
+from .dto import Sample, Samples
+
+
+def sample_view(row):
+    gap = (
+        int((row["captured_at"] - row["previous_captured_at"]).total_seconds())
+        if row["previous_captured_at"]
+        else None
+    )
+    return Sample(
+        id=UUID(bytes=row["id"]),
+        run_id=UUID(bytes=row["run_id"]),
+        captured_at=aware(row["captured_at"]),
+        balance=format(row["balance"], ".2f"),
+        previous_captured_at=aware(row["previous_captured_at"]),
+        balance_delta=format(row["balance_delta"], ".2f")
+        if row["balance_delta"] is not None
+        else None,
+        balance_delta_kind="net_balance_change",
+        gap_seconds=gap,
+        gap_detected=gap is not None and gap > row["interval_minutes"] * 60 * 2,
+        meter_last_reading=format(row["meter_last_reading"], ".4f")
+        if row["meter_last_reading"] is not None
+        else None,
+        meter_reading=format(row["meter_reading"], ".4f")
+        if row["meter_reading"] is not None
+        else None,
+        meter_delta=format(row["meter_delta"], ".4f") if row["meter_delta"] is not None else None,
+        meter_record_date=row["meter_record_date"],
+        meter_source="school_C02_daily_record" if row["meter_record_date"] else None,
+        meter_source_record_key=row["meter_source_record_key"],
+        meter_is_repeated=bool(row["meter_is_repeated"]),
+        quality=row["quality"],
+    )
+
+
+async def snapshot(conn, owner, command, start, end):
+    token = command.snapshot_token
+    if token:
+        row = await first(
+            conn,
+            "SELECT *,expires_at>UTC_TIMESTAMP(6) AS valid FROM sample_snapshots WHERE "
+            "token_hash=:hash AND owner_user_id=:owner",
+            hash=hashlib.sha256(token.encode()).digest(),
+            owner=owner.bytes,
+        )
+        if not row:
+            raise ApiError(404, ErrorCode.NOT_FOUND, "快照不存在")
+        if (
+            row["binding_id"] != command.binding_id.bytes
+            or row["start_date"] != command.start_date
+            or row["end_date"] != command.end_date
+        ):
+            raise ApiError(400, ErrorCode.SNAPSHOT_MISMATCH, "快照与寝室或日期范围不同")
+        if not row["valid"]:
+            raise ApiError(410, ErrorCode.SNAPSHOT_EXPIRED, "快照已过期，请从第一页重新读取")
+        return token, row
+    if command.page != 1:
+        raise ApiError(400, ErrorCode.SNAPSHOT_MISMATCH, "后续分页必须携带首页快照")
+    token, snapshot_id = secrets.token_urlsafe(32), new_id()
+    await execute(
+        conn,
+        "INSERT INTO sample_snapshots (id,owner_user_id,binding_id,start_date,end_date,toke"
+        "n_hash,total,expires_at) VALUES (:id,:owner,:binding,:start,:end,:hash,0,DATE_ADD("
+        "UTC_TIMESTAMP(6),INTERVAL 30 MINUTE))",
+        id=snapshot_id.bytes,
+        owner=owner.bytes,
+        binding=command.binding_id.bytes,
+        start=command.start_date,
+        end=command.end_date,
+        hash=hashlib.sha256(token.encode()).digest(),
+    )
+    await execute(
+        conn,
+        "INSERT INTO sample_snapshot_items (snapshot_id,position,sample_id) "
+        "SELECT :snapshot,ROW_NUMBER() OVER (ORDER BY captured_at DESC,id DESC),id "
+        "FROM monitor_samples WHERE owner_user_id=:owner AND binding_id=:binding "
+        "AND captured_at>=:start AND captured_at<:end",
+        snapshot=snapshot_id.bytes,
+        owner=owner.bytes,
+        binding=command.binding_id.bytes,
+        start=start,
+        end=end,
+    )
+    await execute(
+        conn,
+        "UPDATE sample_snapshots SET total=(SELECT COUNT(*) FROM sample_snapshot_items "
+        "WHERE snapshot_id=:id) WHERE id=:id",
+        id=snapshot_id.bytes,
+    )
+    return token, await first(
+        conn, "SELECT * FROM sample_snapshots WHERE id=:id", id=snapshot_id.bytes
+    )
+
+
+async def list_samples(engine, owner, command):
+    start, end = utc_bounds(command.start_date, command.end_date)
+    async with engine.begin() as conn:
+        token, fixed = await snapshot(conn, owner, command, start, end)
+        rows = (
+            (
+                await execute(
+                    conn,
+                    "SELECT p.*,previous.captured_at AS previous_captured_at,"
+                    "COALESCE(p.capture_interval_minutes,m.interval_minutes) AS interval_minutes,"
+                    "EXISTS(SELECT 1 FROM monitor_samples other WHERE "
+                    "other.binding_id=p.binding_id "
+                    "AND other.owner_user_id=p.owner_user_id AND other.captured_at<p.captured_at "
+                    "AND other.meter_source_record_key=p.meter_source_record_key) AS "
+                    "meter_is_repeated "
+                    "FROM sample_snapshot_items i JOIN monitor_samples p ON p.id=i.sample_id "
+                    "JOIN monitors m ON m.id=p.monitor_id "
+                    "LEFT JOIN monitor_samples previous ON previous.id=p.previous_sample_id "
+                    "WHERE i.snapshot_id=:snapshot AND i.position>:offset "
+                    "ORDER BY i.position LIMIT :size",
+                    snapshot=fixed["id"],
+                    offset=(command.page - 1) * command.page_size,
+                    size=command.page_size,
+                )
+            )
+            .mappings()
+            .all()
+        )
+        monitor = await first(
+            conn,
+            "SELECT first_enabled_at FROM monitors WHERE owner_user_id=:owner",
+            owner=owner.bytes,
+        )
+        count = await first(
+            conn,
+            "SELECT COUNT(*) AS n FROM monitor_samples WHERE owner_user_id=:owner AND "
+            "binding_id=:binding",
+            owner=owner.bytes,
+            binding=command.binding_id.bytes,
+        )
+    return Samples(
+        items=[sample_view(row) for row in rows],
+        page=command.page,
+        page_size=command.page_size,
+        total=fixed["total"],
+        has_monitor_history=bool(count["n"] or monitor and monitor["first_enabled_at"]),
+        snapshot_token=token,
+        snapshot_expires_at=fixed["expires_at"].replace(tzinfo=UTC),
+    )

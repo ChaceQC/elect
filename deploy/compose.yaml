@@ -220,6 +220,40 @@ services:
     <<: *python
     secrets: [{source: notification_runtime, target: runtime}]
     command: [python, -m, services.notification]
+  monitor-scheduler:
+    <<: *python
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/monitoring_encryption_key_bundle
+    secrets: [{source: monitoring_runtime, target: runtime}, internal_ca, monitoring_encryption_key_bundle]
+    command: [python, -m, services.monitoring.job, --role, scheduler]
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
+  monitor-worker:
+    <<: *python
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/monitoring_encryption_key_bundle
+    secrets: [{source: monitoring_runtime, target: runtime}, internal_ca, monitoring_encryption_key_bundle]
+    command: [python, -m, services.monitoring.job, --role, worker]
+    stop_grace_period: 100s
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
+  monitor-recovery:
+    <<: *python
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/monitoring_encryption_key_bundle
+    secrets: [{source: monitoring_runtime, target: runtime}, internal_ca, monitoring_encryption_key_bundle]
+    command: [python, -m, services.monitoring.job, --role, recovery]
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
   payment:
     <<: *python
     secrets: [{source: payment_runtime, target: runtime}]

@@ -51,7 +51,7 @@ async def finish_sync(conn, row):
     )
 
 
-async def finish_history(engine, row, result, error, retryable=False):
+async def finish_history(engine, row, result, error, retryable=False, retry_after=None):
     from uuid import UUID
 
     from .preference_store import lock_preference
@@ -80,6 +80,7 @@ async def finish_history(engine, row, result, error, retryable=False):
         if error:
             retry = retryable and current["attempt_count"] < 3
             delay = (30 if current["attempt_count"] == 1 else 120) + random.uniform(0, 5)
+            delay = max(delay, retry_after or 0)
             await execute(
                 conn,
                 "UPDATE history_sync_windows SET "

@@ -37,6 +37,11 @@ def register(app, service):
 
         app.include_router(router)
         app.include_router(permit_router)
+        from services.monitoring.metrics_api import router as metrics_router
+        from services.monitoring.run_api import router as run_router
+
+        app.include_router(run_router)
+        app.include_router(metrics_router)
     if service == "identity":
         from services.identity.revocation_api import router
 
@@ -94,6 +99,8 @@ async def initialize(app, service):
 
 
 async def close(app):
+    if getattr(app.state, "history_broker", None):
+        await app.state.history_broker.close()
     if hasattr(app.state, "service_client"):
         await app.state.service_client.close()
     if hasattr(app.state, "redis"):

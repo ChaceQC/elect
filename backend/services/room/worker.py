@@ -52,4 +52,7 @@ async def room_tick(app):
     controls = await control_tick(app)
     synced = await sync_tick(app)
     queried = await query_tick(app)
+    from .wakeups import drain
+
+    await drain(app)
     return controls or synced or queried

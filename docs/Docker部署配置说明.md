@@ -192,3 +192,11 @@ Room 既有 Worker 同时扫描同步、默认和绑定，无新增进程。已�
 ## T3 删除增量升级
 
 保留原 Secret 和卷，重复 upgrade_controls 增加 Room 的凭据证明读取、Adapter 的 Room 租约/默认屏障读取；迁移 room_0004/school_0005 后重建 Gateway/Room/Adapter/Monitoring 及 Room Worker，读取新 head 与 scope。学校删除仍受 ELECT_ALLOW_SCHOOL_BINDING_WRITES 控制，普通值 false；指定验收临时 true，完成后重建 Room/Adapter 恢复 false。脚本 t3_removal_smoke 只在显式隔离环境运行，并在恢复真实 Worker 前终结合成待执行任务。
+
+## T4 采集引擎升级
+
+新增三个独立监控进程，长期进程增至25个；monitoring_0004保存采集时的间隔。保留原Secret与卷，重复upgrade_controls后重建RabbitMQ和全部相关应用以加载新文件挂载/权限，运行migrate，再启动新Scheduler/Worker/恢复器。不要重新provision已有Secret。
+
+monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以MySQL为准，MQ失效时仍扫描。采集Worker每10秒续租，最长90秒，退出宽限100秒；Room/Identity长请求期间验证数据库并更新心跳。仅balance_only，SMTP/支付开关仍默认false。
+
+`test-stack.sh`合成阶段暂停Identity/Room与监控三个进程、Monitoring Relay，运行t4_query_smoke/t4_monitor_smoke；合成监控全部关闭后再恢复。新验收见 [T4采集引擎](acceptance/T4采集引擎验收记录.md)。

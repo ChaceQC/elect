@@ -93,7 +93,7 @@ def create_app(service: str, *, business=False):
 
         for endpoint in ENDPOINTS:
             if business and (
-                endpoint.stage == "T2"
+                endpoint.stage in {"T2", "T4"}
                 or endpoint.path
                 in {
                     "/monitor",

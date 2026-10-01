@@ -37,12 +37,29 @@ async def run(service):
     async with app.router.lifespan_context(app):
         while not stop.is_set():
             try:
-                activity = await tick(app)
+                activity = await checked_tick(app, tick, heartbeat)
                 heartbeat.write(healthy=True, activity=activity)
             except Exception:
                 heartbeat.write(healthy=False)
                 log("business_recovery_retry", service=service, error_code="DEPENDENCY_UNAVAILABLE")
             await pause(stop, 1)
+
+
+async def checked_tick(app, tick, heartbeat):
+    task = asyncio.create_task(tick(app))
+    try:
+        async with asyncio.timeout(120):
+            while not task.done():
+                done, _ = await asyncio.wait({task}, timeout=10)
+                if not done:
+                    async with app.state.database.connect() as conn:
+                        await execute(conn, "SELECT 1")
+                    heartbeat.write(healthy=True)
+            return task.result()
+    finally:
+        if not task.done():
+            task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
 
 
 def main():

@@ -87,6 +87,7 @@ def keys_and_trust():
                     "monitor:retarget-read",
                     "room:remove-read",
                     "room:query",
+                    "room:balance-commit",
                 ],
                 "notification": ["monitor:authorize-send"],
             }.get(service, []),
@@ -221,6 +222,9 @@ def provision_transport(directory):
             for service in DATABASES
         ],
     }
+    from .query_queues import configure
+
+    configure(definitions)
     write_file(directory, "rabbitmq_definitions.json", definitions, 100)
     return mq_urls, redis_urls
 
