@@ -175,7 +175,9 @@ sh deploy/test-stack.sh /absolute/new-test-directory elect-test-local
 
 check 在容器中执行后端单元/契约/迁移 SQL、前端规则/类型/单元/构建和 Playwright；test-stack 创建明确命名的新项目，容器生成 Secret/临时自签证书，空库启动并执行可靠事件 smoke。测试端口绑定本机 18080/18443，须空闲；默认 `.env` 仍仅由 Nginx 发布 80/443。测试作业拒绝未声明一次性环境和已有输出目录。
 
-CI 位于 `.github/workflows/check.yaml`，不依赖宿主机语言环境、真实学校或 SMTP。操作完可用相同 env/Compose/项目名执行 `down` 停止本次环境，保留命名卷。真实恢复、备份、公网域名/受信任证书和业务容器联调留待 T7/T8。
+CI 位于 `.github/workflows/check.yaml`，对目标为 `dev`/`main` 的 PR 和这两个分支的 push 执行，不依赖宿主机语言环境、真实学校或 SMTP。同一 PR 新提交会取消旧运行；完整作业 `check` 是两个分支的严格必需检查，只有最新提交的 Actions 全部成功才能合并，见 [GitHub 协作与合并流程](GitHub协作与合并流程.md)。操作完可用相同 env/Compose/项目名执行 `down` 停止本次环境，保留命名卷。真实恢复、备份、公网域名/受信任证书和业务容器联调留待 T7/T8。
+
+T4 依赖故障脚本的 `t4-fault` 共享目录保留宿主机用户属主，组设为容器的 GID 10001、权限为 0770；容器可写状态，普通 Runner 可写 `hold.log` 并检查就绪文件，其他用户无权限。不能将整个目录改为容器 UID 的 0700，否则普通 Runner 会报 `Permission denied`，而 root 本地运行会掩盖错误。正式 Secret 的属主、0700 目录与0400文件规则不受影响。
 
 ## T2 认证升级
 

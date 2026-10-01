@@ -60,6 +60,6 @@ npm run dev
 
 ## 开发与版本
 
-项目使用 Git 和 GitHub 管理，远程名称为 `origin`。主分支为 `main`，日常开发在 `dev`。每完成一个可验证小步，同步受影响文档及进度后使用中文说明 commit 并 push；完整功能验证通过且已推送后，再从 `dev` 合并到 `main`。
+项目使用 Git 和 GitHub 管理，远程名称为 `origin`。`main` 为主分支，`dev` 为集成分支；日常改动从 `dev` 创建 `codex/` 工作分支，同步文档和进度后用中文说明 commit 并 push，通过 PR 合入 `dev`，完整功能再通过 `dev → main` PR 交付。两个分支要求 PR 和严格必需检查 `容器验证 / check`，对管理员同样生效；只有 PR 最新提交的 Actions 全部成功才能合并。操作与失败处理见 [GitHub 协作与合并流程](docs/GitHub协作与合并流程.md)。
 
 项目版本采用 `X.Y.Z`，Git tag 与发布名称采用 `vX.Y.Z`。非正式版使用 `v0.y.z`，正式稳定发布从 `v1.0.0` 开始。详细规则见 [AGENTS.md](AGENTS.md)。
