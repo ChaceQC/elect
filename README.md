@@ -6,6 +6,8 @@
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
+T7 集中验收已开始，按本轮要求跳过部署证书与更换演练；跨标签页会话清理、五种屏宽、键盘与图表释放已补齐定向回归，备份恢复和容量检查继续实施。范围见 [T7 决策](docs/decisions/T7集中验收与恢复.md)。
+
 ## 项目入口
 
 - [开发规范](AGENTS.md)：版本、Git/GitHub 工作流、代码规模、文档同步与验证要求。
