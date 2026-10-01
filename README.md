@@ -58,6 +58,8 @@ npm run dev
 
 正式前端开发使用 `cd frontend && npm ci && npm run dev`；后端开发使用 `cd backend && uv sync --locked`。详细环境与验证见 [开发说明](docs/开发说明.md)。
 
+本地 `auth.txt` 和 `email_auth.txt` 为测试凭据，禁止提交或进入镜像；邮件文件五行格式与禁止直接读取的约束见 [本地测试说明](docs/开发说明.md#本地真实测试凭据)。文件存在不自动开启真实邮件投递。
+
 ## 开发与版本
 
 项目使用 Git 和 GitHub 管理，远程名称为 `origin`。`main` 为主分支，日常默认在 `dev` 开发；当前开发分支可直接 commit 并 push，无需 PR。每完成一个可验证小步，同步文档和进度后用中文说明提交推送；仅合并到 `main` 时必须通过 PR，通常为 `dev → main`。`main` 要求严格必需检查 `容器验证 / check`，对管理员同样生效；只有 PR 最新提交的 Actions 全部成功才能合并。操作与失败处理见 [GitHub 协作与合并流程](docs/GitHub协作与合并流程.md)。
