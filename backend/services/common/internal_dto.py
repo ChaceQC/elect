@@ -71,6 +71,10 @@ class RoomQuery(DTO):
     room_id: Annotated[str, Field(max_length=128)] | None = None
 
 
+class OperationQuery(DTO):
+    operation_id: UUID
+
+
 class PrepareRetarget(UserCommand):
     operation_id: UUID
     target_binding_id: UUID
@@ -90,6 +94,14 @@ class CommitRetarget(UserCommand):
     operation_id: UUID
     target_binding_id: UUID
     committed_preference_version: Version
+
+
+class PreferenceProof(DTO):
+    operation_id: UUID
+    binding_id: UUID | None
+    preference_version: Version | None
+    committed: bool
+    can_compensate: bool
 
 
 class RevokeCredential(UserCommand):

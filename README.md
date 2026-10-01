@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.3.0。T0/T1/T2 已完成：真实学校登录、密文激活、应用会话、本人寝室同步/候选读取与生产前端真实浏览器已验证。默认初始化、绑定写、监控、邮件与支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.3.0。T0/T1/T2 已完成：真实学校登录、密文激活、应用会话、本人寝室同步/候选读取与生产前端已验证。T3 开发中，第一批已接通监控配置 API 和持久控制屏障；默认/绑定/撤回完整流程、采集、邮件和支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -15,6 +15,7 @@ GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 - [T0 验收](docs/acceptance/T0验收记录.md)：交付物、测试结果及后续阶段边界。
 - [T1 验收](docs/acceptance/T1验收记录.md)：Docker、TLS、事件恢复与前端公共层的实际验证。
 - [T2 验收](docs/acceptance/T2验收记录.md)：真实学校/生产前端登录、本人读取、后台恢复与隔离/故障边界。
+- [T3 控制基础](docs/acceptance/T3控制基础验收记录.md)：监控配置、取消/切换/凭据屏障原语与实际数据库验证，T3 整体仍在进行。
 
 ## 目录
 

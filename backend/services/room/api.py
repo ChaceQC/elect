@@ -1,11 +1,10 @@
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 
 from services.common.dto import DTO
-from services.common.internal_dto import RoomQuery
+from services.common.internal_dto import OperationQuery, RoomQuery
 from services.common.security import Principal, require_user_principal
 
 from .dto import Candidates
@@ -17,10 +16,6 @@ Browser = Annotated[Principal, Depends(require_user_principal("room:browser"))]
 
 class SyncCommand(DTO):
     idempotency_key: str = Field(min_length=16, max_length=128)
-
-
-class OperationQuery(DTO):
-    operation_id: UUID
 
 
 @router.post("/bindings")

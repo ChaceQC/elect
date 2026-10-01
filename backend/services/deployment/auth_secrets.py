@@ -11,7 +11,11 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 
 def provision_auth(directory, write):
-    for name in ["school_kek_bundle", "school_lookup_hmac_bundle"]:
+    for name in [
+        "school_kek_bundle",
+        "school_lookup_hmac_bundle",
+        "monitoring_encryption_key_bundle",
+    ]:
         write(
             directory,
             name,

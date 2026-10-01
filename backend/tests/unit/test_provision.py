@@ -46,3 +46,35 @@ def test_auth_upgrade_is_repeatable_and_preserves_all_existing_credentials(tmp_p
     updated = json.loads((target / "identity_runtime.json").read_text())
     for field in ["db_url", "redis_url", "amqp_url", "signing_key"]:
         assert updated[field] == runtime[field]
+
+
+def test_controls_upgrade_adds_only_its_key_and_preserves_existing_secrets(tmp_path):
+    from services.deployment.upgrade_controls import SCOPES
+    from services.deployment.upgrade_controls import upgrade as upgrade_controls
+
+    target = tmp_path / "secrets"
+    provision(target)
+    # 还原为没有控制密钥/权限的 T2 Secret 目录。
+    (target / "monitoring_encryption_key_bundle").unlink()
+    files = [p for p in target.glob("*_runtime.json") if p.name != "migration_runtime.json"]
+    before = {}
+    for path in files:
+        value = json.loads(path.read_text())
+        for entry in value["trust_bundle"].values():
+            entry["scopes"] = [
+                x for x in entry["scopes"] if x not in SCOPES.get(entry["issuer"], [])
+            ]
+        path.chmod(0o600)
+        path.write_text(json.dumps(value))
+        before[path.name] = value
+    upgrade_controls(target)
+    key = (target / "monitoring_encryption_key_bundle").read_bytes()
+    upgrade_controls(target)
+    assert (target / "monitoring_encryption_key_bundle").read_bytes() == key
+    for path in files:
+        value = json.loads(path.read_text())
+        for field, previous in before[path.name].items():
+            if field != "trust_bundle":
+                assert value[field] == previous
+        for entry in value["trust_bundle"].values():
+            assert set(SCOPES.get(entry["issuer"], [])) <= set(entry["scopes"])

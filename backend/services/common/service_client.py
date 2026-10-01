@@ -13,6 +13,7 @@ TARGETS = {
     "identity": "https://identity:8000",
     "school_adapter": "https://school-adapter:8000",
     "room": "http://room:8000",
+    "monitoring": "http://monitoring:8000",
 }
 
 
@@ -64,6 +65,7 @@ class ServiceClient:
                     error["message"],
                     error.get("retryable", False),
                     retry_after_seconds=error.get("retry_after_seconds"),
+                    current_version=error.get("current_version"),
                 )
             return value
         except (ValueError, KeyError, TypeError):

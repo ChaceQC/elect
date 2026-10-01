@@ -1,4 +1,4 @@
-"""T2 的路由及领域依赖；未实施的入口保持关闭。"""
+"""已实现的认证、寝室读取和监控控制；其他业务入口保持关闭。"""
 
 import base64
 import os
@@ -7,17 +7,29 @@ from redis.asyncio import Redis
 
 
 def register(app, service):
-    if service in {"gateway", "identity", "school_adapter", "room"}:
+    if service in {"gateway", "identity", "school_adapter", "room", "monitoring"}:
         from importlib import import_module
 
         app.include_router(import_module(f"services.{service}.api").router)
+    if service == "gateway":
+        from services.gateway.monitor_api import router
+
+        app.include_router(router)
+    if service == "room":
+        from services.room.control_api import router
+
+        app.include_router(router)
 
 
 async def initialize(app, service):
-    if service in {"gateway", "identity", "room"}:
+    if service in {"gateway", "identity", "room", "monitoring"}:
         from .service_client import ServiceClient
 
         app.state.service_client = ServiceClient(app.state.runtime)
+    if service == "monitoring":
+        from services.monitoring.email_crypto import EmailCrypto
+
+        app.state.email_crypto = EmailCrypto.load(os.environ["ELECT_EMAIL_KEY_FILE"])
     if service == "identity":
         from services.identity.application.login import LoginSaga
         from services.identity.sessions import AppSessions

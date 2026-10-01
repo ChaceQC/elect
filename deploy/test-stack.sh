@@ -34,6 +34,7 @@ compose run --rm --no-deps smoke
 # 合成学校的事务/恢复验收由同进程驱动；真实 Worker 不得消费合成任务并访问学校。
 compose stop identity-recovery room-sync-worker
 compose run --rm --no-deps smoke python -m scripts.t2_smoke
+compose run --rm --no-deps smoke python -m scripts.t3_control_smoke
 compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker
 compose exec -T nginx nginx -t
 compose run --rm --no-deps tls-check

@@ -4,6 +4,25 @@
 
 本文统一[后端架构](后端架构详细设计.md)、[后端实施计划](后端实施计划.md)和[前端实施计划](前端实施计划.md)中的部署方式。T0 已建立 [公开变量模板](../deploy/.env.example)、[Secret/账号清单](../deploy/secrets.example.yaml)与七域迁移；T1 已建立两端镜像、Compose、Secret 生成、空卷 provisioning、持锁迁移、TLS 预检和公共运行设施，并通过独立容器基础验收。前端公共数据层及 Docker CI 也已实现；学校业务不在本阶段开放。
 
+## T3 控制基础升级
+
+本批启用 Monitoring 配置/屏障 API，增加 `monitoring_0002` 与 `monitoring_encryption_key_bundle`（AES-256-GCM 多版本邮箱密钥）。只挂载 Monitoring API，不与学校 KEK 共用。首次 provision 自动生成；已有 T2 Secret 目录必须保留，按以下顺序升级：
+
+```sh
+docker build -t elect-backend:local backend
+docker run --rm --network none --user 0:0 \
+  -v /opt/elect/secrets:/run/upgrade elect-backend:local \
+  python -m services.deployment.upgrade_controls --directory /run/upgrade
+docker compose --env-file deploy/.env -f deploy/compose.yaml config --quiet
+docker compose --env-file deploy/.env -f deploy/compose.yaml build
+docker compose --env-file deploy/.env -f deploy/compose.yaml run --rm migrate
+docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --force-recreate
+```
+
+将 `/opt/elect/secrets` 替换为实际受限目录；离线升级不输出 Secret，重复运行保留邮箱密钥、连接凭据及既有签名私钥，只增加所需服务 scope。数据库须已运行，迁移完成后再启动新 Monitoring API；新 API 健康检查要求 monitoring_0002。备份需包含新邮箱密钥及历史版本。升级前备份流程仍按本文对应章节执行。
+
+`monitor:browser` 仅授 Gateway，`monitor:retarget` 授 Room，`monitor:credential` 授 Identity，`room:control` 授 Monitoring。内部控制事务只使用本域 MySQL；没有新增采集/邮件 Worker，22 个长期服务数量不变。独立验收入口包含 T3 控制/竞态脚本，真实绑定/邮件/支付开关仍关闭。
+
 ## 1. 整套部署方式
 
 目标机器只需要 Docker Engine/Compose 和可用的磁盘、网络、域名/证书文件。依赖安装、前端编译、数据库初始化及运行均在容器中完成。

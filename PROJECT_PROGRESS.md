@@ -2,6 +2,72 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T3 第一批监控控制基础
+
+### 已完成
+
+- P5a-01/02/03：持久 disabled monitor、GET/PATCH、参数与版本校验、generation/epoch、统一提交栅栏、prepare/commit/compensate-retarget；默认提交回查 Room 操作与实际偏好，不接受自报成功。
+- 单次取消及凭据更新/撤回的本域原语；关闭、配置/凭据改代阻断旧样本，切换中关闭意图被保留；待认证可保存参数但不会恢复执行。
+- 配置/取消/提醒失效/审计 Outbox 同事务；已授权在途提醒保留且摘要显示 sending，间隔变更保留事件已发送计数。
+- 独立邮箱 AES-GCM 密钥、owner/email_version 绑定、T2 → T3 Secret/权限保留升级及 monitoring_0002；生成内部协议/数据目录并同步根规范、开发/部署/阶段/验收文档。
+- 隔离容器与实际 MySQL 控制检查接入 deploy/test-stack.sh；未使用 auth.txt 或执行真实学校、邮件、支付写入。
+
+### 进行中
+
+- T3-01 整体仍在进行；P5a-04 的 Identity/Adapter 协调和 P5a-05 尚未完成。本批不提前勾选 T3、P5a 整体或 M1。
+
+### 阻塞与风险
+
+- 无控制基础实现阻塞。真实 batchAdd 尚无指定新增寝室，绑定写开关继续关闭。
+- 原语验证不等于端到端撤回/默认切换已完成；当前公开默认/绑定/撤回入口和监控页面继续关闭，Scheduler/采集/租约恢复属于 T4。
+
+### 下一步
+
+- 按 P5a-04 将 Identity 凭据更新/撤回接入 Monitoring 屏障和 Adapter 版本确认/密文-token 撤销，补齐持久阶段、崩溃恢复和并发登录/撤回测试；随后接入发送许可、Room 默认 Saga 与绑定台账。
+
+### 主要文件或模块
+
+- backend/services/monitoring/{configuration,repository,queries,fences,runs,barriers,credentials,email_crypto,api} 及 0002 迁移。
+- Gateway monitor_api、Room control_api、common 内部 DTO/版本错误、deployment/upgrade_controls、scripts/t3_control_*、后端单元测试与 deploy/Compose。
+- docs/decisions/T3监控控制基础.md、acceptance/T3控制基础验收记录.md、契约/表目录、总/后端计划及根/子目录说明。无 AGENT.md；前端源码/依赖无变更。
+
+### 验证
+
+- 后端 ruff、89 passed / 1 skipped（显式临时 root 测试默认跳过）、OpenAPI/内部 DTO/七域 head 与离线 DDL 检查通过；实际数据库由容器独立验证。
+- 容器前端 contract/lint/typecheck、20 项单元/组件、build 和 6 项 Playwright 回归通过。
+- 全新 `/tmp/elect-t3-controls-final` Docker 空库初始化、七域权限、TLS/JWT/Redis ACL、Outbox/Inbox/Audit 与 T2 合成隔离/恢复回归通过；新 Monitoring/Room 镜像已构建。
+- 最新 API/恢复进程重建后 22 个长期服务全部 healthy，migrate/tls-check 均退出 0。
+- 最新 T3 镜像的真实 MySQL 验证九组通过：失效样本拒绝、并发 prepare/配置、关闭意图、实际 Room 偏好证明/对象归属、结果与关闭串行、凭据原语、补偿终态、Outbox 回滚、未授权/在途提醒边界。
+- 初次新增 Room 偏好证明夹具遗漏 rooms 必填楼栋/门牌，已修正并复验通过；未将失败运行记录为成功。核对后补充实际偏好一致性和在途发送优先显示。
+- 182 项本地文档链接、git diff --check 与真实凭据/依赖/构建产物忽略检查通过。
+
+## 2026-10-01 · T3 开始实施
+
+### 已完成
+
+- 核对总计划、P5a/P3b、F2/F3/F5 和监控/绑定架构；dev 与 origin/dev 同步，工作区无既有改动。
+- 确认先实现 MySQL 控制屏障，再接入默认切换、凭据协调与绑定写台账；真实采集引擎仍属于 T4。
+
+### 进行中
+
+- T3-01：disabled monitor、版本检查、generation/epoch、取消和持久 retarget 屏障。
+
+### 阻塞与风险
+
+- 无控制屏障实现阻塞。真实 batchAdd 验收尚无指定新增寝室，保持学校绑定写开关关闭；合成学校验证不能替代真实写入验收。
+
+### 下一步
+
+- 完成监控控制事务与真实 MySQL 竞态验证，再接入 Room 默认切换 Saga 和 Identity 凭据撤回。
+
+### 主要文件或模块
+
+- backend/services/monitoring、common、gateway，监控迁移及定向集成检查。
+
+### 验证
+
+- 已检查 Git 状态、阶段依赖和现有迁移/路由；本批代码尚未验收。
+
 ## 2026-10-01 · T2 交付与验收完成
 
 ### 已完成

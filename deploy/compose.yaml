@@ -210,7 +210,11 @@ services:
     command: [python, -m, services.room]
   monitoring:
     <<: *python
-    secrets: [{source: monitoring_runtime, target: runtime}]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/monitoring_encryption_key_bundle
+    secrets: [{source: monitoring_runtime, target: runtime}, internal_ca, monitoring_encryption_key_bundle]
     command: [python, -m, services.monitoring]
   notification:
     <<: *python
@@ -302,6 +306,7 @@ secrets:
   school_adapter_runtime: {file: "${ELECT_SECRETS_DIR}/school_adapter_runtime.json"}
   room_runtime: {file: "${ELECT_SECRETS_DIR}/room_runtime.json"}
   monitoring_runtime: {file: "${ELECT_SECRETS_DIR}/monitoring_runtime.json"}
+  monitoring_encryption_key_bundle: {file: "${ELECT_SECRETS_DIR}/monitoring_encryption_key_bundle"}
   notification_runtime: {file: "${ELECT_SECRETS_DIR}/notification_runtime.json"}
   payment_runtime: {file: "${ELECT_SECRETS_DIR}/payment_runtime.json"}
   audit_runtime: {file: "${ELECT_SECRETS_DIR}/audit_runtime.json"}

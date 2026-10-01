@@ -1982,7 +1982,7 @@
     },
     "monitoring": {
       "database": "elect_monitoring",
-      "revision": "monitoring_0001",
+      "revision": "monitoring_0002",
       "tables": {
         "monitors": {
           "columns": {
@@ -2123,6 +2123,21 @@
             },
             "updated_at": {
               "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "preference_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_allowed": {
+              "type": "BOOL",
               "nullable": false,
               "primary_key": false
             }
@@ -2843,6 +2858,21 @@
             "updated_at": {
               "type": "DATETIME(6)",
               "nullable": false,
+              "primary_key": false
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "previous_binding_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": true,
               "primary_key": false
             }
           },

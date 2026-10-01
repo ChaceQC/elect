@@ -63,6 +63,14 @@ commands:
     request: schemas.json#/$defs/RevokeBarrier
     response: schemas.json#/$defs/RetargetBarrier
     idempotency: operation_id 唯一；先提交代次/取消/停止新发送许可，之后撤销密文/token。
+  - name: query_preference_commit
+    receiver: room
+    callers: [monitoring]
+    method: POST
+    path: /controls/preference
+    request: schemas.json#/$defs/OperationQuery
+    response: schemas.json#/$defs/PreferenceProof
+    idempotency: 按本人 switch_default 操作读取持久提交版本；未提交或未明确终止时不允许提交/补偿，调用方不能自报成功。
   - name: revoke_credential
     receiver: school_adapter
     callers: [identity]
@@ -135,3 +143,13 @@ t2_routes:
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/sync, request: idempotency_key（16..128）, response: '../openapi.yaml#/components/schemas/AcceptedOperation'}
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/candidates, request: 'schemas.json#/$defs/RoomQuery', response: '../openapi.yaml#/components/schemas/Candidates'}
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/operation, request: operation_id及已签名user_id, response: '../openapi.yaml#/components/schemas/Operation'}
+
+# T3 控制基础已接通；默认/撤回发起入口与真实运行等待后续批次。
+t3_control_routes:
+  - {receiver: monitoring, callers: [gateway], scope: 'monitor:browser', path: /browser/monitor, request: 已签名用户上下文, response: '../openapi.yaml#/components/schemas/Monitor'}
+  - {receiver: monitoring, callers: [gateway], scope: 'monitor:browser', path: /browser/monitor-config, request: '../openapi.yaml#/components/schemas/MonitorPatch', response: '../openapi.yaml#/components/schemas/Monitor'}
+  - {receiver: monitoring, callers: [room], scope: 'monitor:retarget', path: /monitor/prepare-retarget, request: 'schemas.json#/$defs/PrepareRetarget', response: 'schemas.json#/$defs/RetargetBarrier'}
+  - {receiver: monitoring, callers: [room], scope: 'monitor:retarget', path: /monitor/commit-retarget, request: 'schemas.json#/$defs/CommitRetarget', response: 'schemas.json#/$defs/RetargetBarrier'}
+  - {receiver: monitoring, callers: [room], scope: 'monitor:retarget', path: /monitor/compensate-retarget, request: 'schemas.json#/$defs/PrepareRetarget', response: 'schemas.json#/$defs/RetargetBarrier'}
+  - {receiver: monitoring, callers: [identity], scope: 'monitor:credential', path: /credentials/prepare-revoke, request: 'schemas.json#/$defs/RevokeBarrier', response: 'schemas.json#/$defs/RetargetBarrier'}
+  - {receiver: room, callers: [monitoring], scope: 'room:control', path: /controls/preference, request: 'schemas.json#/$defs/OperationQuery', response: 'schemas.json#/$defs/PreferenceProof'}

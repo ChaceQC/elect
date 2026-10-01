@@ -25,6 +25,7 @@ services:
       - school_kek_bundle
       - school_lookup_hmac_bundle
       - identity_session_pepper
+      - monitoring_encryption_key_bundle
       - {source: identity_runtime, target: identity_runtime.json}
       - {source: school_adapter_runtime, target: school_adapter_runtime.json}
       - {source: room_runtime, target: room_runtime.json}

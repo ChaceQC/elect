@@ -46,3 +46,9 @@
 公开认证五接口、本人绑定列表/持久同步/候选和 operation 查询已接通；后续阶段仍返回 FEATURE_DISABLED。LoginRequest 密码 1..1024、challenge 43..128；学号 1..128 且无空白/控制字符，不限制为参考页面的纯数字正则。协议与后台授权独立，未授权不进行后台密码认证。SessionContext 内部增加本人 CSRF；凭据激活内部命令携带显式 credential_use_allowed，凭据失效新增 credential.requires_reauth 持久广播。
 
 T2 默认 id 始终为已有偏好或 null，不自行初始化。首次成功空列表 sync_status=empty，首次失败 failed；已有镜像失败/关系缺失 stale，缺失关系 rechecking，保留历史。B03 候选固定 unverified，完整记录仅在服务端加密短期缓存。细节见 [实施决策](../decisions/T2认证与读取.md)。
+
+## T3 第一批增量
+
+GET/PATCH monitor 已接通，首次幂等创建 disabled 记录；版本匹配且配置无变化不增加 version/generation，旧版本即便重放相同值仍 409（含 current_version），响应丢失先 GET。缺 expected_version 为 428。等待重新认证仍可保存参数；关闭不调用学校/缓存/MQ/SMTP。
+
+内部 retarget 完成必须查询 Room 持久操作证明，新增 OperationQuery/PreferenceProof。单次取消和凭据协调仅完成本域原语，公开 run/撤回入口仍按阶段关闭；默认切换、真实绑定及前端控制尚未开放。T3 第一批不运行采集/邮件。详见 [控制决策](../decisions/T3监控控制基础.md)。

@@ -59,9 +59,14 @@ def keys_and_trust():
                     "session:introspect",
                     "captcha:create",
                     "room:browser",
+                    "monitor:browser",
                 ],
-                "identity": ["credential:authenticate", "credential:activate", "credential:read"],
-                "room": ["school:rooms"],
+                "identity": [
+                    "credential:authenticate", "credential:activate", "credential:read",
+                    "monitor:credential",
+                ],
+                "room": ["school:rooms", "monitor:retarget"],
+                "monitoring": ["room:control"],
             }.get(service, []),
         }
     return private, trust

@@ -7,7 +7,7 @@
 | Identity | elect_identity | identity_0002 | 7 |
 | School Adapter | elect_school | school_0002 | 8 |
 | Room | elect_room | room_0002 | 11 |
-| Monitoring | elect_monitoring | monitoring_0001 | 12 |
+| Monitoring | elect_monitoring | monitoring_0002 | 12 |
 | Payment | elect_payment | payment_0001 | 4 |
 | Notification | elect_notification | notification_0001 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
@@ -25,5 +25,7 @@
 开发入口支持每域独立升级及离线 MySQL DDL；在线 URL 必须由本域 `ELECT_{DOMAIN}_DDL_URL_FILE` 提供且指向对应库。临时 MySQL 8.4.8 已验证七域在线升级两次、业务表为空、无跨库 FK、运行账号无 DDL/跨库权限，并验证监控间隔、唯一计划/样本和未知订单屏障。
 
 T1 已通过正式 provisioning/Compose 验收。T2 新增 Identity 登录恢复元数据、School 账号占位/授权标记和 Room 同步状态/任务租约，已在实际 MySQL 8.4 验证。运行事务采用 READ COMMITTED、学校 room ID 使用 binary collation，详情见 [T2 决策](../decisions/T2认证与读取.md)。
+
+T3 第一批 monitoring_0002 增加 monitors.preference_version、credential_operation_id、credential_allowed，以及 control_operations.request_digest、previous_binding_id、credential_version；支持幂等控制、补偿及凭据屏障，不回改初始迁移。邮箱密文使用独立多版本 AES-GCM 密钥，AAD 绑定 owner/email_version。
 
 暂存清理先按 attempt 查询激活结果，未激活且过期才能清；expired lease 提升 epoch 后恢复，不删除任务；unknown 操作/投递/订单保留台账；快照先清成员后清快照。日常清理及归档在容量/恢复验收后启用。细节见 [T0 决策](../decisions/T0实施决策.md)。

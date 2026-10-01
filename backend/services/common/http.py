@@ -23,9 +23,11 @@ class ApiError(Exception):
         retryable=False,
         *,
         retry_after_seconds=None,
+        current_version=None,
     ):
         self.status, self.code, self.message, self.retryable = status, code, message, retryable
         self.retry_after_seconds = retry_after_seconds
+        self.current_version = current_version
 
 
 def metadata(request: Request):
@@ -43,6 +45,7 @@ def error_response(request: Request, error: ApiError):
                 "retry_after_seconds": error.retry_after_seconds,
                 "requires_reauth": error.code == ErrorCode.SCHOOL_REAUTH_REQUIRED,
                 "field_errors": {},
+                "current_version": error.current_version,
             },
             "meta": metadata(request),
         },
@@ -98,6 +101,13 @@ def install_http(app, service: str):
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
+        if any(
+            error["type"] == "missing" and error["loc"][-1] == "expected_version"
+            for error in exc.errors()
+        ):
+            return error_response(
+                request, ApiError(428, ErrorCode.PRECONDITION_REQUIRED, "请携带当前版本后重试")
+            )
         return error_response(request, ApiError(422, ErrorCode.INVALID_ARGUMENT, "请求参数不正确"))
 
     @app.exception_handler(HTTPException)
