@@ -44,14 +44,14 @@
 ## Git 与 GitHub 工作流
 
 - 项目必须使用 Git 与 GitHub 管理。
-- 默认主分支使用 `main`，`dev` 为集成分支；日常改动从 `dev` 创建 `codex/` 前缀的功能或修复分支，不直接向 `dev`/`main` 提交或推送。
-- 每个可验证小步在工作分支 commit 并 push，通过 PR 合入 `dev`；完整功能再通过 `dev → main` PR 交付。文档、配置、修复和分支同步也必须使用 PR。
+- 默认主分支使用 `main`，日常开发默认在 `dev`；当前开发分支允许直接 commit 并 push，不需要为提交或推送创建 PR，也不强制另建工作分支。
+- 每个可验证小步在当前开发分支 commit 并 push；仅合并到 `main` 时必须创建 PR，通常为 `dev → main`。源码、文档、配置与修复遵循相同规则，不直接向 `main` 提交或推送。
 - 合并前必须确认该 PR 最新提交的 GitHub Actions 全部成功，必需检查 `容器验证 / check` 通过且分支包含目标分支最新提交；失败、运行中、取消、跳过或没有检查均不能合并。追加提交或更新目标分支后重新等待检查。
-- `dev`/`main` 启用分支保护：要求 PR、严格必需检查 `check`（GitHub Actions）、规则对管理员生效，禁止强制推送和删除；不得使用 `--admin`、绕过规则或先合并再等待 Actions。具体操作见 `docs/GitHub协作与合并流程.md`。
+- `main` 启用分支保护：要求 PR、严格必需检查 `check`（GitHub Actions）、规则对管理员生效，禁止强制推送和删除；`dev` 不要求 PR 或推送前状态检查，保留禁止强推/删除。不得使用 `--admin`、绕过主分支规则或先合并再等待 Actions。具体操作见 `docs/GitHub协作与合并流程.md`。
 - GitHub remote 默认命名为 `origin`。
 - 初始仓库优先创建为私有仓库，确认可公开后再调整可见性；用户明确要求公开时按其要求创建公开仓库。
 - 不要等到累计大量代码后再提交；按“完成一个可验证小步就 commit 并 push”的节奏推进。
-- 每次完成可验证改动后必须在工作分支 commit，每次 commit 后必须 push 到 GitHub；push 不表示已经验收或可以合并。
+- 每次完成可验证改动后必须在当前开发分支 commit，每次 commit 后必须 push 到 GitHub；push 不表示已经验收或可以合并到 main。
 - 提交前必须检查 `git status` 和本次差异，避免混入无关改动。
 - 提交前必须先检查本次改动是否影响 `README.md`、`PROJECT_PROGRESS.md`、`AGENTS.md`、`AGENT.md`（若存在）或子目录 README；受影响文档未同步时，不得先提交代码。
 - 必须维护 `.gitignore`，禁止提交 `.env`、密钥、证书私钥、依赖目录、构建产物、上传文件和备份文件；公开配置模板应使用占位值。

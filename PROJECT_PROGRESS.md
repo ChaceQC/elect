@@ -1,25 +1,26 @@
-## 2026-10-01 · Actions 修复与 PR 合并门禁
+## 2026-10-01 · Actions 修复与 main 合并门禁
 
 ### 已完成
 
 - 定位最近四次 `dev`/`main` 容器 CI 失败：`test-t4-dependencies.sh` 将共享目录改为 UID 10001、0700，普通 Runner 无法写入 `hold.log` 或检查就绪文件；此前 root 本地验收掩盖该权限错误。
 - 修复为保留宿主机属主、共享 GID 10001 和 0770 权限，正式 Secret 与生产服务权限不变。
-- 同步 AGENTS、README、开发/实施/部署说明，并新增 GitHub 协作流程：工作分支 → dev → main 使用 PR，只有最新提交的 Actions 全部成功才合并。
-- CI 仅对目标为 dev/main 的 PR 和两个分支 push 执行，保持必需作业名 `check`，同一 PR 新提交取消旧运行。
-- 已在 GitHub 为 dev/main 启用并读取核对 PR、严格必需检查 `check`（App ID 15368）、管理员约束、禁止强推/删除；不要求额外他人审批。
+- 同步 AGENTS、README、开发/实施/部署说明，并新增 GitHub 协作流程。按用户明确范围，当前开发分支直接 commit/push，无需 PR；仅合并到 main 时需要 PR，合并前确保最新提交的 Actions 全部成功。
+- CI 对所有分支 push 和目标为 main 的 PR 执行，保持必需作业名 `check`，同一 PR 新提交取消旧运行。
+- 已在 GitHub 为 main 启用并核对 PR、严格必需检查 `check`（App ID 15368）、管理员约束、禁止强推/删除；dev 已取消 PR/推送前检查要求，允许直接提交推送，保留禁止强推/删除。
+- 初始权限修复 PR #1 的最新提交 28c6b61 已在 Actions 全部成功后合入 dev（601cb9c）；当前开发流程文档修正在 dev 直接提交推送，更新既有 main 交付 PR #2，不再创建 dev PR。
 
 ### 进行中
 
-- 修复 PR 提交与 Actions 完整 Docker 验收；等待成功后合入 dev，再经 PR 交付 main。
+- main 交付 PR #2 等待最终文档/CI配置提交的完整 Actions；最新提交全部成功后才合并。
 
 ### 阻塞与风险
 
-- 无已确认实施阻塞；服务器保护已生效，当前 PR 的 Actions 完整结果尚待运行，成功前不得合并。
+- 无已确认实施阻塞；修复完整 CI 已通过，main 保护已生效。流程文档/触发配置更新后仍需重新验证最新提交，成功前不得合并。
 - 学校/SMTP/支付验收范围不变，本次只修复合成故障验收与开发流程。
 
 ### 下一步
 
-- 创建修复 PR，由普通 GitHub Runner 执行完整 check/test-stack；等待最新 Actions 成功后合入 dev，再创建并验证 dev → main PR。
+- 将流程文档直接提交推送 dev，等待 PR #2 最新提交的 push/PR Actions 全部成功后合入 main。
 - 完成修复交付后按 T5-01/P6-01 实现低余额 episode/slot、总次数含首封、冷却/回差与取消边界。
 
 ### 主要文件或模块
@@ -31,7 +32,8 @@
 - 已读取 Actions 运行 36875792322 的失败日志，确认离线/浏览器步骤通过、故障共享目录的 `Permission denied` 导致容器集成失败。
 - 开始时工作区干净，dev/main 均在 9d8c8cd，未启用分支保护；已从 origin/dev 创建 codex/fix-actions-pr-gate，未直接改动受保护目标分支。
 - 本地以宿主机 UID 1000 复现原目录的写入失败；修复后宿主机日志写入/追加、容器 UID 10001 状态/就绪写入、宿主机状态读取均通过，属主保留1000、组10001、权限0770。
-- dev/main 分支保护 API 核对通过；shell 语法、受影响文档链接与 `git diff --check` 通过。本次完整验收由 PR Actions 执行，不重复本地全栈测试以缩短交付等待。
+- [Actions 36877986899](https://github.com/ChaceQC/elect/actions/runs/36877986899) 完整通过：后端107 passed/1 skipped，前端33项、Playwright20项、空库/迁移/权限/可靠事件/T2-T4脚本、实际Redis/MySQL/MQ故障恢复；普通GitHub Runner验证原权限错误已消失。未调用真实学校、SMTP或支付。
+- main/dev 最终分支保护 API 核对：main 严格检查+PR+管理员约束；dev 的 PR/推送前检查均为 null。shell语法、受影响文档链接与 `git diff --check` 通过；最终提交的 Actions 结果以 [PR #2](https://github.com/ChaceQC/elect/pull/2) 最新检查为准。
 
 ## 2026-10-01 · T4 完成
 
