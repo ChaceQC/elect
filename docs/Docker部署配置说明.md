@@ -132,7 +132,7 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml ps -a
 
 config --quiet 校验配置引用；up --build 构建 frontend/backend 镜像，启动基础服务，等待数据库健康、migrate 和 tls-check 完成，再按依赖启动应用。一次性作业成功退出属于正常完成，不能将它们要求为长期 running。
 
-当前默认运行八个 API 骨架、六个本域 Relay 和 Audit Worker；监控 Scheduler/Worker/业务恢复器、支付 Worker、邮件 Worker 随 T3–T6 实现后加入，不启动空循环冒充业务健康。MQ/Redis 故障在领域 API readiness 显示 degraded（HTTP 200），MySQL/结构异常返回 503；后台健康反映实际扫描/领取/持久提交心跳。
+当前运行八个 API、六个本域 Relay、Audit Worker及Identity/Room/Adapter后台进程；监控Scheduler/Worker/恢复器、提醒、邮件Worker/恢复器和Payment Worker/恢复器已加入，共30个长期服务。业务健康来自持久扫描/租约，不使用空循环。MQ/Redis 故障在领域 API readiness 显示 degraded（HTTP 200），MySQL/结构异常返回 503；后台健康反映实际扫描/领取/持久提交心跳。
 
 随后验证域名的 HTTPS 跳转、证书链、SPA 直达路由、同源登录 Cookie/CSRF 和 API，并检查后台进程心跳。验收机器不预装 Node/npm、Python/uv、MySQL、Redis、RabbitMQ 或 Nginx，也不预先生成宿主机 dist。
 
@@ -206,3 +206,7 @@ monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以
 ## T5邮件部署增量
 
 新增monitor-alerts（提醒唤醒重建/结果消费）、notification-worker（Inbox/job/发送）、notification-recovery（正文边界后的租约恢复）；长期进程共28个。Notification独立邮箱密钥与smtp_credentials JSON Secret，仅发送Worker追加notification_egress。已有部署重复upgrade_controls后迁移monitoring_0005/notification_0002，再重建RabbitMQ和受影响应用；Secret原子替换后旧挂载不会自动更新。SMTP默认false，公开模板不含真实配置；proxy_url可选择显式HTTP CONNECT代理且SMTP TLS保持验证。测试环境真实收件已确认，生产网络/全旅程/恢复演练仍属T7。见 [邮件运行说明](runbooks/邮件投递与代理排查.md)。
+
+## T6支付升级
+
+保留原Secret与卷，重复运行upgrade_controls补充payment:browser/school:payment/payment:proof及签名支付队列权限，重建RabbitMQ加载定义。升级school_0006与payment_0002/0003，Payment/Gateway/Adapter重建，新增payment-worker/payment-recovery挂载Payment runtime和internal_ca；Worker在app/data网络，学校出口仍只由Adapter持有。30个长期服务含两个新增进程，心跳反映真实数据库扫描/续租。普通环境两项支付写开关和PAYMENT_ACCEPTANCE_PASSED保持false；完整真实建单/状态/到账验收后再开放。Worker退出宽限180秒，每10秒续租90秒，恢复器不重放已发送的D01/E02/E03。见[T6决策](decisions/T6支付与二维码.md)。

@@ -1,14 +1,14 @@
 # 数据结构与初始化
 
-更新日期：2026-10-02。七个库共有 52 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+更新日期：2026-10-02。七个库共有 55 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
 
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
 | Identity | elect_identity | identity_0003 | 7 |
-| School Adapter | elect_school | school_0005 | 9 |
+| School Adapter | elect_school | school_0006 | 10 |
 | Room | elect_room | room_0004 | 11 |
 | Monitoring | elect_monitoring | monitoring_0005 | 14 |
-| Payment | elect_payment | payment_0001 | 4 |
+| Payment | elect_payment | payment_0003 | 6 |
 | Notification | elect_notification | notification_0002 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
 
@@ -41,3 +41,5 @@ T4新增monitoring_0004：monitor_samples.capture_interval_minutes及60..1440的
 T5 monitoring_0005 增加有效序号唯一键（取消/明确失败可释放）、投递状态镜像字段、failed_cycles 与 monitor_fault_episodes。低余额与采集故障使用不同计数，故障事件按 monitor 的打开状态唯一约束。
 
 T5 notification_0002 为 job 保存正文白名单快照、body_started_at 和 reported_version；邮箱只保存在本域密文，不将正文、地址或 SMTP 凭据放入 MQ。
+
+T6增加school_0006的Adapter订单密文及支付会话阶段/租约/图片、payment_0002的本人事务锁/开放操作/回查及刷新状态、payment_0003的QR每键原操作引用。D01/E02/E03发送台账永久保留，Unknown不按时间删除或释放；支付与Room仍无跨库读取。

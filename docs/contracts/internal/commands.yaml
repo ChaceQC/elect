@@ -187,15 +187,15 @@ commands:
     receiver: school_adapter
     callers: [payment]
     method: POST
-    path: /upstream/orders
+    path: /payments/dispatch
     request: schemas.json#/$defs/DispatchOrder
-    response: schemas.json#/$defs/UpstreamResult
-    idempotency: upstream_operation_id 唯一；只一次 D01，无 D03 自动备用写入。
+    response: schemas.json#/$defs/SchoolOrderResult
+    idempotency: upstream_operation_id 唯一；Payment本域租约证明/版本及金额核对后只一次D01，无D03备用。票据仅在Adapter密文中。
   - name: query_upstream_operation
     receiver: school_adapter
-    callers: [room, payment]
+    callers: [room]
     method: POST
-    path: /upstream/operations/query
+    path: /upstream/operations
     request: schemas.json#/$defs/QueryOperation
     response: schemas.json#/$defs/UpstreamResult
     idempotency: 只查询已登记的本人操作，查不到不能自动重发。
@@ -203,16 +203,40 @@ commands:
     receiver: school_adapter
     callers: [payment]
     method: POST
-    path: /payment-sessions/step
+    path: /payments/flow
     request: schemas.json#/$defs/PaymentSessionCommand
-    response: schemas.json#/$defs/UpstreamResult
+    response: schemas.json#/$defs/SchoolQRResult
     idempotency: order_id/step 持久台账；E02/E03 dispatched 后未知不能盲重发；CookieJar 与 SDGL token 隔离。
+  - name: payment_dispatch_proof
+    receiver: payment
+    callers: [school_adapter]
+    method: POST
+    path: /controls/dispatch-proof
+    request: schemas.json#/$defs/PaymentProofQuery
+    response: schemas.json#/$defs/PaymentDispatchProof
+    idempotency: payment:proof 权限；本人持久订单/操作租约，调用方不能自报可以发送。
+  - name: check_school_payment
+    receiver: school_adapter
+    callers: [payment]
+    method: POST
+    path: /payments/check
+    request: schemas.json#/$defs/OrderQuery
+    response: schemas.json#/$defs/SchoolOrderResult
+    idempotency: school:payment 权限；D02/D04只读，无精确已验收映射则unknown；空D04不能解锁。
+  - name: read_payment_image
+    receiver: school_adapter
+    callers: [payment]
+    method: POST
+    path: /payments/image
+    request: schemas.json#/$defs/OrderQuery
+    response: schemas.json#/$defs/PaymentImage
+    idempotency: school:payment 权限；只返回本人已验证图片字节/MIME，不公开上游URL/票据。
   - name: query_public_operation
     receiver: [identity, room, payment]
     callers: [gateway]
     method: POST
-    path: /operations/query
-    request: schemas.json#/$defs/QueryOperation
+    path: /browser/operation
+    request: schemas.json#/$defs/OperationQuery
     response: ../openapi.yaml#/components/schemas/Operation
     idempotency: Gateway 固定白名单查询三域，域内再次校验归属；不接收客户端 URL，run/order 使用专用查询。
 

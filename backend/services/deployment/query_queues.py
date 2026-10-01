@@ -5,6 +5,7 @@ def configure(definitions):
     queues = {
         "monitoring": ("elect.monitoring.runs", "monitor.run_ready"),
         "room": ("elect.room.history", "room.history_sync_requested"),
+        "payment": ("elect.payment.orders", "payment.order_requested"),
     }
     for permission in definitions["permissions"]:
         service = permission["user"]

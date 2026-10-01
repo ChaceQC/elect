@@ -31,9 +31,11 @@ def register(app, service):
 
         app.include_router(query_router)
     if service == "school_adapter":
+        from services.school_adapter.payment_api import router as payment_router
         from services.school_adapter.query_api import router
 
         app.include_router(router)
+        app.include_router(payment_router)
     if service == "monitoring":
         from services.monitoring.credential_api import router
         from services.monitoring.permit_api import router as permit_router
@@ -122,6 +124,8 @@ async def initialize(app, service):
 
 
 async def close(app):
+    if getattr(app.state, "payment_broker", None):
+        await app.state.payment_broker.close()
     if getattr(app.state, "history_broker", None):
         await app.state.history_broker.close()
     if hasattr(app.state, "service_client"):

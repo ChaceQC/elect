@@ -74,3 +74,5 @@ AlertSlotQuery/AlertSnapshot仅Notification受限本人上下文读取，包含�
 ## T6订单增量
 
 能力、建单和订单读取接入本人会话与内部 payment:browser 权限。capabilities.amount_policy_source=application_policy，金额初始为1–500元整数；不是学校确认上限。原键重放返回原订单，键同内容不同409，同用户/寝室未解决订单以409 existing_operation_id恢复，不能换键重建。订单新增qr_error_code、balance_refresh_state/operation_id（兼容默认）；尚未确认付款时不计算充值后余额。学校写入/二维码/真实状态继续实施，普通部署开关仍关闭。
+
+T6后续接通原订单QR/qr-refresh和三域operation查询。QR 200仅image/png或image/jpeg（二进制/no-store），202为QRPending JSON；未知表单只查原结果，不重发。订单余额刷新状态的succeeded仅表示School余额已重新查询，不表示本地已加到账。内部SchoolOrderResult/SchoolQRResult/PaymentImage/PaymentDispatchProof及实际路径已同步；Adapter独占票据密文。

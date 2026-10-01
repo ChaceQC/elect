@@ -191,7 +191,7 @@ async def candidates(
 @router.get("/operations/{id}")
 async def operation(id: UUID, request: Request):
     principal, _ = await session(request)
-    for receiver in ["room", "identity"]:
+    for receiver in ["room", "identity", "payment"]:
         try:
             value = await request.app.state.service_client.call(
                 receiver,

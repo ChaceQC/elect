@@ -28,7 +28,7 @@ from services.school_adapter.infrastructure.protocol import SchoolProtocol
 from services.school_adapter.infrastructure.redis_store import SharedStore
 from services.school_adapter.infrastructure.transport import SchoolTransport
 
-SERVICES = ["gateway", "identity", "school_adapter", "room", "monitoring"]
+SERVICES = ["gateway", "identity", "school_adapter", "room", "monitoring", "payment"]
 
 
 async def fixture_apps():

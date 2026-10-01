@@ -5,7 +5,7 @@ import { calibrateTime } from '../lib/dates.js'
  * field_errors?: Record<string,string>, current_version?: number|null,
  * existing_operation_id?: string|null, requestId?: string|null}} ErrorDetails */
 /** @typedef {{method?: string, body?: unknown, headers?: Record<string,string>, signal?: AbortSignal,
- * timeoutMs?: number}} RequestOptions */
+ * timeoutMs?: number, responseType?: 'image'}} RequestOptions */
 
 export class ApiError extends Error {
   /** @param {string} code @param {string} message @param {number} status @param {ErrorDetails} [details] */
@@ -34,9 +34,16 @@ function retryAfter(response) {
   return Number.isNaN(date) ? null : Math.max(0, Math.ceil((date - Date.now()) / 1000))
 }
 
-/** @param {Response} response */
-async function decode(response) {
+/** @param {Response} response @param {'image'|undefined} responseType */
+async function decode(response, responseType) {
   if (response.status === 204) return { data: null, meta: null, status: 204 }
+  if (responseType === 'image' && response.status === 200) {
+    const mime = response.headers.get('Content-Type')?.split(';')[0]
+    if (!['image/png', 'image/jpeg'].includes(mime ?? '')) throw new ApiError('INVALID_RESPONSE', '二维码接口未返回有效图片', 200)
+    const blob = await response.blob()
+    if (!blob.size || blob.size > 2 * 1024 * 1024) throw new ApiError('INVALID_RESPONSE', '二维码图片大小异常', 200)
+    return { data: blob, meta: null, status: 200 }
+  }
   const document = await response.json().catch(() => null)
   calibrateTime(document?.meta?.server_time)
   const requestId = document?.meta?.request_id ?? response.headers.get('X-Request-ID')
@@ -99,7 +106,7 @@ export class ApiClient {
         method, headers, signal, credentials: 'same-origin', cache: 'no-store',
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
       })
-      const result = await decode(response)
+      const result = await decode(response, options.responseType)
       signal.throwIfAborted()
       if (epoch !== this.epoch) throw new DOMException('会话已改变', 'AbortError')
       return result

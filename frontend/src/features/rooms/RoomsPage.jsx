@@ -12,6 +12,7 @@ import { BindingDialog } from './BindingDialog.jsx'
 import { BindingRecovery } from './BindingRecovery.jsx'
 import { RoomOperationStatus } from './RoomOperationStatus.jsx'
 import { RemoveBindingDialog } from './RemoveBindingDialog.jsx'
+import { PaymentEntry } from '../payments/PaymentEntry.jsx'
 
 export function RoomsPage() {
   const { user } = useSession()
@@ -85,6 +86,7 @@ export function RoomsPage() {
         <div className="room-balance"><span className="muted">最近学校余额{binding.balance?.stale && ' · 已过期'}</span>
           <strong>{binding.balance?.amount == null ? '未知' : moneyLabel(binding.balance.amount)}</strong>
           <div className="room-actions"><Link to={`/rooms/${binding.id}`}>查看寝室</Link>
+            <PaymentEntry bindingId={binding.id} displayName={binding.display_name} />
             <button className="quiet" disabled={binding.status !== 'active' || binding.id === data.default_binding_id ||
               !!data.default_switch_operation_id || !!data.binding_removal_operation_id || defaultBusy} onClick={() => { void setDefault(binding.id) }}>设为默认</button>
             <button className="quiet" disabled={binding.status !== 'active' || !!data.default_switch_operation_id ||

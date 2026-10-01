@@ -9,6 +9,7 @@ import { useBindings } from '../rooms/useBindings.js'
 import { BalancePanel } from './BalancePanel.jsx'
 import { ConsumptionTrend } from './LazyTrend.jsx'
 import { QueryAction } from './QueryAction.jsx'
+import { PaymentEntry } from '../payments/PaymentEntry.jsx'
 
 export function OverviewPage() {
   const { user } = useSession()
@@ -37,6 +38,7 @@ export function OverviewPage() {
       {overview.component_status.profile === 'partial' && <p role="alert">部分个人信息暂时不可用。</p>}
     </section>
     {bindingId ? <BalancePanel key={bindingId} bindingId={bindingId} /> : <StatusBlock title="暂无有效默认寝室"><Link to="/rooms">管理我的寝室</Link></StatusBlock>}
+    {bindingId && <PaymentEntry bindingId={bindingId} displayName={bindings.data?.items.find(item => item.id === bindingId)?.display_name ?? '所选寝室'} />}
     {low && <p className="low-balance" role="status">最近余额低于已设置阈值{control.data?.config.threshold}元{overview.balance?.stale ? '，余额已过期，请刷新确认' : ''}。</p>}
     <section className="data-card"><h2>最近14天</h2>
       {overview.summary ? <><p>完整昨日消费：{moneyLabel(overview.summary.yesterday_amount)}</p><p>已知消费合计：<strong>{moneyLabel(overview.summary.last_14_days_amount)}</strong></p>

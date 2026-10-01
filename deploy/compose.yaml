@@ -303,6 +303,22 @@ services:
       ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
     secrets: [{source: payment_runtime, target: runtime}, internal_ca]
     command: [python, -m, services.payment]
+  payment-worker:
+    <<: *job
+    networks: [app, data]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: payment_runtime, target: runtime}, internal_ca]
+    command: [python, -m, services.payment.process, --role, worker]
+    stop_grace_period: 180s
+  payment-recovery:
+    <<: *job
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: payment_runtime, target: runtime}, internal_ca]
+    command: [python, -m, services.payment.process, --role, recovery]
   audit:
     <<: *python
     secrets: [{source: audit_runtime, target: runtime}]

@@ -22,6 +22,7 @@ SCOPES = {
         "room:remove-read",
         "room:query",
         "room:balance-commit",
+        "payment:proof",
     ],
     "notification": ["monitor:authorize-send", "monitor:alert-read"],
     "payment": ["room:browser", "room:query", "credential:control-read", "school:payment"],

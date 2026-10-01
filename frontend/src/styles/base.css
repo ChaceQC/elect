@@ -131,3 +131,9 @@ input:focus-visible, select:focus-visible { outline: 3px solid #71b5ed; outline-
 .monitor-form label { display: grid; gap: 8px; }
 .monitor-form .checkbox-label { display: flex; }
 @media (max-width: 760px) { .selected-candidate, .monitor-summary, .monitor-form { padding: 18px; } .monitor-summary p { overflow-wrap: anywhere; } }
+/* 支付弹窗：金额与原订单信息在手机上保持可读。 */
+.payment-amount { display: grid; gap: .5rem; margin: 1rem 0; }
+.payment-presets { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.payment-order { margin-top: 1rem; overflow-wrap: anywhere; }
+.payment-qr { display: grid; justify-items: start; gap: .5rem; margin: 1rem 0; }
+.payment-qr img { max-width: 100%; height: auto; background: white; border-radius: 8px; }

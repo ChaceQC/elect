@@ -89,6 +89,7 @@ def keys_and_trust():
                     "room:remove-read",
                     "room:query",
                     "room:balance-commit",
+                    "payment:proof",
                 ],
                 "notification": ["monitor:authorize-send", "monitor:alert-read"],
                 "payment": [

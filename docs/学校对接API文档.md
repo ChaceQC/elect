@@ -1745,3 +1745,7 @@ def create_order_and_qr(client, user_id, room_id, amount, *, confirmed=False):
 ## 2026-10-02学校验证码核查
 
 本次同一指定账号的对照：完全省略A03的id/code认证被拒绝；取得有效学校uid后留空code也被拒绝；在T5真实链路使用正常学校验证码认证及B02成功。因此当前CAS链路需要验证码，保留学校验证码获取/后台OCR，不以应用自生成验证码替代学校校验。该结论限定当前账号/协议；分类证据见 [空答案记录](acceptance/school/T5-captcha-empty-answer.json)，不记录账号/密码/uid/token。
+
+## 2026-10-02 T6指定真实增量
+
+使用auth.txt本人账号与应用默认寝室，生产Adapter执行一次10元D01、E01–E04取得可解码学校二维码；URL/prePayId与Cookie/VIEWSTATE保留在Adapter密文，SDGL内部单号仍未知。D02未取得可确认结果，错误分类SCHOOL_INVALID_RESPONSE；本地awaiting_payment仅表示建单后等待，不能当成已验证学校枚举。用户要求本轮先交付代码、暂不扫码；未付款、未核对到账、未建第二笔，公共支付保持关闭。见[T6记录](acceptance/T6验收记录.md)及[分类证据](acceptance/school/2026-10-02-T6-order.json)。

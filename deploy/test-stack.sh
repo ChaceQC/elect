@@ -32,7 +32,7 @@ compose config --quiet
 compose up -d --no-build --wait --wait-timeout 180
 compose run --rm --no-deps smoke
 # 合成学校的事务/恢复验收由同进程驱动；真实 Worker 不得消费合成任务并访问学校。
-compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay
+compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay payment-worker payment-recovery payment-relay
 compose run --rm --no-deps smoke python -m scripts.t2_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_control_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_credential_smoke
@@ -43,8 +43,9 @@ compose run --rm --no-deps smoke python -m scripts.t4_query_smoke
 compose run --rm --no-deps smoke python -m scripts.t4_monitor_smoke
 compose run --rm --no-deps smoke python -m scripts.t5_alert_smoke
 compose run --rm --no-deps smoke python -m scripts.t5_delivery_smoke
+compose run --rm --no-deps smoke python -m scripts.t6_smoke
 sh deploy/test-t4-dependencies.sh "$task_dir" "$task_project"
-compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay
+compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay payment-worker payment-recovery payment-relay
 compose exec -T nginx nginx -t
 compose run --rm --no-deps tls-check
 compose ps -a
