@@ -1,3 +1,5 @@
+import { calibrateTime } from '../lib/dates.js'
+
 /** @typedef {{request_id: string, server_time?: string}} Meta */
 /** @typedef {{retryable?: boolean, retry_after_seconds?: number|null, requires_reauth?: boolean,
  * field_errors?: Record<string,string>, current_version?: number|null,
@@ -36,6 +38,7 @@ function retryAfter(response) {
 async function decode(response) {
   if (response.status === 204) return { data: null, meta: null, status: 204 }
   const document = await response.json().catch(() => null)
+  calibrateTime(document?.meta?.server_time)
   const requestId = document?.meta?.request_id ?? response.headers.get('X-Request-ID')
   if (!response.ok) {
     const error = document?.error

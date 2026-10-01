@@ -56,6 +56,16 @@ async def create_run(conn, monitor, scheduled, request_id):
         and active["generation"] == monitor["generation"]
     ):
         return active
+    prior = await first(
+        conn,
+        "SELECT * FROM monitor_runs WHERE monitor_id=:monitor AND generation=:generation "
+        "AND scheduled_for=:scheduled",
+        monitor=monitor["id"],
+        generation=monitor["generation"],
+        scheduled=scheduled,
+    )
+    if prior:
+        return prior
     run_id = new_id()
     await execute(
         conn,

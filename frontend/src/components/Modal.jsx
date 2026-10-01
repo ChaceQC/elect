@@ -23,7 +23,12 @@ export function Modal({ open, title, onClose, children }) {
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
     }}
-    onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    onClick={(event) => {
+      if (event.target !== event.currentTarget) return
+      const bounds = event.currentTarget.getBoundingClientRect()
+      if (event.clientX < bounds.left || event.clientX > bounds.right ||
+        event.clientY < bounds.top || event.clientY > bounds.bottom) onClose()
+    }}>
     <div className="modal-content"><header><h2 id={titleId}>{title}</h2>
       <button className="quiet" aria-label="关闭弹窗" onClick={onClose}>关闭</button></header>{children}</div>
   </dialog>

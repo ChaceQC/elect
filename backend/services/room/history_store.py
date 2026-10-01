@@ -17,9 +17,10 @@ async def finish_sync(conn, row):
     )
     known = await first(
         conn,
-        "SELECT COUNT(*) AS n FROM school_history_records WHERE binding_id=:binding "
-        "AND source='C02'",
-        binding=row["binding_id"],
+        "SELECT COUNT(*) AS n FROM school_history_records r JOIN history_syncs s "
+        "ON s.binding_id=r.binding_id WHERE s.id=:sync AND r.source='C02' "
+        "AND r.record_date BETWEEN s.requested_start AND s.requested_end",
+        sync=row["sync_id"],
     )
     state = "running" if counts["pending"] else "failed" if counts["failed"] else "succeeded"
     error = await first(

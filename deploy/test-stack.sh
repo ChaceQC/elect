@@ -41,6 +41,7 @@ compose run --rm --no-deps smoke python -m scripts.t3_binding_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_removal_smoke
 compose run --rm --no-deps smoke python -m scripts.t4_query_smoke
 compose run --rm --no-deps smoke python -m scripts.t4_monitor_smoke
+sh deploy/test-t4-dependencies.sh "$task_dir" "$task_project"
 compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay
 compose exec -T nginx nginx -t
 compose run --rm --no-deps tls-check

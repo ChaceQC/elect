@@ -4,6 +4,7 @@ import { ApiError, apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useSession } from '../auth/SessionProvider.jsx'
 import { draftFrom, parseDraft } from './draft.js'
+import { RunControls } from './RunControls.jsx'
 
 /** @typedef {import('./draft.js').Monitor} Monitor */
 /** @typedef {{draft: import('./draft.js').Draft, baseline: import('./draft.js').Draft,
@@ -72,7 +73,7 @@ export function MonitorPage() {
   const mails = { idle: '暂无发送', pending: '等待发送', sending: '发送中', sent: '已发送', email_failed: '发送失败', delivery_unknown: '投递结果未知', cancelled: '已取消' }
   return <><p className="eyebrow">我的寝室生活</p><h1>监控提醒</h1>
     <p className="page-description">设置跟随默认寝室，关闭监控会保留历史。退出网页与撤回学校授权具有不同作用。</p>
-    <StatusBlock title="当前可保存控制设置"><p>采集与邮件服务尚未开放；已启用的设置会保留，当前没有实际采集或邮件投递。</p></StatusBlock>
+    <StatusBlock title="后台采集与邮件提醒"><p>监控按已保存设置在后台采集余额，关闭后保留历史。低余额邮件暂未开放。</p></StatusBlock>
     {query.isPending && <StatusBlock title="正在读取监控设置…" />}
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '重新读取', onClick: () => { void query.refetch() } }} />}
     {error && <StatusBlock title={error} error />}{notice && <p role="status">{notice}</p>}
@@ -88,6 +89,7 @@ export function MonitorPage() {
       <button className="quiet" disabled={busy} onClick={() => { void save(true) }}>关闭监控</button>
       <button className="quiet" disabled={busy || query.isFetching} onClick={() => { void query.refetch() }}>读取最新设置</button>
     </section>}
+    {current && <RunControls monitor={current} />}
     {editor && <form className="monitor-form" noValidate onSubmit={event => { event.preventDefault(); void save(false) }}><h2>编辑设置</h2>
       {dirty && <p className="muted">有未保存的草稿。离开页面后，本次会话会保留草稿；刷新前请保存。</p>}
       {review && current && <StatusBlock title={editor.bindingId !== current.binding_id ? '默认寝室已变化，请确认新目标' : '请核对当前服务端设置'}>

@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-01",
+  "source": "生产前端 + 正式后端 + 真实学校本人只读",
+  "school_binding_writes": false,
+  "payment_writes": false,
+  "real_smtp": false,
+  "authentication": "passed",
+  "bound_room_count": 1,
+  "real_B02_refresh": "passed",
+  "real_C02_sync": "passed",
+  "known_history_days": 6,
+  "coverage": "partial",
+  "complete_claimed": false,
+  "mobile_history": "passed",
+  "real_scheduler_worker_sample": "passed",
+  "sample_count": 1,
+  "sensitive_browser_storage": false,
+  "result": "passed",
+  "original_monitor_config_restored": true,
+  "application_logout": "passed",
+  "real_sample_snapshot": "passed"
+}

@@ -113,6 +113,24 @@ async def verify(apps, school):
             )
             assert count["n"] == 1
         print("多Scheduler合并/手动幂等、多Worker互斥/续租、单run唯一成功样本：通过")
+        async with engine.begin() as conn:
+            await execute(
+                conn,
+                "UPDATE monitors m JOIN monitor_runs r ON r.monitor_id=m.id "
+                "SET m.schedule_anchor_at=r.scheduled_for,m.next_run_at=r.scheduled_for "
+                "WHERE r.id=:run",
+                run=run.bytes,
+            )
+        await scheduler_tick(engine)
+        async with engine.connect() as conn:
+            same_slot = await first(
+                conn,
+                "SELECT COUNT(*) AS n FROM monitor_runs r JOIN monitors m ON m.id=r.monitor_id "
+                "WHERE m.owner_user_id=:owner",
+                owner=owner.bytes,
+            )
+            assert same_slot["n"] == 1
+        print("已完成逻辑槽再次到期不重建运行、不复活成功样本：通过")
         query_school.first_balance = "24.30"
         run2 = await run_request(client)
         assert await execute_run(app, await claim_run(engine, run2))

@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.8.0。T0/T1/T2/T3 已完成，M1 登录与寝室闭环已验收：监控控制/凭据撤回/发送许可、绑定/默认/删除 Saga、三级筛选和列表内搜索、异步恢复及监控草稿/关闭界面。指定枫苑5号-402 已通过生产前端真实新增和删除，原默认保留，学校写开关已恢复关闭。T4 正在实施，逐寝室余额缓存/持久刷新、C02 分段历史与聚合、总览后端已通过合成数据库验证，持久采集引擎与快照后端已通过合成验证，前端查询继续接入；邮件和支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.8.0。T0/T1/T2/T3/T4 已完成，M1已验收；总览/逐寝室余额、C02历史/聚合、持久采集、运行取消与固定快照分页已接通。余额严格按本人Binding/学校roomId匹配，同账号不同房间不混用。生产前端真实本人B02/C02和一次balance_only采集通过；学校写开关默认关闭，邮件/支付尚未开放，M2等待T5。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -15,7 +15,7 @@ GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 - [T0 验收](docs/acceptance/T0验收记录.md)：交付物、测试结果及后续阶段边界。
 - [T1 验收](docs/acceptance/T1验收记录.md)：Docker、TLS、事件恢复与前端公共层的实际验证。
 - [T2 验收](docs/acceptance/T2验收记录.md)：真实学校/生产前端登录、本人读取、后台恢复与隔离/故障边界。
-- [T3 控制基础](docs/acceptance/T3控制基础验收记录.md)：监控配置、取消/切换/凭据屏障原语与实际数据库验证，T3 整体仍在进行。
+- [T3 控制基础](docs/acceptance/T3控制基础验收记录.md)：监控配置、取消/切换/凭据屏障原语与实际数据库验证，早期控制增量记录。
 - [T3 凭据与许可](docs/acceptance/T3凭据与许可验收记录.md)：持久撤回、激活故障/补偿、token 竞态、发送授权及账户界面，验证使用合成学校。
 
 - [T3 绑定与界面](docs/acceptance/T3绑定与界面验收记录.md)：一次 dispatch/unknown、筛选与操作恢复、监控草稿和指定目标真实新增。
@@ -25,6 +25,8 @@ GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 - [T4 查询增量](docs/acceptance/T4查询验收记录.md)：逐寝室余额隔离、7天历史窗口、内容快照修订与保守覆盖度。
 
 - [T4 采集引擎](docs/acceptance/T4采集引擎验收记录.md)：持久调度、短租约、唯一样本、恢复和固定快照。
+
+- [T4 完整验收](docs/acceptance/T4验收记录.md)：真实只读查询/采集、界面、故障恢复与具体下一步。
 
 ## 目录
 

@@ -6,9 +6,13 @@ import { setupServer } from 'msw/node'
 import App from '../../src/app/App.jsx'
 import { AppProviders } from '../../src/app/providers.jsx'
 import { apiClient } from '../../src/api/client.js'
+import { emptyOverview } from '../fixtures/t4.js'
+import { monitor } from '../fixtures/t3.js'
 import { agreement, bindings, captcha, envelope, me } from '../fixtures/t2.js'
 
 const server = setupServer(
+  http.get('/api/v1/overview', () => HttpResponse.json(envelope(emptyOverview))),
+  http.get('/api/v1/monitor', () => HttpResponse.json(envelope(monitor()))),
   http.get('/api/v1/auth/me', () => HttpResponse.json({ error: { code: 'APP_SESSION_EXPIRED' } }, { status: 401 })),
   http.get('/api/v1/auth/agreement', () => HttpResponse.json(envelope(agreement))),
   http.post('/api/v1/auth/captcha', () => HttpResponse.json(envelope(captcha()))),

@@ -16,6 +16,7 @@ from services.room.balance import accept_refresh, claim_refresh, finish_refresh
 from services.room.dto import HistoryRequest
 from services.room.history_jobs import accept_history, claim_history
 from services.room.history_store import finish_history
+from services.room.mirror import confirm_binding
 from services.room.query_worker import query_tick
 from services.room.worker import control_tick, sync_tick
 
@@ -121,6 +122,22 @@ async def verify(apps, school):
             )
             assert collected["balance"] == expected
         print("同账号不同房间/逆序B02：缓存与监控逐roomId匹配；账号合并一次读取：通过")
+        before_null = (await client.get(f"/api/v1/room-bindings/{a}/balance")).json()["data"]
+        async with engine.begin() as conn:
+            await confirm_binding(
+                conn,
+                owner.bytes,
+                {
+                    "room_id": "0000-" + user["student_id"],
+                    "building": "合成楼栋",
+                    "number": "001",
+                    "balance": None,
+                },
+            )
+        after_null = (await client.get(f"/api/v1/room-bindings/{a}/balance")).json()["data"]
+        assert after_null["amount"] == before_null["amount"]
+        assert after_null["fetched_at"] == before_null["fetched_at"] and after_null["stale"]
+        print("绑定同步返回未知余额时保留该房间最后成功值与时间：通过")
         await cooldown(engine, owner)
         query_school.missing_second = True
         root = await accept_refresh(engine, owner, a, str(new_id()))

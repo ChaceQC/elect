@@ -47,9 +47,13 @@ async def confirm_binding(conn, owner, record):
     await execute(
         conn,
         "INSERT INTO room_balance_cache (binding_id,balance,fetched_at,source,quality) "
-        "VALUES (:id,:balance,UTC_TIMESTAMP(6),'school_bound_rooms','fresh') "
-        "ON DUPLICATE KEY UPDATE balance=:balance,fetched_at=UTC_TIMESTAMP(6),"
-        "quality='fresh',error_code=NULL,updated_at=UTC_TIMESTAMP(6)",
+        "VALUES (:id,:balance,IF(:balance IS NULL,NULL,UTC_TIMESTAMP(6)),"
+        "'school_bound_rooms',IF(:balance IS NULL,'unknown','fresh')) "
+        "ON DUPLICATE KEY UPDATE balance=IF(:balance IS NULL,balance,:balance),"
+        "fetched_at=IF(:balance IS NULL,fetched_at,UTC_TIMESTAMP(6)),"
+        "quality=IF(:balance IS NULL,'stale','fresh'),"
+        "error_code=IF(:balance IS NULL,'SCHOOL_INVALID_RESPONSE',NULL),"
+        "updated_at=UTC_TIMESTAMP(6)",
         id=binding["id"],
         balance=record["balance"],
     )

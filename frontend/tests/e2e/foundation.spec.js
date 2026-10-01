@@ -14,7 +14,7 @@ for (const width of [1440, 375]) {
     await page.route('**/api/v1/room-bindings?*', route => route.fulfill({ json: envelope(bindings) }))
     await page.goto('/details?start=2026-10-01')
     await expect(page.getByRole('heading', { name: '电费明细' })).toBeVisible()
-    await page.getByRole('link', { name: '我的寝室' }).click()
+    await page.getByRole('link', { name: '我的寝室', exact: true }).click()
     await expect(page.getByRole('heading', { name: '我的寝室' })).toBeVisible()
     await page.goBack()
     await expect(page).toHaveURL(/\/details\?start=2026-10-01/)

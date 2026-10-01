@@ -1737,3 +1737,7 @@ def create_order_and_qr(client, user_id, room_id, amount, *, confirmed=False):
 ## T3 真实删除补充（2026-10-01）
 
 用户指定的同一枫苑5号-402 已通过生产前端执行 B08。一次上游方法覆盖写入、正常间隔30秒的两次 B02 缺席及本域 inactive/缓存保留通过，绑定数2→1、原默认保留，写开关恢复 false；[真实分类证据](acceptance/school/2026-10-01-T3-removal.json)。此为指定账号/目标的删除验收，学校全量错误码、任意目标权限与其他接口仍不自动视为已验证。
+
+## T4 真实本人只读补充（2026-10-01）
+
+生产前端/正式Adapter通过本人B02持久余额刷新、最近7天C02同步（6个已知记录日、partial覆盖）和Scheduler/Worker的一次balance_only采集。原监控配置恢复且应用退出，无绑定/支付/SMTP、无真实截图/trace，证据见 [分类记录](acceptance/school/2026-10-01-T4-query.json)。账号当前仅1个绑定，不宣称真实多房间隔离或学校全日完整覆盖、稳定来源ID、频率上限已确认。

@@ -118,7 +118,7 @@ class RoomQueries:
                 "refresh_state": "pending"
                 if sync_state == "loading"
                 else "failed"
-                if sync_state in {"failed", "stale"}
+                if sync_state in {"failed", "stale"} or row["error_code"]
                 else "ready",
                 "error_code": row["error_code"],
             },
