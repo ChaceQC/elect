@@ -19,6 +19,8 @@ T3 启用 Monitoring 控制/发送许可和 Identity 持久撤回，新增独立
 
 ## T4 采集引擎升级
 
+独立故障验收的 `t4-fault` 目录保留宿主机属主，使用 GID 10001 和 0770 权限，让普通用户与 smoke 容器均可访问各自的日志/状态文件；正式 Secret 权限不变。CI 与 PR 合并门禁见 [GitHub 协作与合并流程](../docs/GitHub协作与合并流程.md)。
+
 新增三个独立监控进程，长期进程增至25个；monitoring_0004保存采集时的间隔。保留原Secret与卷，重复upgrade_controls后重建RabbitMQ和全部相关应用以加载新文件挂载/权限，运行migrate，再启动新Scheduler/Worker/恢复器。不要重新provision已有Secret。
 
 monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以MySQL为准，MQ失效时仍扫描。采集Worker每10秒续租，最长90秒，退出宽限100秒；Room/Identity长请求期间验证数据库并更新心跳。仅balance_only，SMTP/支付开关仍默认false。

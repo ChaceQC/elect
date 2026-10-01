@@ -1,3 +1,38 @@
+## 2026-10-01 · Actions 修复与 PR 合并门禁
+
+### 已完成
+
+- 定位最近四次 `dev`/`main` 容器 CI 失败：`test-t4-dependencies.sh` 将共享目录改为 UID 10001、0700，普通 Runner 无法写入 `hold.log` 或检查就绪文件；此前 root 本地验收掩盖该权限错误。
+- 修复为保留宿主机属主、共享 GID 10001 和 0770 权限，正式 Secret 与生产服务权限不变。
+- 同步 AGENTS、README、开发/实施/部署说明，并新增 GitHub 协作流程：工作分支 → dev → main 使用 PR，只有最新提交的 Actions 全部成功才合并。
+- CI 仅对目标为 dev/main 的 PR 和两个分支 push 执行，保持必需作业名 `check`，同一 PR 新提交取消旧运行。
+- 已在 GitHub 为 dev/main 启用并读取核对 PR、严格必需检查 `check`（App ID 15368）、管理员约束、禁止强推/删除；不要求额外他人审批。
+
+### 进行中
+
+- 修复 PR 提交与 Actions 完整 Docker 验收；等待成功后合入 dev，再经 PR 交付 main。
+
+### 阻塞与风险
+
+- 无已确认实施阻塞；服务器保护已生效，当前 PR 的 Actions 完整结果尚待运行，成功前不得合并。
+- 学校/SMTP/支付验收范围不变，本次只修复合成故障验收与开发流程。
+
+### 下一步
+
+- 创建修复 PR，由普通 GitHub Runner 执行完整 check/test-stack；等待最新 Actions 成功后合入 dev，再创建并验证 dev → main PR。
+- 完成修复交付后按 T5-01/P6-01 实现低余额 episode/slot、总次数含首封、冷却/回差与取消边界。
+
+### 主要文件或模块
+
+- deploy/test-t4-dependencies.sh、.github/workflows/check.yaml、AGENTS.md、README.md、docs/GitHub协作与合并流程.md 及相关开发/实施/部署文档。
+
+### 验证
+
+- 已读取 Actions 运行 36875792322 的失败日志，确认离线/浏览器步骤通过、故障共享目录的 `Permission denied` 导致容器集成失败。
+- 开始时工作区干净，dev/main 均在 9d8c8cd，未启用分支保护；已从 origin/dev 创建 codex/fix-actions-pr-gate，未直接改动受保护目标分支。
+- 本地以宿主机 UID 1000 复现原目录的写入失败；修复后宿主机日志写入/追加、容器 UID 10001 状态/就绪写入、宿主机状态读取均通过，属主保留1000、组10001、权限0770。
+- dev/main 分支保护 API 核对通过；shell 语法、受影响文档链接与 `git diff --check` 通过。本次完整验收由 PR Actions 执行，不重复本地全栈测试以缩短交付等待。
+
 ## 2026-10-01 · T4 完成
 
 ### 已完成
