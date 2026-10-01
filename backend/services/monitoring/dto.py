@@ -66,6 +66,7 @@ class MonitorPatch(DTO):
 
 
 class NotificationSummary(DTO):
+    delivery_enabled: bool = False
     state: Literal[
         "idle", "pending", "sending", "sent", "email_failed", "delivery_unknown", "cancelled"
     ]
@@ -111,6 +112,7 @@ class Monitor(DTO):
     config: MonitorConfig
     state: MonitorState
     health: Literal["healthy", "degraded", "unavailable"]
+    failed_cycles: Count = 0
     version: Version
     generation: Version
     current_run: Run | None

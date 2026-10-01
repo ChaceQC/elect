@@ -71,6 +71,8 @@ async def authorize(engine, command):
             )
         if slot["state"] != "reserved":
             return denied("SLOT_NOT_RESERVED")
+        if slot["delivery_id"] and slot["delivery_id"] != command.job_id.bytes:
+            return denied("JOB_CONFLICT")
         sample = await first(
             conn,
             "SELECT s.*,r.generation AS run_generation FROM monitor_samples s "
@@ -93,8 +95,10 @@ async def authorize(engine, command):
             conn,
             "SELECT MAX(s.authorized_at) AS at,SUM(s.state='authorized') AS in_flight "
             "FROM alert_slots s "
-            "JOIN alert_episodes e ON e.id=s.episode_id WHERE e.monitor_id=:id",
+            "JOIN alert_episodes e ON e.id=s.episode_id WHERE e.monitor_id=:id "
+            "AND (s.delivery_id IS NULL OR s.delivery_id<>:job)",
             id=monitor["id"],
+            job=command.job_id.bytes,
         )
         if last["in_flight"]:
             return denied("DELIVERY_IN_FLIGHT")
@@ -115,11 +119,13 @@ async def authorize(engine, command):
         await execute(
             conn,
             "UPDATE alert_slots SET state='authorized',permit_id=:permit,"
+            "delivery_id=:job,"
             "authorized_at=UTC_TIMESTAMP(6),send_lease_until=:expires,updated_at=UTC_TIMESTAMP(6) "
             "WHERE id=:id",
             permit=permit.bytes,
             expires=expires,
             id=slot["id"],
+            job=command.job_id.bytes,
         )
         return SendPermit(
             permitted=True, permit_id=permit, expires_at=aware(expires), denial_code=None

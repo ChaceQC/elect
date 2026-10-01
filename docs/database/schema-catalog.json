@@ -2132,7 +2132,7 @@
     },
     "monitoring": {
       "database": "elect_monitoring",
-      "revision": "monitoring_0004",
+      "revision": "monitoring_0005",
       "tables": {
         "monitors": {
           "columns": {
@@ -2288,6 +2288,11 @@
             },
             "credential_allowed": {
               "type": "BOOL",
+              "nullable": false,
+              "primary_key": false
+            },
+            "failed_cycles": {
+              "type": "INTEGER",
               "nullable": false,
               "primary_key": false
             }
@@ -2921,12 +2926,38 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "occupied_ordinal": {
+              "type": "INTEGER",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(state IN ('cancelled','failed'), NULL, ordinal)"
+            },
+            "delivery_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "last_error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "next_retry_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "wake_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [
             [
               "episode_id",
-              "ordinal"
+              "occupied_ordinal"
             ]
           ],
           "checks": [
@@ -2953,6 +2984,9 @@
             }
           ],
           "indexes": [
+            [
+              "episode_id"
+            ],
             [
               "state",
               "send_lease_until"
@@ -3351,12 +3385,71 @@
             }
           ],
           "indexes": []
+        },
+        "monitor_fault_episodes": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "monitor_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "opened_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "closed_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "failed_cycles": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "last_error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "open_monitor_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(closed_at IS NULL, monitor_id, NULL)"
+            }
+          },
+          "unique": [
+            [
+              "open_monitor_id"
+            ]
+          ],
+          "checks": [
+            "failed_cycles > 3"
+          ],
+          "foreign_keys": [
+            {
+              "columns": [
+                "monitor_id"
+              ],
+              "targets": [
+                "monitors.id"
+              ]
+            }
+          ],
+          "indexes": []
         }
       }
     },
     "notification": {
       "database": "elect_notification",
-      "revision": "notification_0001",
+      "revision": "notification_0002",
       "tables": {
         "notification_jobs": {
           "columns": {
@@ -3457,6 +3550,36 @@
             },
             "updated_at": {
               "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_display_name": {
+              "type": "VARCHAR(256)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "balance": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "threshold": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "captured_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "body_started_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "reported_version": {
+              "type": "BIGINT",
               "nullable": false,
               "primary_key": false
             }

@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.8.0。T0/T1/T2/T3/T4 已完成，M1已验收；总览/逐寝室余额、C02历史/聚合、持久采集、运行取消与固定快照分页已接通。余额严格按本人Binding/学校roomId匹配，同账号不同房间不混用。生产前端真实本人B02/C02和一次balance_only采集通过；学校写开关默认关闭，邮件/支付尚未开放，M2等待T5。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.9.0。T0/T1/T2/T3/T4/T5 已完成，M1/M2 技术闭环已验收；总览/逐寝室余额、C02历史/聚合、持久采集、运行取消与固定快照分页已接通。余额严格按本人Binding/学校roomId匹配，同账号不同房间不混用。生产前端真实本人B02/C02和一次balance_only采集通过；学校写开关默认关闭，真实指定邮箱 SMTP 接受已验证，默认外发开关保持关闭，支付进入T6。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -58,8 +58,12 @@ npm run dev
 
 正式前端开发使用 `cd frontend && npm ci && npm run dev`；后端开发使用 `cd backend && uv sync --locked`。详细环境与验证见 [开发说明](docs/开发说明.md)。
 
+本地 `auth.txt` 和 `email_auth.txt` 为测试凭据，禁止提交或进入镜像；邮件文件五行格式与禁止直接读取的约束见 [本地测试说明](docs/开发说明.md#本地真实测试凭据)。文件存在不自动开启真实邮件投递。
+
 ## 开发与版本
 
 项目使用 Git 和 GitHub 管理，远程名称为 `origin`。`main` 为主分支，日常默认在 `dev` 开发；当前开发分支可直接 commit 并 push，无需 PR。每完成一个可验证小步，同步文档和进度后用中文说明提交推送；仅合并到 `main` 时必须通过 PR，通常为 `dev → main`。`main` 要求严格必需检查 `容器验证 / check`，对管理员同样生效；只有 PR 最新提交的 Actions 全部成功才能合并。操作与失败处理见 [GitHub 协作与合并流程](docs/GitHub协作与合并流程.md)。
 
 项目版本采用 `X.Y.Z`，Git tag 与发布名称采用 `vX.Y.Z`。非正式版使用 `v0.y.z`，正式稳定发布从 `v1.0.0` 开始。详细规则见 [AGENTS.md](AGENTS.md)。
+
+T5 低余额事件、持久投递/恢复与界面已完成；真实本人 B02 采集到指定 SMTP 的一次投递通过，服务器接受与最终收件分开记录，见 [T5 验收](docs/acceptance/T5验收记录.md)。本机 TUN 的 SMTP 代理路径已确认，验收使用指定服务的临时直连通道；学校仍要求验证码，保留原链路。

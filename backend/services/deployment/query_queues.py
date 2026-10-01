@@ -44,3 +44,5 @@ def configure(definitions):
                     "arguments": {},
                 }
             )
+    from .notification_queues import configure as configure_notifications
+    configure_notifications(definitions)

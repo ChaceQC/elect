@@ -49,7 +49,8 @@ events:
     schema_version: 1
     aggregate_version: job_version
     dedupe_key: job_id/job_version
-    required_payload: [job_id, alert_slot_id, state]
+    required_payload: [job_id, alert_slot_id, execution_epoch, state]
+    optional_payload: [error_code, next_retry_at]
   - type: room.history_sync_requested
     producer: room
     consumers: [room]

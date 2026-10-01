@@ -1,3 +1,138 @@
+## 2026-10-02 · T5 主分支交付
+
+### 已完成
+
+- T5 实现提交 660b3cc 的完整 GitHub Actions 已成功：[容器验证 36893685280](https://github.com/ChaceQC/elect/actions/runs/36893685280)，包含规则/契约/构建/浏览器与隔离容器集成。
+- 确认 main 的严格必需检查 check、PR 与管理员约束仍生效；当前 dev 尚未包含上次 PR #2 的 main 合并提交 f8ce023。
+- 将 origin/main 合入当前 dev，无冲突、无业务源码差异；只补齐主分支祖先关系与本次交付进度。
+
+### 进行中
+
+- 创建 dev → main 的 T5 交付 PR，等待同步后最新提交的 push/PR Actions 全部成功。
+
+### 阻塞与风险
+
+- 无合并冲突或实现阻塞；更新后的检查完成前不能合并，旧提交绿色结果不能替代最新提交。
+- 真实 SMTP/学校写/支付开关保持默认关闭，本次不重新执行真实外发或学校操作。
+
+### 下一步
+
+- 最新提交全部检查通过且包含最新 main 后，以 merge commit 合并 T5 PR；随后将 main 合并提交同步回 dev，保留日常开发分支。
+- 完成交付后实施 T6-01/P7-01 支付能力政策与幂等台账。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md、dev/main 的 Git 祖先关系与 T5 交付 PR；T5 源码不变。
+
+### 验证
+
+- 工作区开始时干净，dev 跟踪 origin/dev；fetch 后确认 main=f8ce023、dev=660b3cc，原 dev 缺少 main 最新合并提交。
+- GitHub API 确認 660b3cc 的 check 为 GitHub Actions/success；main 必需 check/app_id=15368、strict=true、审批数0、enforce_admins=true。
+- git merge --no-commit origin/main 成功，无冲突；本次仅 Git 同步和进度文档，不新增或重跑本地业务测试。
+
+## 2026-10-02 · T5 与 M2 完成
+
+### 已完成
+
+- T5-01..04、P6-01..05、F5 完整状态实现与必要验收完成，工程版本0.9.0；低余额次数/回差小步4b51314已提交推送。
+- Notification独立邮箱密钥/AAD、持久job/租约/epoch、固定Message-ID、每次当前许可、DATA前发送边界、三次有限重试与unknown占名额、Outbox/Inbox进度/结果镜像接通。
+- 前端展示SMTP接受/失败/重试时间/未知占次数、采集周期故障与取消在途；新增三个真实后台进程与最小队列/内部接口权限。
+- 真实本人学校验证码登录、B02新鲜采集到指定SMTP一封发送成功，job/Monitoring均sent且只一次attempt；用户于2026-10-02确认测试邮箱收到。临时阈值为真实余额加5.00元，总次数1，验收后原配置恢复并关闭。
+- 验证学校验证码：完全省略字段和有效uid留空答案均拒绝，正常验证码登录通过，保留原学校验证码链路。
+- 定位SMTP连接重置为Clash TUN的Match/PROXY路径；物理网卡直连TLS成功。真实验收用限定单SMTP端点、随机认证、单连接的临时CONNECT通道完成，结束自动关闭，未改系统代理。
+- email_auth.txt按五行格式仅由专用进程在内存解析；未直接查看、未进入Git/镜像。auth.txt权限保留600，凭据经匿名stdin进入验收容器，无明文副本或命令行凭据。
+
+### 进行中
+
+- T5实现与最终定向验证完成；本批提交推送dev，无业务实现待办。
+
+### 阻塞与风险
+
+- 无T5实施阻塞，真实SMTP与用户收件确认均通过。默认真实SMTP/学校写/支付仍关闭。
+- 普通直连TCP仍受本机TUN路由影响，本次临时通道不是生产网络配置；正式部署须提供可达SMTP网络或明确代理。
+- 本次真实内部联调为正式业务代码/实际MySQL与内部ASGI，未宣称公网完整部署/容量/集中故障演练；这些范围属T7。低余额通过临时提高阈值触发，不声称自然低余额周期。
+
+### 下一步
+
+- 按T6-01/P7-01实现支付capabilities与金额政策，再建立本地幂等订单/一次学校dispatch台账；真实支付开关继续保持false，未指定金额时不执行建单或付款。
+
+### 主要文件或模块
+
+- Monitoring alert_snapshot/delivery_reports/alert_recovery/permits，Notification connection/smtp/repository/worker/results/recovery/job/template，monitoring_0005、notification_0002。
+- 公共邮箱加密实现移入common，两个领域保留独立密钥/AAD；重构仅复用加密基础，控制许可、结果镜像和恢复仍分责。
+- Secret/队列/Compose、前端NotificationStatus/MonitorPage、T5验收/运行说明、学校验证码分类记录与所有受影响README/计划/契约/进度。
+
+### 验证
+
+- 事件增量实际MySQL、114项后端/空库及旧T1–T4故障回归已通过；遵循用户要求，此批未重复整套大型故障测试。
+- 此批后端ruff、23项定向契约/事件/凭据/Secret检查、公开/内部协议/七域目录一致性通过；前端5项定向组件、类型和生产构建通过。
+- t5_delivery_smoke验证SMTP接受/永久拒绝/临时重试、固定Message-ID、重复事件/job、双Worker、关闭零连接、DATA后断连/租约丢失unknown不重发，全部通过。
+- 独立真实MySQL/Redis/迁移和正式代码链路通过；分类证据docs/acceptance/school/T5-live-delivery.json，用户收件已确认，未输出学校/邮件地址或凭据。
+- 学校无验证码省略/空答案拒绝有分类证据；代理TUN路径失败、物理网卡TLS成功、临时通道真实单封SMTP接受均已验证。
+- 重建后Monitoring/Room/Notification、三个新增后台进程、Notification Relay和RabbitMQ定向健康检查通过；SMTP默认关闭。286项本地文档链接、shell语法、锁文件同步和git diff --check通过。
+
+## 2026-10-01 · T5 事件规则完成
+
+### 已完成
+
+- P6-01/02、T5-01：新鲜样本事务内的低余额 episode/slot、回差、含首封总次数、未知占名额、配置计数迁移、合法序号释放和跨事件冷却。
+- 新增 monitoring_0005；四个完整失败采集周期建立独立故障事件，成功关闭，不使用低余额额度。
+- 本地邮件凭据保护小步 fc6a9e0 已提交推送 dev；已按用户最新明确要求同步本轮真实投递范围，email_auth.txt 未直接读取。
+
+### 进行中
+
+- Notification 持久 job、发送前许可、DATA 边界/恢复、结果镜像与前端邮件状态。
+
+### 阻塞与风险
+
+- 无实施阻塞。真实邮件已获指定目标授权，先验证模拟故障边界再执行；SMTP 接受与邮箱实际收件分别记录。
+- 本批合成 sent/unknown 直接写状态，只能证明事件计数规则，不能称为投递验收；M2 未完成。
+
+### 下一步
+
+- 实现 Notification Worker/恢复器及本域密钥、队列权限；完成 SMTP 接受/拒绝/正文后断连和进程故障验证，再执行真实本人采集到指定邮箱链路。
+
+### 主要文件或模块
+
+- monitoring/alerts/faults/results/repository/recovery、monitoring_0005、t5_alert_smoke、schema-catalog 与 T5 决策/验收和计划文档。
+
+### 验证
+
+- ruff 通过，pytest 114 passed / 1 skipped，七域目录/DDL 检查通过。
+- 全新 elect-test-t5 Docker 空库与全部 T1–T4 脚本通过，实际 Redis/MySQL/MQ 中断、SIGKILL、多 Worker/重复消息恢复通过。
+- t5_alert_smoke 的严格阈值/负余额/回差/防重、未知额度、上限降低/提高/计数迁移、跨事件冷却和四周期故障/成功关闭检查全部通过。
+- git check-ignore 证实根和两端 email_auth.txt 排除且未跟踪，未读取文件内容；提交前检查差异与受影响 README/AGENTS/进度。
+
+## 2026-10-01 · T5 实施开始
+
+### 已完成
+
+- 核对 T5/P6、F5 和 T3 发送许可；确认当前 dev 工作区干净。用户已将本轮范围调整为包含真实邮件投递，配置与指定收件人由本地 email_auth.txt 提供；先验证模拟故障边界，再执行真实验收。
+- 固化 T5 事件、次数、恢复和模拟验收范围，见 docs/decisions/T5低余额与邮件.md。
+- 按用户补充，为本地 email_auth.txt 增加 Git/两端 Docker 排除规则，文档记录五行格式、禁止直接读取及仅限后续专用本地测试进程内存解析的约束；尚未读取该文件；真实验收仅由专用进程在内存解析，不直接查看。
+
+### 进行中
+
+- P6-01/02：接入新鲜样本、episode/slot、回差、跨事件冷却与配置迁移；随后接入持久投递与前端状态。
+
+### 阻塞与风险
+
+- 无代码实施阻塞。真实投递已获用户明确授权；配置内容不直接读取，SMTP 接受与实际邮箱收件分别记录，验证前不标 M2 完成。
+- 需要将原发送许可模块按授权检查、结果镜像和恢复职责拆分；仅影响 T5 发送流程，保留已有取消线性化语义。
+
+### 下一步
+
+- 完成事件规则与 MySQL 次数/配置/回差检查，提交推送该小步；再实现 Notification job、发送边界与模拟 SMTP 验收。
+
+### 主要文件或模块
+
+- Monitoring results/configuration/repository/permits、Notification、迁移与 T5 决策文档。
+
+### 验证
+
+- 已确认 dev 跟踪 origin/dev，初始工作区无未提交改动；AGENT.md 和子目录 AGENTS.md 不存在。
+- 凭据规则已通过 git check-ignore、未跟踪检查和 git diff --check；新增事件代码验证单独记录。
+
 ## 2026-10-01 · Actions 修复与 main 合并门禁
 
 ### 已完成

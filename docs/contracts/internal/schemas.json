@@ -1163,6 +1163,124 @@
       "title": "AuthorizeSend",
       "type": "object"
     },
+    "AlertSlotQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_user_id": {
+          "format": "uuid",
+          "title": "Owner User Id",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "alert_slot_id": {
+          "format": "uuid",
+          "title": "Alert Slot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_user_id",
+        "request_id",
+        "alert_slot_id"
+      ],
+      "title": "AlertSlotQuery",
+      "type": "object"
+    },
+    "AlertSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "alert_slot_id": {
+          "format": "uuid",
+          "title": "Alert Slot Id",
+          "type": "string"
+        },
+        "eligible": {
+          "title": "Eligible",
+          "type": "boolean"
+        },
+        "state": {
+          "title": "State",
+          "type": "string"
+        },
+        "generation": {
+          "minimum": 1,
+          "title": "Generation",
+          "type": "integer"
+        },
+        "email_version": {
+          "minimum": 1,
+          "title": "Email Version",
+          "type": "integer"
+        },
+        "delivery_version": {
+          "minimum": 0,
+          "title": "Delivery Version",
+          "type": "integer"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Email"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Display Name"
+        },
+        "balance": {
+          "pattern": "^-?(0|[1-9]\\d{0,11})\\.\\d{2}$",
+          "title": "Balance",
+          "type": "string"
+        },
+        "threshold": {
+          "pattern": "^(0|[1-9]\\d{0,11})\\.\\d{2}$",
+          "title": "Threshold",
+          "type": "string"
+        },
+        "captured_at": {
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "alert_slot_id",
+        "eligible",
+        "state",
+        "generation",
+        "email_version",
+        "delivery_version",
+        "email",
+        "binding_id",
+        "display_name",
+        "balance",
+        "threshold",
+        "captured_at"
+      ],
+      "title": "AlertSnapshot",
+      "type": "object"
+    },
     "SendPermit": {
       "additionalProperties": false,
       "properties": {
@@ -1837,8 +1955,14 @@
           "title": "Alert Slot Id",
           "type": "string"
         },
+        "execution_epoch": {
+          "minimum": 1,
+          "title": "Execution Epoch",
+          "type": "integer"
+        },
         "state": {
           "enum": [
+            "retry_wait",
             "sent",
             "failed",
             "delivery_unknown",
@@ -1846,11 +1970,37 @@
           ],
           "title": "State",
           "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        },
+        "next_retry_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Retry At"
         }
       },
       "required": [
         "job_id",
         "alert_slot_id",
+        "execution_epoch",
         "state"
       ],
       "title": "DeliveryReportedPayload",

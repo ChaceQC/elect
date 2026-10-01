@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-01",
+  "result": "rejected",
+  "school_captcha_required": null,
+  "captcha_error_identified": false,
+  "kaptcha_requests": 0,
+  "login_submissions": 1
+}

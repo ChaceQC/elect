@@ -5,6 +5,7 @@ test-results
 playwright-report
 .env
 auth.txt
+email_auth.txt
 .env.*
 !.env.example
 *.key

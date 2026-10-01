@@ -60,14 +60,17 @@ async def run(role):
         try:
             while not stop.is_set():
                 try:
-                    if role == "worker":
+                    if role in {"worker", "alerts"}:
                         if queue is None and time.monotonic() >= reconnect_at:
                             try:
                                 broker = Broker(app.state.runtime)
                                 await broker.open()
                                 await broker.channel.set_qos(prefetch_count=1)
                                 queue = await broker.channel.declare_queue(
-                                    "elect.monitoring.runs", durable=True
+                                    "elect.monitoring.runs"
+                                    if role == "worker"
+                                    else "elect.monitoring.deliveries",
+                                    durable=True,
                                 )
                             except Exception:
                                 if broker:
@@ -75,13 +78,24 @@ async def run(role):
                                 broker, queue = None, None
                                 reconnect_at = time.monotonic() + 15
                         try:
-                            activity = await message_tick(app, queue, heartbeat) if queue else False
+                            if role == "alerts":
+                                from .alert_recovery import report_tick
+
+                                activity = await report_tick(app, queue) if queue else False
+                            else:
+                                activity = (
+                                    await message_tick(app, queue, heartbeat) if queue else False
+                                )
                         except Exception:
                             await broker.close()
                             broker, queue = None, None
                             reconnect_at = time.monotonic() + 15
                             activity = False
-                        if not activity:
+                        if role == "alerts":
+                            from .alert_recovery import wake_tick
+
+                            activity = await wake_tick(app.state.database) or activity
+                        elif not activity:
                             from .worker import worker_tick
 
                             activity = await worker_tick(app, heartbeat=heartbeat)
@@ -97,7 +111,7 @@ async def run(role):
                         service="monitoring",
                         error_code="DEPENDENCY_UNAVAILABLE",
                     )
-                await pause(stop, {"scheduler": 5, "recovery": 15, "worker": 1}[role])
+                await pause(stop, {"scheduler": 5, "recovery": 15, "worker": 1, "alerts": 1}[role])
         finally:
             if broker:
                 await broker.close()
@@ -105,7 +119,9 @@ async def run(role):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--role", choices=["scheduler", "worker", "recovery"], required=True)
+    parser.add_argument(
+        "--role", choices=["scheduler", "worker", "recovery", "alerts"], required=True
+    )
     args = parser.parse_args()
     configure_logging()
     try:

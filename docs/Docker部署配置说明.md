@@ -202,3 +202,7 @@ Room 既有 Worker 同时扫描同步、默认和绑定，无新增进程。已�
 monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以MySQL为准，MQ失效时仍扫描。采集Worker每10秒续租，最长90秒，退出宽限100秒；Room/Identity长请求期间验证数据库并更新心跳。仅balance_only，SMTP/支付开关仍默认false。
 
 `test-stack.sh`合成阶段暂停Identity/Room与监控三个进程、Monitoring Relay，运行t4_query_smoke/t4_monitor_smoke；合成监控全部关闭后再恢复。新验收见 [T4采集引擎](acceptance/T4采集引擎验收记录.md)。
+
+## T5邮件部署增量
+
+新增monitor-alerts（提醒唤醒重建/结果消费）、notification-worker（Inbox/job/发送）、notification-recovery（正文边界后的租约恢复）；长期进程共28个。Notification独立邮箱密钥与smtp_credentials JSON Secret，仅发送Worker追加notification_egress。已有部署重复upgrade_controls后迁移monitoring_0005/notification_0002，再重建RabbitMQ和受影响应用；Secret原子替换后旧挂载不会自动更新。SMTP默认false，公开模板不含真实配置；proxy_url可选择显式HTTP CONNECT代理且SMTP TLS保持验证。测试环境真实收件已确认，生产网络/全旅程/恢复演练仍属T7。见 [邮件运行说明](runbooks/邮件投递与代理排查.md)。

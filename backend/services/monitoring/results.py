@@ -8,6 +8,8 @@ from services.common.errors import ErrorCode
 from services.common.ids import new_id
 from services.common.sql import execute, first
 
+from .alerts import on_sample
+from .faults import cycle_failed, cycle_succeeded
 from .fences import fenced_transaction
 
 
@@ -83,7 +85,8 @@ async def succeed(engine, execution, balance, request_id):
             actor=None,
             version=run["version"] + 1,
         )
-        # T5 从新鲜样本建立 episode/slot；本阶段不预留或投递邮件。
+        await cycle_succeeded(conn, monitor)
+        await on_sample(conn, monitor, sample_id, request_id)
     return sample_id
 
 
@@ -128,4 +131,6 @@ async def fail(engine, execution, error, retryable, request_id, retry_after=None
                 at=updated["next_attempt_at"],
                 id=event.bytes,
             )
+        else:
+            await cycle_failed(conn, monitor, error)
     return True

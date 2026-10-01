@@ -26,3 +26,5 @@ T3 启用 Monitoring 控制/发送许可和 Identity 持久撤回，新增独立
 monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以MySQL为准，MQ失效时仍扫描。采集Worker每10秒续租，最长90秒，退出宽限100秒；Room/Identity长请求期间验证数据库并更新心跳。仅balance_only，SMTP/支付开关仍默认false。
 
 `test-stack.sh`合成阶段暂停Identity/Room与监控三个进程、Monitoring Relay，运行t4_query_smoke/t4_monitor_smoke；合成监控全部关闭后再恢复。新验收见 [T4采集引擎](../docs/acceptance/T4采集引擎验收记录.md)。
+
+T5新增 monitor-alerts、notification-worker、notification-recovery，长期进程共28个；SMTP默认关闭，仅Worker持有notification_egress出口。升级需要重复upgrade_controls、迁移monitoring_0005/notification_0002并重建RabbitMQ/应用加载Secret。本域密钥、HTTP CONNECT代理和本机TUN排查见 [邮件运行说明](../docs/runbooks/邮件投递与代理排查.md)。

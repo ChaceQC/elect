@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-01",
+  "result": "rejected",
+  "school_captcha_required": true,
+  "empty_answer_rejected": true,
+  "kaptcha_requests": 1,
+  "login_submissions": 1,
+  "variant": "valid_uid_empty_answer",
+  "positive_control": "同账号正常学校验证码登录于T5真实链路通过",
+  "scope": "当前账号/学校CAS协议，不推断所有学校或未来策略"
+}

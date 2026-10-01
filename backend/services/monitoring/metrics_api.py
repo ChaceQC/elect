@@ -53,11 +53,18 @@ async def metrics(
             "SELECT COUNT(*) AS unpublished_wakeups FROM outbox_events WHERE "
             "type='monitor.run_ready' AND published_at IS NULL",
         )
+        alerts = (await execute(
+            conn, "SELECT state,COUNT(*) AS n FROM alert_slots GROUP BY state"
+        )).mappings().all()
+        faults = await first(conn, "SELECT COUNT(*) AS open_collection_faults FROM "
+                             "monitor_fault_episodes WHERE closed_at IS NULL")
     return {
         **plans,
         **leases,
         **backlog,
         **outbox,
+        **faults,
+        "alert_slots": {s["state"]: s["n"] for s in alerts},
         "runs": {r["state"]: r["n"] for r in runs},
         "attempts": {r["outcome"]: r["n"] for r in attempts},
     }

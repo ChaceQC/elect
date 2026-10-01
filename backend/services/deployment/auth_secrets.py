@@ -11,6 +11,8 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 
 def provision_auth(directory, write):
+    from .notification_secrets import provision_notifications
+    provision_notifications(directory)
     for name in [
         "school_kek_bundle",
         "school_lookup_hmac_bundle",

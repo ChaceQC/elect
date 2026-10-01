@@ -1140,6 +1140,11 @@ export interface components {
         /** NotificationSummary */
         NotificationSummary: {
             /**
+             * Delivery Enabled
+             * @default false
+             */
+            delivery_enabled: boolean;
+            /**
              * State
              * @enum {string}
              */
@@ -1245,6 +1250,11 @@ export interface components {
              * @enum {string}
              */
             health: "healthy" | "degraded" | "unavailable";
+            /**
+             * Failed Cycles
+             * @default 0
+             */
+            failed_cycles: number;
             /** Version */
             version: number;
             /** Generation */

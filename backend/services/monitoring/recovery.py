@@ -44,6 +44,9 @@ async def recover_run(conn, monitor, run):
             run=run["id"],
         )
     if exhausted and not cancelled:
+        from .faults import cycle_failed
+
+        await cycle_failed(conn, monitor, "SCHOOL_TIMEOUT")
         await execute(
             conn,
             "UPDATE monitors SET health=IF(last_success_at IS "

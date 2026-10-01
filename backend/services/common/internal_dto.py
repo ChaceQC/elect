@@ -200,6 +200,25 @@ class AuthorizeSend(UserCommand):
     execution_epoch: Version
 
 
+class AlertSlotQuery(UserCommand):
+    alert_slot_id: UUID
+
+
+class AlertSnapshot(DTO):
+    alert_slot_id: UUID
+    eligible: bool
+    state: str
+    generation: Version
+    email_version: Version
+    delivery_version: Count
+    email: str | None
+    binding_id: UUID
+    display_name: str | None
+    balance: Money
+    threshold: PositiveMoney
+    captured_at: Timestamp
+
+
 class SendPermit(DTO):
     permitted: bool
     permit_id: UUID | None

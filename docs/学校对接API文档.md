@@ -1741,3 +1741,7 @@ def create_order_and_qr(client, user_id, room_id, amount, *, confirmed=False):
 ## T4 真实本人只读补充（2026-10-01）
 
 生产前端/正式Adapter通过本人B02持久余额刷新、最近7天C02同步（6个已知记录日、partial覆盖）和Scheduler/Worker的一次balance_only采集。原监控配置恢复且应用退出，无绑定/支付/SMTP、无真实截图/trace，证据见 [分类记录](acceptance/school/2026-10-01-T4-query.json)。账号当前仅1个绑定，不宣称真实多房间隔离或学校全日完整覆盖、稳定来源ID、频率上限已确认。
+
+## 2026-10-02学校验证码核查
+
+本次同一指定账号的对照：完全省略A03的id/code认证被拒绝；取得有效学校uid后留空code也被拒绝；在T5真实链路使用正常学校验证码认证及B02成功。因此当前CAS链路需要验证码，保留学校验证码获取/后台OCR，不以应用自生成验证码替代学校校验。该结论限定当前账号/协议；分类证据见 [空答案记录](acceptance/school/T5-captcha-empty-answer.json)，不记录账号/密码/uid/token。

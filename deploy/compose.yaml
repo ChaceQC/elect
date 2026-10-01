@@ -218,8 +218,50 @@ services:
     command: [python, -m, services.monitoring]
   notification:
     <<: *python
-    secrets: [{source: notification_runtime, target: runtime}]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/notification_encryption_key_bundle
+      ELECT_SMTP_CONFIG_FILE: /run/secrets/smtp_credentials
+    secrets: [{source: notification_runtime, target: runtime}, internal_ca, notification_encryption_key_bundle, smtp_credentials]
     command: [python, -m, services.notification]
+  notification-worker:
+    <<: *python
+    networks: [app, data, notification_egress]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/notification_encryption_key_bundle
+      ELECT_SMTP_CONFIG_FILE: /run/secrets/smtp_credentials
+    secrets: [{source: notification_runtime, target: runtime}, internal_ca, notification_encryption_key_bundle, smtp_credentials]
+    command: [python, -m, services.notification.job, --role, worker]
+    stop_grace_period: 45s
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
+  notification-recovery:
+    <<: *python
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/notification_encryption_key_bundle
+      ELECT_SMTP_CONFIG_FILE: /run/secrets/smtp_credentials
+    secrets: [{source: notification_runtime, target: runtime}, internal_ca, notification_encryption_key_bundle, smtp_credentials]
+    command: [python, -m, services.notification.job, --role, recovery]
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
+  monitor-alerts:
+    <<: *python
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_EMAIL_KEY_FILE: /run/secrets/monitoring_encryption_key_bundle
+    secrets: [{source: monitoring_runtime, target: runtime}, internal_ca, monitoring_encryption_key_bundle]
+    command: [python, -m, services.monitoring.job, --role, alerts]
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
   monitor-scheduler:
     <<: *python
     environment:
@@ -326,6 +368,7 @@ networks:
   app: {internal: true}
   data: {internal: true}
   school_egress: {}
+  notification_egress: {}
 volumes:
   mysql_data: {}
   redis_data: {}
@@ -342,6 +385,8 @@ secrets:
   monitoring_runtime: {file: "${ELECT_SECRETS_DIR}/monitoring_runtime.json"}
   monitoring_encryption_key_bundle: {file: "${ELECT_SECRETS_DIR}/monitoring_encryption_key_bundle"}
   notification_runtime: {file: "${ELECT_SECRETS_DIR}/notification_runtime.json"}
+  notification_encryption_key_bundle: {file: "${ELECT_SECRETS_DIR}/notification_encryption_key_bundle"}
+  smtp_credentials: {file: "${ELECT_SECRETS_DIR}/smtp_credentials"}
   payment_runtime: {file: "${ELECT_SECRETS_DIR}/payment_runtime.json"}
   audit_runtime: {file: "${ELECT_SECRETS_DIR}/audit_runtime.json"}
   redis_acl: {file: "${ELECT_SECRETS_DIR}/redis_users.acl"}
