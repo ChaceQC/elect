@@ -44,6 +44,6 @@ async def preference(command: OperationQuery, request: Request, principal: Contr
         preference_version=version,
         committed=committed,
         can_compensate=version is None
-        and operation["state"] in {"failed", "cancelled"}
+        and operation["state"] in {"reconciling", "failed", "cancelled"}
         and operation["saga_step"] in {"compensating", "compensated"},
     )

@@ -31,7 +31,7 @@ async def run(service):
     if service == "identity":
         from services.identity.recovery import recover_tick as tick
     elif service == "room":
-        from services.room.worker import sync_tick as tick
+        from services.room.worker import room_tick as tick
     else:
         tick = school_cleanup
     async with app.router.lifespan_context(app):

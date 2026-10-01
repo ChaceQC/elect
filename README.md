@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.4.0。T0/T1/T2 已完成；T3 已接通监控配置/控制屏障、Identity/Adapter 凭据更新与持久撤回、发送许可，以及学生端账户撤回和进度恢复。默认/绑定 Saga、监控设置页面仍在推进；采集、邮件和支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.5.0。T0/T1/T2 已完成；T3 已接通监控配置/控制屏障、Identity/Adapter 凭据更新与持久撤回、发送许可，以及学生端账户撤回和进度恢复。Room 默认切换 Saga 与首次同步默认初始化已接通；绑定台账、筛选绑定与监控设置页面仍在推进；采集、邮件和支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 

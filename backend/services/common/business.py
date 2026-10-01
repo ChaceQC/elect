@@ -13,8 +13,10 @@ def register(app, service):
         app.include_router(import_module(f"services.{service}.api").router)
     if service == "gateway":
         from services.gateway.monitor_api import router
+        from services.gateway.room_api import router as room_router
 
         app.include_router(router)
+        app.include_router(room_router)
     if service == "room":
         from services.room.control_api import router
 

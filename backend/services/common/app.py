@@ -93,7 +93,9 @@ def create_app(service: str, *, business=False):
 
         for endpoint in ENDPOINTS:
             if business and (
-                endpoint.stage == "T2" or endpoint.path in {"/monitor", "/auth/school-credential"}
+                endpoint.stage == "T2"
+                or endpoint.path
+                in {"/monitor", "/auth/school-credential", "/room-preferences/default"}
             ):
                 continue
             app.add_api_route(

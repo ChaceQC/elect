@@ -36,6 +36,7 @@ compose stop identity-recovery room-sync-worker
 compose run --rm --no-deps smoke python -m scripts.t2_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_control_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_credential_smoke
+compose run --rm --no-deps smoke python -m scripts.t3_default_smoke
 compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker
 compose exec -T nginx nginx -t
 compose run --rm --no-deps tls-check

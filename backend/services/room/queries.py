@@ -75,7 +75,9 @@ class RoomQueries:
                     "id": UUID(bytes=row["id"]),
                     "type": row["type"],
                     "state": row["state"],
-                    "target_binding_id": None,
+                    "target_binding_id": UUID(bytes=row["target_binding_id"])
+                    if row["target_binding_id"]
+                    else None,
                     "created_at": aware(row["created_at"]),
                 }
                 for row in pending[:20]
@@ -131,14 +133,26 @@ class RoomQueries:
             "id": str(operation),
             "type": row["type"],
             "state": row["state"],
-            "target_binding_id": None,
+            "target_binding_id": str(UUID(bytes=row["target_binding_id"]))
+            if row["target_binding_id"]
+            else None,
             "created_at": aware(row["created_at"]),
             "binding_status": None,
-            "default_status": None,
-            "retryable": bool(row["error_code"]),
+            "default_status": (
+                "confirmed"
+                if row["state"] == "succeeded"
+                else "failed"
+                if row["state"] == "failed"
+                else "switching"
+            )
+            if row["type"] == "switch_default"
+            else None,
+            "retryable": bool(row["error_code"]) and row["type"] == "binding_sync",
             "error_code": row["error_code"],
             "next_reconcile_at": aware(row["next_reconcile_at"]),
-            "result_binding_id": None,
+            "result_binding_id": str(UUID(bytes=row["target_binding_id"]))
+            if row["type"] == "switch_default" and row["state"] == "succeeded"
+            else None,
             "result_order_id": None,
         }
 

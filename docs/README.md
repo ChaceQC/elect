@@ -43,7 +43,7 @@ example/                     # 页面和交互参考，不参加生产构建
 
 T0 已完成：frontend 独立入口、依赖锁、类型与模拟场景；backend 独立工程、DTO/状态模型与七域迁移。deploy 已有公开配置与 Secret/账号清单；T1 的两端 Dockerfile、Compose、运行/认证/事件/Audit、TLS 与 F1 路由/公共数据层已完成验收。T2 认证与本人读取、生产前端已完成真实联调与容器验收；详情见 [T2 决策](decisions/T2认证与读取.md)。参考材料自己的 README 保留在 example 内。
 
-T3 控制事务和内部 retarget 协议见 [第一批决策](decisions/T3监控控制基础.md)，凭据协调/持久撤回/发送许可和账户界面见 [第二批决策](decisions/T3凭据协调与发送许可.md)。随后接入 Room 默认/绑定和监控设置界面；监控控制交付不表示已经运行采集或邮件。
+T3 控制事务和内部 retarget 协议见 [第一批决策](decisions/T3监控控制基础.md)，凭据协调/持久撤回/发送许可和账户界面见 [第二批决策](decisions/T3凭据协调与发送许可.md)。Room 默认切换与首次同步初始化见 [默认 Saga 验收](acceptance/T3默认Saga验收记录.md)；随后接入筛选绑定与监控设置界面；监控控制交付不表示已经运行采集或邮件。
 
 ## 部署约定
 

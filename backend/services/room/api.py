@@ -7,7 +7,8 @@ from services.common.dto import DTO
 from services.common.internal_dto import OperationQuery, RoomQuery
 from services.common.security import Principal, require_user_principal
 
-from .dto import Candidates
+from .defaults import accept_default
+from .dto import Candidates, DefaultRequest
 from .repository import RoomRepository
 
 router = APIRouter(prefix="/internal/v1/browser")
@@ -61,3 +62,29 @@ async def candidates(command: RoomQuery, request: Request, principal: Browser):
     for item in value["items"]:
         item["already_bound"] = item["room_id"] in bound
     return Candidates.model_validate(value)
+
+
+@router.post("/default")
+async def set_default(command: DefaultRequest, request: Request, principal: Browser):
+    async with request.app.state.database.begin() as conn:
+        operation = await accept_default(
+            conn,
+            principal.user_id,
+            command.binding_id,
+            command.expected_version,
+            principal.request_id,
+        )
+    if operation is None:
+        return {
+            "default_binding_id": str(command.binding_id),
+            "preference_version": command.expected_version,
+            "state": "ready",
+        }
+    current = await RoomRepository(request.app.state.database).operation(
+        principal.user_id, operation
+    )
+    return {
+        "operation_id": str(operation),
+        "state": current["state"],
+        "poll_url": f"/api/v1/operations/{operation}",
+    }

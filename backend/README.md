@@ -19,6 +19,6 @@ uv run python -m scripts.schema_catalog --check
 uv run python -m scripts.migrations --domain all --sql --output-dir /tmp/elect-ddl
 ```
 
-配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。`docker build -t elect-backend:v0.4.0 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。T2 认证/读取及 T3 监控配置/撤回路由已接通；后续阶段入口返回 FEATURE_DISABLED。
+配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。`docker build -t elect-backend:v0.5.0 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。T2 认证/读取及 T3 监控配置/撤回路由已接通；后续阶段入口返回 FEATURE_DISABLED。
 
-容器检查在仓库根执行 `sh deploy/check.sh`，全新一次性集成使用 `sh deploy/test-stack.sh /absolute/new-directory elect-test-name`，包含 T2 合成上游、T3 控制及凭据/发送许可竞态检查，不调用真实学校或 SMTP。显式真实学校烟测独立执行，不进入 CI。默认/写绑定、真实采集/邮件/支付为后续批次。
+容器检查在仓库根执行 `sh deploy/check.sh`，全新一次性集成使用 `sh deploy/test-stack.sh /absolute/new-directory elect-test-name`，包含 T2 合成上游、T3 控制及凭据/发送许可竞态检查，不调用真实学校或 SMTP。显式真实学校烟测独立执行，不进入 CI。Room 默认受理/恢复/补偿与首次同步默认初始化已接通；scripts.t3_default_smoke 验证响应丢失、迟到租约、目标失效和切换中关闭。写绑定、真实采集/邮件/支付为后续批次。
