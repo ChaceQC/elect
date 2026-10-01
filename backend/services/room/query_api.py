@@ -90,7 +90,7 @@ async def query_target(
 ):
     async with request.app.state.database.connect() as conn:
         row = await target(conn, principal.user_id, command.binding_id, active=True)
-    return {"school_room_id": row["school_room_id"]}
+    return {"school_room_id": row["school_room_id"], "display_name": row["display_name"]}
 
 
 @router.post("/controls/balance-observed")

@@ -66,3 +66,7 @@ GET/PATCH monitor 已接通，首次幂等创建 disabled 记录；版本匹配�
 ## 删除绑定增量
 
 `DELETE /room-bindings/{id}` 使用 Idempotency-Key、Origin/CSRF，返回持久 202 并查询原 operation；无学校 ID/正文/自动重试。Operation 新增 unbind_room 和 binding_status=removed；Bindings 独立返回 binding_removal_operation_id 与 preference_state，避免摘要截断影响恢复。默认删除保留旧显示直到学校确认，再清空默认并等待监控确认；未知态保留操作槽。详见 [删除决策](../decisions/T3删除绑定.md)。
+
+## T5投递与状态
+
+AlertSlotQuery/AlertSnapshot仅Notification受限本人上下文读取，包含邮箱明文仅在内部请求中传输，不能进入MQ。投递事件增加execution_epoch及retry_wait/脱敏error_code/next_retry_at；结果由job版本/许可epoch与Inbox防重。Monitor.failed_cycles与NotificationSummary.delivery_enabled为兼容新增字段，发送默认关闭。slot镜像持久错误/重试时间，unknown永久占一个名额。当前首次投递后最多三次重试，1/5/15分钟，固定Message-ID不代表SMTP去重。见 [T5决策](../decisions/T5低余额与邮件.md)。

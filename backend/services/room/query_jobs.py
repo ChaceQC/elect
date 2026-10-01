@@ -14,7 +14,9 @@ from .preference_store import lock_preference, require_no_removal
 async def target(conn, owner, binding, *, active=False):
     row = await first(
         conn,
-        "SELECT b.*,r.school_room_id FROM room_bindings b JOIN rooms r ON r.id=b.room_id "
+        "SELECT b.*,r.school_room_id,CONCAT(r.building_name,'-',r.room_no) AS display_name "
+        "FROM room_bindings b "
+        "JOIN rooms r ON r.id=b.room_id "
         "WHERE b.id=:id AND b.owner_user_id=:owner",
         id=binding.bytes,
         owner=owner.bytes,

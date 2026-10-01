@@ -3449,7 +3449,7 @@
     },
     "notification": {
       "database": "elect_notification",
-      "revision": "notification_0001",
+      "revision": "notification_0002",
       "tables": {
         "notification_jobs": {
           "columns": {
@@ -3550,6 +3550,36 @@
             },
             "updated_at": {
               "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_display_name": {
+              "type": "VARCHAR(256)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "balance": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "threshold": {
+              "type": "NUMERIC(14, 2)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "captured_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "body_started_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "reported_version": {
+              "type": "BIGINT",
               "nullable": false,
               "primary_key": false
             }

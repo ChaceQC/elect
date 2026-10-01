@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from .dto import DTO, Version
+from .dto import DTO, Timestamp, Version
 
 
 class CredentialPayload(DTO):
@@ -27,7 +27,10 @@ class AlertReservedPayload(DTO):
 class DeliveryReportedPayload(DTO):
     job_id: UUID
     alert_slot_id: UUID
-    state: Literal["sent", "failed", "delivery_unknown", "cancelled"]
+    execution_epoch: Annotated[int, Field(ge=1)]
+    state: Literal["retry_wait", "sent", "failed", "delivery_unknown", "cancelled"]
+    error_code: str | None = None
+    next_retry_at: Timestamp | None = None
 
 
 class HistorySyncPayload(DTO):

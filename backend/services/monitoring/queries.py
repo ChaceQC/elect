@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from services.common.runtime import side_effect_policy
 from services.common.sql import aware, first
 
 from .dto import Monitor
@@ -65,6 +66,7 @@ class MonitorQueries:
             config=self.config(row),
             state=row["state"],
             health=row["health"],
+            failed_cycles=row["failed_cycles"],
             version=row["version"],
             generation=row["generation"],
             current_run=await run_view(conn, current),
@@ -81,7 +83,8 @@ class MonitorQueries:
     async def notification(conn, row, mails):
         latest = await first(
             conn,
-            "SELECT s.state FROM alert_slots s JOIN alert_episodes e ON e.id=s.episode_id "
+            "SELECT s.state,s.last_error_code,s.next_retry_at FROM alert_slots s "
+            "JOIN alert_episodes e ON e.id=s.episode_id "
             "WHERE e.monitor_id=:id ORDER BY s.updated_at DESC,s.id DESC LIMIT 1",
             id=row["id"],
         )
@@ -97,12 +100,13 @@ class MonitorQueries:
         elif unknown["n"]:
             state = "delivery_unknown"
         return {
+            "delivery_enabled": side_effect_policy().real_smtp,
             "state": {"reserved": "pending", "authorized": "sending", "failed": "email_failed"}.get(
                 state, state
             ),
             "last_sent_at": aware(row["last_email_sent_at"]),
-            "last_error_code": None,
-            "next_retry_at": None,
+            "last_error_code": latest["last_error_code"] if latest else None,
+            "next_retry_at": aware(latest["next_retry_at"]) if latest else None,
             "in_flight_count": mails,
             "delivery_unknown_count": unknown["n"],
         }

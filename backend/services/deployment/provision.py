@@ -89,7 +89,7 @@ def keys_and_trust():
                     "room:query",
                     "room:balance-commit",
                 ],
-                "notification": ["monitor:authorize-send"],
+                "notification": ["monitor:authorize-send", "monitor:alert-read"],
             }.get(service, []),
         }
     return private, trust

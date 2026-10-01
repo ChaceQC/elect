@@ -49,7 +49,7 @@ def register(app, service):
 
 
 async def initialize(app, service):
-    if service in {"gateway", "identity", "room", "monitoring", "school_adapter"}:
+    if service in {"gateway", "identity", "room", "monitoring", "school_adapter", "notification"}:
         from .service_client import ServiceClient
 
         app.state.service_client = ServiceClient(app.state.runtime)
@@ -57,6 +57,17 @@ async def initialize(app, service):
         from services.monitoring.email_crypto import EmailCrypto
 
         app.state.email_crypto = EmailCrypto.load(os.environ["ELECT_EMAIL_KEY_FILE"])
+    if service == "notification":
+        from services.notification.email_crypto import EmailCrypto
+        from services.notification.smtp import SmtpConfig, SmtpTransport
+
+        from .runtime import side_effect_policy
+
+        app.state.email_crypto = EmailCrypto.load(os.environ["ELECT_EMAIL_KEY_FILE"])
+        app.state.smtp = (
+            SmtpTransport(SmtpConfig.load(os.environ["ELECT_SMTP_CONFIG_FILE"]))
+            if side_effect_policy().real_smtp else None
+        )
     if service == "identity":
         from services.identity.application.login import LoginSaga
         from services.identity.sessions import AppSessions

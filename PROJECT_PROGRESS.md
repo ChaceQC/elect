@@ -1,3 +1,44 @@
+## 2026-10-02 · T5 与 M2 完成
+
+### 已完成
+
+- T5-01..04、P6-01..05、F5 完整状态实现与必要验收完成，工程版本0.9.0；低余额次数/回差小步4b51314已提交推送。
+- Notification独立邮箱密钥/AAD、持久job/租约/epoch、固定Message-ID、每次当前许可、DATA前发送边界、三次有限重试与unknown占名额、Outbox/Inbox进度/结果镜像接通。
+- 前端展示SMTP接受/失败/重试时间/未知占次数、采集周期故障与取消在途；新增三个真实后台进程与最小队列/内部接口权限。
+- 真实本人学校验证码登录、B02新鲜采集到指定SMTP一封发送成功，job/Monitoring均sent且只一次attempt；用户于2026-10-02确认测试邮箱收到。临时阈值为真实余额加5.00元，总次数1，验收后原配置恢复并关闭。
+- 验证学校验证码：完全省略字段和有效uid留空答案均拒绝，正常验证码登录通过，保留原学校验证码链路。
+- 定位SMTP连接重置为Clash TUN的Match/PROXY路径；物理网卡直连TLS成功。真实验收用限定单SMTP端点、随机认证、单连接的临时CONNECT通道完成，结束自动关闭，未改系统代理。
+- email_auth.txt按五行格式仅由专用进程在内存解析；未直接查看、未进入Git/镜像。auth.txt权限保留600，凭据经匿名stdin进入验收容器，无明文副本或命令行凭据。
+
+### 进行中
+
+- T5实现与最终定向验证完成；本批提交推送dev，无业务实现待办。
+
+### 阻塞与风险
+
+- 无T5实施阻塞，真实SMTP与用户收件确认均通过。默认真实SMTP/学校写/支付仍关闭。
+- 普通直连TCP仍受本机TUN路由影响，本次临时通道不是生产网络配置；正式部署须提供可达SMTP网络或明确代理。
+- 本次真实内部联调为正式业务代码/实际MySQL与内部ASGI，未宣称公网完整部署/容量/集中故障演练；这些范围属T7。低余额通过临时提高阈值触发，不声称自然低余额周期。
+
+### 下一步
+
+- 按T6-01/P7-01实现支付capabilities与金额政策，再建立本地幂等订单/一次学校dispatch台账；真实支付开关继续保持false，未指定金额时不执行建单或付款。
+
+### 主要文件或模块
+
+- Monitoring alert_snapshot/delivery_reports/alert_recovery/permits，Notification connection/smtp/repository/worker/results/recovery/job/template，monitoring_0005、notification_0002。
+- 公共邮箱加密实现移入common，两个领域保留独立密钥/AAD；重构仅复用加密基础，控制许可、结果镜像和恢复仍分责。
+- Secret/队列/Compose、前端NotificationStatus/MonitorPage、T5验收/运行说明、学校验证码分类记录与所有受影响README/计划/契约/进度。
+
+### 验证
+
+- 事件增量实际MySQL、114项后端/空库及旧T1–T4故障回归已通过；遵循用户要求，此批未重复整套大型故障测试。
+- 此批后端ruff、23项定向契约/事件/凭据/Secret检查、公开/内部协议/七域目录一致性通过；前端5项定向组件、类型和生产构建通过。
+- t5_delivery_smoke验证SMTP接受/永久拒绝/临时重试、固定Message-ID、重复事件/job、双Worker、关闭零连接、DATA后断连/租约丢失unknown不重发，全部通过。
+- 独立真实MySQL/Redis/迁移和正式代码链路通过；分类证据docs/acceptance/school/T5-live-delivery.json，用户收件已确认，未输出学校/邮件地址或凭据。
+- 学校无验证码省略/空答案拒绝有分类证据；代理TUN路径失败、物理网卡TLS成功、临时通道真实单封SMTP接受均已验证。
+- 重建后Monitoring/Room/Notification、三个新增后台进程、Notification Relay和RabbitMQ定向健康检查通过；SMTP默认关闭。286项本地文档链接、shell语法、锁文件同步和git diff --check通过。
+
 ## 2026-10-01 · T5 事件规则完成
 
 ### 已完成

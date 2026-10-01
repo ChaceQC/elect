@@ -20,7 +20,7 @@ fault() {
 }
 compose run --rm --no-deps --user 0:0 --cap-add CHOWN --cap-add DAC_OVERRIDE \
   --entrypoint sh -v "$task_fault:/run/fault" smoke -c 'chgrp 10001 /run/fault'
-compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay
+compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay
 fault prepare
 compose stop redis
 fault redis-down

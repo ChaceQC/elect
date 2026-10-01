@@ -260,3 +260,7 @@ t4_run_routes:
   - {receiver: monitoring, callers: [gateway], scope: 'monitor:browser', path: /browser/cancel, request: 'schemas.json#/$defs/CancelRunQuery', response: '../openapi.yaml#/components/schemas/Run'}
   - {receiver: monitoring, callers: [gateway], scope: 'monitor:browser', path: /browser/samples, request: 'schemas.json#/$defs/SampleQuery', response: '../openapi.yaml#/components/schemas/Samples'}
   - {receiver: monitoring, callers: 内部服务, scope: 'foundation:read', path: /monitor/metrics, method: GET, request: 无, response: 调度/积压/租约/尝试计数，无用户标识}
+
+t5_delivery_routes:
+  - {receiver: monitoring, callers: [notification], scope: 'monitor:alert-read', path: /alert-slots/snapshot, request: 'schemas.json#/$defs/AlertSlotQuery', response: 'schemas.json#/$defs/AlertSnapshot'}
+  - {receiver: monitoring, callers: [notification], scope: 'monitor:authorize-send', path: /alert-slots/authorize-send, request: 'schemas.json#/$defs/AuthorizeSend', response: 'schemas.json#/$defs/SendPermit'}

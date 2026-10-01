@@ -23,7 +23,7 @@ SCOPES = {
         "room:query",
         "room:balance-commit",
     ],
-    "notification": ["monitor:authorize-send"],
+    "notification": ["monitor:authorize-send", "monitor:alert-read"],
 }
 
 
@@ -51,6 +51,8 @@ def upgrade(directory):
         for entry in value["trust_bundle"].values():
             entry["scopes"] = sorted(set(entry["scopes"] + SCOPES.get(entry["issuer"], [])))
         replace_secret(path, value)
+    from .notification_secrets import provision_notifications
+    provision_notifications(directory)
     definitions = directory / "rabbitmq_definitions.json"
     value = json.loads(definitions.read_text())
     for permission in value["topic_permissions"]:

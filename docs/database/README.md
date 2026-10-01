@@ -1,22 +1,22 @@
 # 数据结构与初始化
 
-更新日期：2026-10-01。七个库共有 51 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+更新日期：2026-10-02。七个库共有 52 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
 
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
 | Identity | elect_identity | identity_0003 | 7 |
 | School Adapter | elect_school | school_0005 | 9 |
 | Room | elect_room | room_0004 | 11 |
-| Monitoring | elect_monitoring | monitoring_0003 | 13 |
+| Monitoring | elect_monitoring | monitoring_0005 | 14 |
 | Payment | elect_payment | payment_0001 | 4 |
-| Notification | elect_notification | notification_0001 | 4 |
+| Notification | elect_notification | notification_0002 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
 
 [schema-catalog.json](schema-catalog.json)按迁移链导出当前 head 的列类型、null、主键、唯一键、CHECK、外键、生成列与查询索引。可执行定义在 backend/services/{domain}/migrations/versions/0001_initial.py；后续变更使用新 revision，不改已发布迁移。
 
 业务 ID 用 BINARY(16)，hash 用 BINARY(32)，UTC DATETIME(6)、Shanghai DATE、DECIMAL(14,2)/DECIMAL(18,4)。本库 FK 为 RESTRICT，不跨库 FK、不级联删除审计/任务历史。`created_at/updated_at` 有数据库默认值，后续写操作由领域服务更新 updated_at。
 
-关键约束包括：每用户一个 monitor/default preference、唯一计划 (monitor_id,generation,scheduled_for)、单 run 单成功 sample、唯一 episode/ordinal、单 alert_slot 单 notification_job、本用户/键唯一订单。生成列约束一个 open episode、一个未解决目标绑定、一个并行默认切换及同用户/绑定一笔未解决订单。CHECK 固定状态枚举、正版本、整数间隔与次数；绑定默认采用复合外键保护本人归属，active 状态仍需领域事务校验。
+关键约束包括：每用户一个 monitor/default preference、唯一计划 (monitor_id,generation,scheduled_for)、单 run 单成功 sample、唯一 episode/有效 ordinal、单 alert_slot 单 notification_job、本用户/键唯一订单。生成列约束一个 open episode、一个未解决目标绑定、一个并行默认切换及同用户/绑定一笔未解决订单。CHECK 固定状态枚举、正版本、整数间隔与次数；绑定默认采用复合外键保护本人归属，active 状态仍需领域事务校验。
 
 新增 schedule_anchor_at、run.version、history_sync_windows、credential_operations、control_operations、payment_sessions 和持久快照成员表，覆盖状态恢复与联调字段。current_run/current_episode/last_sample 的循环引用在表创建后建立本库外键。
 
@@ -39,3 +39,5 @@ T3 第一批 monitoring_0002 增加 monitors.preference_version、credential_ope
 T4新增monitoring_0004：monitor_samples.capture_interval_minutes及60..1440的nullable约束；已有历史保留，新增成功样本保存实际采集间隔。快照成员沿用已有表，未删除历史或新增跨域外键。
 
 T5 monitoring_0005 增加有效序号唯一键（取消/明确失败可释放）、投递状态镜像字段、failed_cycles 与 monitor_fault_episodes。低余额与采集故障使用不同计数，故障事件按 monitor 的打开状态唯一约束。
+
+T5 notification_0002 为 job 保存正文白名单快照、body_started_at 和 reported_version；邮箱只保存在本域密文，不将正文、地址或 SMTP 凭据放入 MQ。

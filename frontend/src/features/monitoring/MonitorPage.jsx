@@ -5,6 +5,7 @@ import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useSession } from '../auth/SessionProvider.jsx'
 import { draftFrom, parseDraft } from './draft.js'
 import { RunControls } from './RunControls.jsx'
+import { NotificationStatus } from './NotificationStatus.jsx'
 
 /** @typedef {import('./draft.js').Monitor} Monitor */
 /** @typedef {{draft: import('./draft.js').Draft, baseline: import('./draft.js').Draft,
@@ -70,10 +71,11 @@ export function MonitorPage() {
   }
   const states = { active: '已启用', disabled: '已关闭', requires_reauth: '需要修复学校认证', blocked_room: '需要有效默认寝室', retargeting: '默认寝室切换中' }
   const health = { healthy: '正常', degraded: '部分异常', unavailable: '当前不可用' }
-  const mails = { idle: '暂无发送', pending: '等待发送', sending: '发送中', sent: '已发送', email_failed: '发送失败', delivery_unknown: '投递结果未知', cancelled: '已取消' }
   return <><p className="eyebrow">我的寝室生活</p><h1>监控提醒</h1>
     <p className="page-description">设置跟随默认寝室，关闭监控会保留历史。退出网页与撤回学校授权具有不同作用。</p>
-    <StatusBlock title="后台采集与邮件提醒"><p>监控按已保存设置在后台采集余额，关闭后保留历史。低余额邮件暂未开放。</p></StatusBlock>
+    <StatusBlock title="后台采集与邮件提醒"><p>监控按已保存设置在后台采集余额，余额严格低于阈值时提醒；总次数包含第一封。关闭后保留历史，退出应用不会关闭监控。</p>
+      {current && !current.notification.delivery_enabled && <p>当前邮件发送未启用，可保存设置；启用后的投递结果会显示在下方。</p>}
+    </StatusBlock>
     {query.isPending && <StatusBlock title="正在读取监控设置…" />}
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '重新读取', onClick: () => { void query.refetch() } }} />}
     {error && <StatusBlock title={error} error />}{notice && <p role="status">{notice}</p>}
@@ -81,11 +83,11 @@ export function MonitorPage() {
       <p>控制状态：{states[current.state]} · 采集健康：{health[current.health]}</p>
       <p>采集间隔 {current.config.interval_minutes} 分钟 · 提醒总次数 {current.config.repeat_limit}（包含第一次）· 阈值 {current.config.threshold} 元</p>
       <p>提醒邮箱：{current.config.email ?? '未设置'} · 最近成功采集：{when(current.last_success_at)} · 下一计划时间：{when(current.next_run_at)}</p>
-      <p>邮件状态：{mails[current.notification.state]} · 在途工作 {current.in_flight_count} 项</p>
+      <NotificationStatus notification={current.notification} />
+      <p>在途工作 {current.in_flight_count} 项</p>
       {current.last_error_code && <p>最近采集错误：{current.last_error_code}</p>}
-      {current.notification.last_error_code && <p>最近邮件错误：{current.notification.last_error_code}</p>}
-      {current.notification.next_retry_at && <p>邮件下次重试：{when(current.notification.next_retry_at)}</p>}
-      {(current.cancel_pending || current.in_flight_count > 0) && <p>取消正在确认；已获发送许可的在途邮件可能完成。</p>}
+      {(current.failed_cycles ?? 0) > 3 && <p role="alert">已连续 {current.failed_cycles} 个采集周期失败，请修复最近采集错误；该故障不消耗低余额提醒次数。</p>}
+      {current.cancel_pending && <p>取消正在确认；已获发送许可的在途邮件可能完成。</p>}
       <button className="quiet" disabled={busy} onClick={() => { void save(true) }}>关闭监控</button>
       <button className="quiet" disabled={busy || query.isFetching} onClick={() => { void query.refetch() }}>读取最新设置</button>
     </section>}

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-02",
+  "source": "正式业务代码/实际MySQL/内部ASGI/真实学校B02/真实SMTP",
+  "scope": "仅一个指定收件人一次投递，学校只读，临时验收阈值高于实际余额",
+  "stage": "smtp_delivery",
+  "school_login_with_captcha": "passed",
+  "real_B02_fresh_sample": "passed",
+  "smtp_result": "sent",
+  "smtp_attempt_count": 1,
+  "smtp_error_code": null,
+  "monitoring_result": "sent",
+  "actual_recipient_scope": "email_auth.txt指定的唯一测试收件人",
+  "inbox_received": "confirmed_by_user",
+  "automatic_resend": false,
+  "result": "passed",
+  "monitor_configuration_restored": true,
+  "receipt_confirmation_date": "2026-10-02",
+  "smtp_network": "临时认证HTTP CONNECT通道，仅指定SMTP端点，物理网卡直连，TLS校验保持开启"
+}
