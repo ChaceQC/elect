@@ -1,3 +1,42 @@
+## 2026-10-02 · 本机私网部署与HTTP登录修复（0.13.0）
+
+### 已完成
+
+- 按用户要求建立独立 elect-local 本机部署，入口仅为 http://10.8.0.88:6874；暂不配置域名或入口证书，内部TLS保留。生成新受限Secret、七域空库和独立持久卷，未导入合成业务数据。
+- 增加显式私网HTTP模式、精确IPv4/端口Origin校验、独立HTTP会话/nonce Cookie及Nginx Host限制；HTTPS保留原Cookie和证书预检。小网段避免历史验收网络耗尽默认地址池。
+- 用户指定使用email_auth.txt；由专用进程内存解析并导入SMTP Secret，本机明确开启SMTP。普通连接被透明代理重置，物理网卡直连/TLS通过；常驻认证通道只接受指定SMTP目标，监听Docker网桥，SMTP密码仅给Notification，不改变全局代理。
+- 用户反馈登录页不可用，生产HTTP浏览器复现crypto.randomUUID缺失，修复请求/幂等意图/快照修订为安全getRandomValues UUID v4回退，重建并部署前端。真实学校验证码登录、本人绑定读取、四页×桌面/手机、刷新会话、Origin/CSRF和双标签页退出全部通过。
+- 用户绑定页反馈后，本机Room/Adapter/Worker明确开启新增/解绑写开关，仍由用户在页面确认目标后执行。修复503 FEATURE_DISABLED明确未受理仍留恢复记录的问题，增加停止单条历史本地重试（不发学校请求/不撤销学校受理）；依赖503/网络未知继续保留原键。
+- 停止已完成的T7合成源/隔离恢复长期容器释放本机资源，保留全部卷和原真实T6项目/订单记录。定向SMTP通道改用轻量标准库健康探针，避免低CPU限额下导入业务依赖导致探针超时。
+- 同步README、AGENTS、前后端/部署README、公开Cookie契约/版本、架构、部署与邮件运行说明；本机凭据、env、Secret、验证码/OCR产物不提交。
+
+### 进行中
+
+- 本机部署交付与定向验证已完成；T6真实D02自动终态、生产异机/PITR和T8发布按原计划继续。
+
+### 阻塞与风险
+
+- 本机部署无阻塞。域名/入口证书按用户要求暂不配置，HTTP只用于指定私网入口；根据用户绑定页反馈，本机启用页面确认后的新增/解绑；支付写和支付验收标志仍关闭。
+- 用户指出手动余额刷新SCHOOL_INVALID_RESPONSE并确认属于学校错误；该次余额读取未成功，保留未知/最近成功数据，不将页面和登录通过称为本次新鲜余额通过。学校返回有效数据后的余额复核另行记录。
+- 本轮SMTP验证到连接/最终TLS/账号认证，没有自动发送正文，不替代T5服务器接受或最终收件证据。真实D02仍待验，不将此前1元到账当作自动终态证据。
+
+### 下一步
+
+- 只读核对本人1元原订单的D02/D04关联与真实终态映射，取得证据后补齐支付验收；T8前配置异机备份/PITR和发布回滚清单。
+
+### 主要文件或模块
+
+- deploy/compose.local.yaml、compose.smtp-direct.yaml、.env.local.example、nginx/local.conf.template；common/runtime、gateway/cookies/api/query_api、deployment/email_auth/configure_smtp/smtp_direct_proxy。
+- frontend/lib/uuid、API客户端/意图/采集快照、local-browser专用脚本及HTTP回归；docs/runbooks/本机私网部署.md、docs/acceptance/local-deploy/及受影响契约/文档/锁文件。
+
+### 验证
+
+- 后端ruff、166项测试通过/1项专用MySQL测试跳过，17项新增覆盖HTTP授权/Origin、两种Cookie实际登录/CSRF/退出和SMTP目标/认证/Secret。协议/数据库目录/公开契约检查通过。
+- 前端lint/typecheck/47项单元组件/契约类型通过；Docker生产构建成功，HTTP浏览器验证四页×1440/375px、真实学校验证码登录/绑定读取、会话恢复/双标签页退出、跨来源/缺CSRF403和0页面异常；最终复验含历史本地重试停止，实际学校绑定POST为0，无API mock或测试触发的真实学校写入。
+- 首次浏览器检查定位HTTP随机ID故障后修复；下一次脚本能力检查遗漏必需binding_id，修正验收请求参数后最终整套通过，未放宽业务校验。
+- 31个长期服务全部healthy，七域迁移成功；Nginx语法/入口/healthz/登录协议200。Compose唯一发布10.8.0.88:6874→80，Nginx无入口证书挂载；127.0.0.1及两个物理网卡IPv4的6874连接均被拒绝。
+- 由真实Notification Worker配置连接指定SMTP，物理网卡定向通道、最终证书TLS和AUTH认证通过，QUIT结束，message_sent=false；没有关闭TLS验证或输出密码/完整邮件地址。
+
 ## 2026-10-02 · T7集中验证与恢复交付
 
 ### 已完成

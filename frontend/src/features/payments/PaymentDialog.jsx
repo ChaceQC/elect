@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Decimal from 'decimal.js'
 import { ApiError, apiClient } from '../../api/client.js'
+import { isFeatureRejected } from '../../api/intents.js'
 import { Modal } from '../../components/Modal.jsx'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
@@ -40,7 +41,7 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
     } catch (cause) {
       if (cause instanceof ApiError && cause.existingOperationId) setOrderId(cause.existingOperationId)
       else setError(cause instanceof ApiError ? cause.message : '订单受理未确认，请保留原请求并查询。')
-      if (cause instanceof ApiError && [400, 403, 404, 422].includes(cause.status)) {
+      if (isFeatureRejected(cause) || cause instanceof ApiError && [400, 403, 404, 422].includes(cause.status)) {
         controller.forget(request.key); setFrozen(null)
       }
       void capability.refetch()

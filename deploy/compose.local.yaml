@@ -1,0 +1,26 @@
+# 显式私网 HTTP 部署；与 compose.yaml 合用，内部服务 TLS 保留。
+services:
+  nginx:
+    ports: !override
+      - "${ELECT_HTTP_BIND:?set-private-http-ip}:${ELECT_HTTP_PORT:?set-http-port}:80"
+    environment:
+      ELECT_HTTP_BIND: ${ELECT_HTTP_BIND}
+      ELECT_HTTP_PORT: ${ELECT_HTTP_PORT}
+      NGINX_ENVSUBST_FILTER: "^ELECT_HTTP_(BIND|PORT)$$"
+    volumes: !override
+      - ./nginx/local.conf.template:/etc/nginx/templates/default.conf.template:ro
+    secrets: !reset []
+    depends_on: !override
+      gateway: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -q, --spider, "--header=Host: ${ELECT_HTTP_BIND}:${ELECT_HTTP_PORT}", "http://127.0.0.1/healthz"]
+  tls-check:
+    profiles: [tls]
+
+# 固定的小网段避免本机历史验收项目耗尽 Docker 默认地址池。
+networks:
+  edge: {ipam: {config: [{subnet: "${ELECT_LOCAL_EDGE_SUBNET:-10.240.0.0/24}"}]}}
+  app: {ipam: {config: [{subnet: "${ELECT_LOCAL_APP_SUBNET:-10.240.1.0/24}"}]}}
+  data: {ipam: {config: [{subnet: "${ELECT_LOCAL_DATA_SUBNET:-10.240.2.0/24}"}]}}
+  school_egress: {ipam: {config: [{subnet: "${ELECT_LOCAL_SCHOOL_SUBNET:-10.240.3.0/24}"}]}}
+  notification_egress: {ipam: {config: [{subnet: "${ELECT_LOCAL_NOTIFICATION_SUBNET:-10.240.4.0/24}"}]}}

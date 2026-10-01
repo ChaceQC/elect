@@ -11,6 +11,17 @@ const user = '0199a10c-0000-7000-8000-000000000001'
 const order = '0199a10c-0000-7000-8000-000000000002'
 beforeEach(() => sessionStorage.clear())
 
+it.each(['FEATURE_DISABLED', 'DEPENDENCY_UNAVAILABLE'])('503 %s按受理事实区分拒绝与未知', async code => {
+  const fetcher = vi.fn().mockResolvedValue(Response.json({ error: { code, message: 'test' },
+    meta: { request_id: user } }, { status: 503 }))
+  const controller = new OperationController(user, new ApiClient(fetcher))
+  const intent = controller.create('/room-bindings', { candidate_id: 'synthetic-candidate' })
+  await expect(controller.submit(intent)).rejects.toMatchObject({ code })
+  const restored = new OperationController(user, controller.client).restore()
+  if (code === 'FEATURE_DISABLED') expect(restored).toEqual([])
+  else expect(restored.map(value => value.key)).toEqual([intent.key])
+})
+
 it('删除恢复保持DELETE方法与原幂等键，网络响应丢失不生成新目标', async () => {
   const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('network'))
     .mockResolvedValue(Response.json({ data: { operation_id: order, state: 'accepted', poll_url: `/api/v1/operations/${order}` },

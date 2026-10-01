@@ -1,4 +1,5 @@
 import { calibrateTime } from '../lib/dates.js'
+import { randomId } from '../lib/uuid.js'
 
 /** @typedef {{request_id: string, server_time?: string}} Meta */
 /** @typedef {{retryable?: boolean, retry_after_seconds?: number|null, requires_reauth?: boolean,
@@ -89,7 +90,7 @@ export class ApiClient {
     const method = (options.method ?? 'GET').toUpperCase()
     const headers = new Headers(options.headers)
     headers.set('Accept', 'application/json')
-    headers.set('X-Request-ID', crypto.randomUUID())
+    headers.set('X-Request-ID', randomId())
     if (options.body !== undefined) headers.set('Content-Type', 'application/json')
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && this.csrfToken) {
       headers.set('X-CSRF-Token', this.csrfToken)

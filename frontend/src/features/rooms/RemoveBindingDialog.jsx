@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { ApiError } from '../../api/client.js'
+import { isFeatureRejected } from '../../api/intents.js'
 import { Modal } from '../../components/Modal.jsx'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
@@ -24,7 +25,7 @@ export function RemoveBindingDialog({ binding, isDefault, onClose, onAccepted })
       if (cause instanceof ApiError && cause.existingOperationId) {
         onAccepted(cause.existingOperationId); onClose()
       } else setError(cause instanceof Error ? cause.message : '删除受理尚未确认，请查询原操作。')
-      if (cause instanceof ApiError && [400, 403, 404, 409, 422].includes(cause.status) && intent.current) {
+      if ((isFeatureRejected(cause) || cause instanceof ApiError && [400, 403, 404, 409, 422].includes(cause.status)) && intent.current) {
         controller.forget(intent.current.key); intent.current = null
       }
     } finally { submitting.current = false }

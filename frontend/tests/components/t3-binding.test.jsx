@@ -5,7 +5,9 @@ import { setupServer } from 'msw/node'
 import { AppProviders } from '../../src/app/providers.jsx'
 import { BindingDialog } from '../../src/features/rooms/BindingDialog.jsx'
 import { RoomOperationStatus } from '../../src/features/rooms/RoomOperationStatus.jsx'
+import { BindingRecovery } from '../../src/features/rooms/BindingRecovery.jsx'
 import { apiClient } from '../../src/api/client.js'
+import { OperationController } from '../../src/api/intents.js'
 import { envelope, me } from '../fixtures/t2.js'
 
 const id = '01970cf0-1234-7000-8000-000000000002'
@@ -13,6 +15,36 @@ const server = setupServer(http.get('/api/v1/auth/me', () => HttpResponse.json(e
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => { cleanup(); server.resetHandlers(); apiClient.reset(); sessionStorage.clear() })
 afterAll(() => server.close())
+
+it('功能关闭的503是明确未受理，弹窗与刷新恢复不会留下待确认请求', async () => {
+  server.use(http.post('/api/v1/room-bindings', () => HttpResponse.json({
+    error: { code: 'FEATURE_DISABLED', message: '新增学校绑定尚未开放' }, meta: envelope(null).meta,
+  }, { status: 503 })))
+  render(<AppProviders><BindingDialog candidate={{ candidate_id: 'closed-candidate', room_id: 'r402',
+    building: '合成楼', number: '402', display_name: '合成楼-402', already_bound: false,
+    expires_at: new Date(Date.now() + 300_000).toISOString() }} onClose={vi.fn()} onAccepted={vi.fn()} />
+    <BindingRecovery onAccepted={vi.fn()} /></AppProviders>)
+  await waitFor(() => expect(apiClient.csrfToken).toBe(me.csrf_token))
+  fireEvent.click(screen.getByRole('button', { name: '确认绑定' }))
+  await screen.findByText('新增学校绑定尚未开放')
+  expect(screen.getByRole('button', { name: '确认绑定' })).toBeEnabled()
+  expect(screen.queryByText('有一笔学校绑定受理尚未确认')).not.toBeInTheDocument()
+  expect(new OperationController(me.id).restore()).toEqual([])
+})
+
+it('停止一条历史本地重试不发送学校请求，其他未知请求继续保留', async () => {
+  const controller = new OperationController(me.id)
+  controller.create('/room-bindings', { candidate_id: 'old-candidate-one' })
+  const other = controller.create('/room-bindings', { candidate_id: 'old-candidate-two' })
+  const writes = vi.fn()
+  server.use(http.post('/api/v1/room-bindings', () => { writes(); return HttpResponse.error() }))
+  render(<AppProviders><BindingRecovery onAccepted={vi.fn()} /></AppProviders>)
+  await screen.findAllByText('有一笔学校绑定受理尚未确认')
+  fireEvent.click(screen.getAllByRole('button', { name: '停止本地重试' })[0])
+  await screen.findByText('已停止本地重试；学校请求仍可能已受理，请同步学校绑定核对。')
+  expect(writes).not.toHaveBeenCalled()
+  expect(new OperationController(me.id).restore().map(value => value.key)).toEqual([other.key])
+})
 
 it('慢响应和重复点击只受理一次，目标在弹窗中冻结', async () => {
   let release = /** @type {(()=>void)|null} */ (null)

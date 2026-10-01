@@ -53,7 +53,7 @@ T3 控制事务和内部 retarget 协议见 [第一批决策](decisions/T3监控
 - backend/Dockerfile 安装 Python 锁定依赖；API、Scheduler、Worker、Relay、恢复器与一次性作业均在容器中运行。
 - MySQL、Redis、RabbitMQ 为 Compose 服务，使用命名卷保存必要状态。
 - deploy/.env 配置 ELECT_DOMAIN、ELECT_TLS_CERT_FILE、ELECT_TLS_KEY_FILE；证书链和私钥通过只读 Secret 挂载。
-- Nginx 唯一发布 80/443；HTTPS 域名、后端可信 Origin 与邮件站内链接使用同一配置。
+- 默认 HTTPS 模式由 Nginx 发布 80/443；显式本机 HTTP 模式只发布指定 IPv4/端口。后端可信 Origin 与邮件站内链接使用同一配置。
 
 具体配置和目标命令见 [Docker 部署配置说明](Docker部署配置说明.md)。Dockerfile 已建立，Compose 与公共运行设施已建立；T2 认证与本人读取已经接入，其他业务按阶段实施。
 
@@ -78,3 +78,5 @@ T6-01..03已实现并通过合成验证；[T6验收](acceptance/T6验收记录.m
 T7集中验收进行中，部署证书步骤按用户要求跳过，见[T7决策](decisions/T7集中验收与恢复.md)。0.11.0增加本地取消与指定1元验收：用户付款和B02增加1.00元已确认，D02业务500仍不自动映射已支付，见[T6记录](acceptance/T6验收记录.md)。
 
 T7本轮验收与运维入口见[T7记录](acceptance/T7验收记录.md)、[备份恢复](runbooks/备份恢复与隔离对账.md)、[运行状态](runbooks/运行状态与容量.md)；部署证书步骤跳过，生产异机/PITR与自动支付终态仍未验收。
+
+0.13.0本机私网HTTP与指定SMTP部署见[运行说明](runbooks/本机私网部署.md)，本轮入口10.8.0.88:6874、域名/入口证书跳过，内部TLS保留。

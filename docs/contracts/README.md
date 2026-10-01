@@ -1,12 +1,12 @@
 # API 契约
 
-当前版本：0.12.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.13.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
 
 ## 公开 API
 
 [openapi.yaml](openapi.yaml)包含全部 34 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
 
-- 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。
+- 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。显式私网 HTTP 模式使用 elect_session_local/elect_browser_local（HttpOnly/SameSite=Lax/Path=/、不设 Domain）；模式由服务端校验的 Origin 决定，Origin/CSRF 与归属校验保留。
 - 匿名验证码/登录使用浏览器 nonce、Origin 与限流；已有会话的重认证还要校验当前会话与 CSRF，登录接口不得静默切账号，账号不同返回 `409 REAUTH_ACCOUNT_MISMATCH`。
 - 受保护写请求使用 Origin 和内存 `X-CSRF-Token`；每次实时 introspection，依赖不可用时拒绝新写入。对象不属于本人返回不可枚举 404。
 - 成功信封为 data/meta；失败为 error/meta，meta 包含 request_id 与带时区 server_time；logout 204 无正文。429 使用 Retry-After，错误中 retry_after_seconds 表达相同等待期。
@@ -80,3 +80,7 @@ T6后续接通原订单QR/qr-refresh和三域operation查询。QR 200仅image/pn
 ## 支付本地取消
 
 `POST /payment-orders/{id}/cancel` 使用本人Cookie、Origin、CSRF与 `expected_version`，返回含 `version/cancel_pending/cancelled_at` 的 Order；订单ID使重复取消返回原结果，不需要新的幂等键。缺版本428、冲突409、跨用户404；已确认付款不能取消。取消停止本系统执行，不撤销学校订单或退款，不删除D01/E02/E03台账。未取得许可的后续发送被阻断；已有运行等待原租约安全边界结束，随后释放未解决槽。旧键仍返回原订单，不重新派发；二维码读取/刷新拒绝取消订单。学校只读核对仍可记录原订单真实终态。
+
+## 本机受理拒绝与本地重试
+
+FEATURE_DISABLED即使返回503也表示该功能未受理，客户端清理该未受理意图及弹窗冻结状态；DEPENDENCY_UNAVAILABLE/网络超时保留原幂等请求。历史无操作ID的绑定/删除恢复记录可由用户停止本地重试，仅移除浏览器那一条记录，不发学校请求、不撤销服务端/学校受理，其他未知记录和服务端进度继续保留。

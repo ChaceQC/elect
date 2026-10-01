@@ -1,4 +1,5 @@
-import { apiClient } from './client.js'
+import { ApiError, apiClient } from './client.js'
+import { randomId } from '../lib/uuid.js'
 
 /** @typedef {'operation'|'run'|'order'} ResourceKind */
 /** @typedef {Record<string,string|number|boolean|null>} SafeBody */
@@ -12,6 +13,11 @@ const safePath = /^\/(room-bindings(?:\/sync|\/[0-9a-f-]{36}\/(?:balance-refresh
 const deletePath = /^\/room-bindings\/[0-9a-f-]{36}$/i
 /** @param {string} path @param {string} [method] */
 const safeRequest = (path, method = 'POST') => method === 'DELETE' ? deletePath.test(path) : method === 'POST' && safePath.test(path)
+
+/** @param {unknown} error */
+export function isFeatureRejected(error) {
+  return error instanceof ApiError && error.code === 'FEATURE_DISABLED' && !error.existingOperationId
+}
 
 function availableStorage() {
   try { return sessionStorage } catch { return null }
@@ -67,7 +73,7 @@ export class OperationController {
   /** @param {string} path @param {SafeBody} [body] @param {ResourceKind} [kind] @param {'POST'|'DELETE'} [method] */
   create(path, body = {}, kind = 'operation', method = 'POST') {
     if (!safeRequest(path, method)) throw new Error('仅登记的幂等接口可保存重试请求')
-    return this.remember(Object.freeze({ key: crypto.randomUUID(), path, body: sanitize(body), kind, method,
+    return this.remember(Object.freeze({ key: randomId(), path, body: sanitize(body), kind, method,
       id: null, createdAt: Date.now() }))
   }
 
@@ -83,8 +89,14 @@ export class OperationController {
 
   /** @param {Intent} intent */
   async send(intent) {
-    const result = await this.client.request(intent.path, { method: intent.method ?? 'POST', body: intent.method === 'DELETE' ? undefined : intent.body,
-      headers: { 'Idempotency-Key': intent.key } })
+    let result
+    try {
+      result = await this.client.request(intent.path, { method: intent.method ?? 'POST', body: intent.method === 'DELETE' ? undefined : intent.body,
+        headers: { 'Idempotency-Key': intent.key } })
+    } catch (error) {
+      if (isFeatureRejected(error)) this.forget(intent.key)
+      throw error
+    }
     const field = { operation: 'operation_id', run: 'run_id', order: 'order_id' }[intent.kind]
     const id = result.data?.[field]
     if (result.status !== 202 || typeof id !== 'string' || !UUID.test(id)) throw new Error('操作未返回有效受理标识')
@@ -121,7 +133,7 @@ export class OperationController {
     const recovered = this.restore()
     for (const id of ids) {
       if (!UUID.test(id) || recovered.some(item => item.id === id && item.kind === kind)) continue
-      recovered.push(this.remember({ key: crypto.randomUUID(), path: '', body: {}, kind, id, createdAt: Date.now() }))
+      recovered.push(this.remember({ key: randomId(), path: '', body: {}, kind, id, createdAt: Date.now() }))
     }
     return recovered
   }

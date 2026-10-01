@@ -32,3 +32,5 @@ T5新增 monitor-alerts、notification-worker、notification-recovery，长期�
 0.11.0新增payment_0004和本人支付取消，仍为30个长期服务；保留原Secret/卷，先迁移再重建Payment/Gateway和两个支付后台进程。独立测试端口可通过ELECT_TEST_HTTP_PORT/ELECT_TEST_HTTPS_PORT覆盖，不停止原项目。
 
 0.12.0交付T7集中回归、加密备份/隔离恢复、运行状态和模拟容量入口；证书部署/更换按用户要求跳过。完整范围与未验事项见 [T7验收](../docs/acceptance/T7验收记录.md)。
+
+本机私网部署使用 `.env.local`、`compose.yaml` 和 `compose.local.yaml`，只发布指定 `10.8.0.88:6874`，暂不配置入口域名/证书；本机SMTP代理问题由 `compose.smtp-direct.yaml` 定向直连解决。首次Secret/邮件导入、显式开关与启停见[本机私网部署](../docs/runbooks/本机私网部署.md)。

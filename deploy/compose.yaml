@@ -16,7 +16,10 @@ x-python: &python
   networks: [app, data]
   environment: &runtime-env
     ELECT_RUNTIME_FILE: /run/secrets/runtime
-    ELECT_PUBLIC_ORIGIN: https://${ELECT_DOMAIN:?set-domain}
+    ELECT_PUBLIC_ORIGIN: ${ELECT_PUBLIC_ORIGIN:-https://${ELECT_DOMAIN:-}}
+    ELECT_ALLOW_LOCAL_HTTP: ${ELECT_ALLOW_LOCAL_HTTP:-false}
+    ELECT_HTTP_BIND: ${ELECT_HTTP_BIND:-}
+    ELECT_HTTP_PORT: ${ELECT_HTTP_PORT:-}
     ELECT_ALLOW_SCHOOL_BINDING_WRITES: ${ELECT_ALLOW_SCHOOL_BINDING_WRITES:-false}
     ELECT_ALLOW_PAYMENT_ORDER_WRITES: ${ELECT_ALLOW_PAYMENT_ORDER_WRITES:-false}
     ELECT_ALLOW_PAYMENT_FORM_WRITES: ${ELECT_ALLOW_PAYMENT_FORM_WRITES:-false}
@@ -61,7 +64,7 @@ services:
     cap_drop: [ALL]
     cap_add: [NET_BIND_SERVICE, SETUID, SETGID, CHOWN]
     environment:
-      ELECT_DOMAIN: ${ELECT_DOMAIN:?set-domain}
+      ELECT_DOMAIN: ${ELECT_DOMAIN:-}
       NGINX_ENVSUBST_FILTER: "^ELECT_DOMAIN$$"
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
@@ -91,7 +94,7 @@ services:
     cpus: 0.5
     logging: *logging
     user: "0:0"
-    environment: {ELECT_DOMAIN: "${ELECT_DOMAIN:?set-domain}"}
+    environment: {ELECT_DOMAIN: "${ELECT_DOMAIN:-}"}
     secrets: [tls_cert, tls_key]
     command: [python, -m, services.deployment.check_tls]
 
@@ -412,8 +415,8 @@ secrets:
   redis_probe: {file: "${ELECT_SECRETS_DIR}/redis_probe"}
   rabbitmq_conf: {file: "${ELECT_SECRETS_DIR}/rabbitmq.conf"}
   rabbitmq_definitions: {file: "${ELECT_SECRETS_DIR}/rabbitmq_definitions.json"}
-  tls_cert: {file: "${ELECT_TLS_CERT_FILE:?set-fullchain-path}"}
-  tls_key: {file: "${ELECT_TLS_KEY_FILE:?set-private-key-path}"}
+  tls_cert: {file: "${ELECT_TLS_CERT_FILE:-/dev/null}"}
+  tls_key: {file: "${ELECT_TLS_KEY_FILE:-/dev/null}"}
   internal_ca: {file: "${ELECT_SECRETS_DIR}/internal_ca.pem"}
   identity_tls_cert: {file: "${ELECT_SECRETS_DIR}/identity_tls_cert.pem"}
   identity_tls_key: {file: "${ELECT_SECRETS_DIR}/identity_tls_key.pem"}

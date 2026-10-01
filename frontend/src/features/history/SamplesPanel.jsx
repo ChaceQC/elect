@@ -4,13 +4,14 @@ import { apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { timestampLabel } from '../../lib/dates.js'
 import { moneyLabel } from '../../lib/money.js'
+import { randomId } from '../../lib/uuid.js'
 import { useSession } from '../auth/SessionProvider.jsx'
 
 /** @param {{bindingId: string, range: import('./DateRangePicker.jsx').Range, page: number, onPageChange: (page: number)=>void}} props */
 export function SamplesPanel({ bindingId, range, page, onPageChange }) {
   const { user } = useSession()
   const [snapshot, setSnapshot] = useState(/** @type {string|null} */ (null))
-  const [revision, setRevision] = useState(() => crypto.randomUUID())
+  const [revision, setRevision] = useState(() => randomId())
   const query = useQuery({ queryKey: ['samples', user?.id, bindingId, range, revision, page], enabled: !!user,
     queryFn: async ({ signal }) => {
       let token = snapshot
@@ -26,7 +27,7 @@ export function SamplesPanel({ bindingId, range, page, onPageChange }) {
   const quality = { balance_only: '本次仅采集余额', meter_not_realtime: '学校日记录（非实时）', meter_inconsistent: '读数与学校用量不一致', meter_negative_delta: '读数差为负，请核对换表或回绕' }
   useEffect(() => { if (samples) setSnapshot(samples.snapshot_token) }, [samples])
   useEffect(() => { if (samples && page > Math.max(1, Math.ceil(samples.total / samples.page_size))) onPageChange(Math.max(1, Math.ceil(samples.total / samples.page_size))) }, [samples, page, onPageChange])
-  function reset() { onPageChange(1); setSnapshot(null); setRevision(crypto.randomUUID()) }
+  function reset() { onPageChange(1); setSnapshot(null); setRevision(randomId()) }
   return <section className="data-card"><h2>监控采集记录</h2>
     <p className="muted">余额变化为本次减上次，包含充值等变化。电表读数按学校记录日展示。</p>
     <button className="quiet" onClick={reset}>读取最新采集记录</button>

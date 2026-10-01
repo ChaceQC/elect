@@ -19,7 +19,7 @@ uv run python -m scripts.schema_catalog --check
 uv run python -m scripts.migrations --domain all --sql --output-dir /tmp/elect-ddl
 ```
 
-配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。`docker build -t elect-backend:v0.12.0 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。T2 认证/读取及 T3 监控配置/撤回路由已接通；后续阶段入口返回 FEATURE_DISABLED。
+配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。`docker build -t elect-backend:v0.13.0 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。T2 认证/读取及 T3 监控配置/撤回路由已接通；后续阶段入口返回 FEATURE_DISABLED。
 
 容器检查在仓库根执行 `sh deploy/check.sh`，全新一次性集成使用 `sh deploy/test-stack.sh /absolute/new-directory elect-test-name`，包含 T2 合成上游、T3 控制及凭据/发送许可竞态检查，不调用真实学校或 SMTP。显式真实学校烟测独立执行，不进入 CI。Room 默认受理/恢复/补偿与首次同步默认初始化已接通；scripts.t3_default_smoke 验证响应丢失、迟到租约、目标失效和切换中关闭。绑定已实现幂等台账/一次 dispatch/B02 回查及默认子操作，三级筛选与本人 Binding 读取已接通；指定目标真实新增已通过 [绑定验收](../docs/acceptance/T3绑定与界面验收记录.md)。删除已接通单次 POST 方法覆盖/两次缺席/默认清空屏障与租约证明，指定同一目标真实删除通过 [删除验收](../docs/acceptance/T3删除绑定验收记录.md)。M1 已完成；真实采集/邮件/支付进入 T4/T5/T6。
 
@@ -36,3 +36,5 @@ T5/P6 已完成，版本0.9.0，head 为 monitoring_0005、notification_0002。�
 0.10.0接通T6能力/幂等订单、Adapter D01及E01–E04、本人图片、持久Worker/恢复器和D02/D04安全回查。新增school_0006、payment_0002/0003。`scripts.t6_smoke`使用实际MySQL与合成学校验证一次发送、并发/未知屏障与迟到租约；精确状态映射仍为空，真实支付未验收，默认关闭。见[T6决策](../docs/decisions/T6支付与二维码.md)。
 
 0.12.0交付T7集中回归、加密备份/隔离恢复、运行状态和模拟容量入口；证书部署/更换按用户要求跳过。完整范围与未验事项见 [T7验收](../docs/acceptance/T7验收记录.md)。
+
+0.13.0增加显式私网HTTP部署、对应会话Cookie和安全随机UUID兼容、用户指定SMTP Secret导入及物理网卡定向出口；部署与验证范围见[本机私网部署](../docs/runbooks/本机私网部署.md)。
