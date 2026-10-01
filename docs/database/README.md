@@ -37,3 +37,5 @@ T3 第一批 monitoring_0002 增加 monitors.preference_version、credential_ope
 删除增量 room_0004 增加 unbind_room/removed 状态、新增与解绑共用目标唯一屏障、removal_was_default 和 room_preferences.removal_operation_id；school_0005 扩展解绑类型/目标约束及 absence_first_at。inactive 保留缓存/历史，不进行物理删除，显式清空默认后 preference.state=blocked 防止下一次同步擅自重选。
 
 T4新增monitoring_0004：monitor_samples.capture_interval_minutes及60..1440的nullable约束；已有历史保留，新增成功样本保存实际采集间隔。快照成员沿用已有表，未删除历史或新增跨域外键。
+
+T5 monitoring_0005 增加有效序号唯一键（取消/明确失败可释放）、投递状态镜像字段、failed_cycles 与 monitor_fault_episodes。低余额与采集故障使用不同计数，故障事件按 monitor 的打开状态唯一约束。

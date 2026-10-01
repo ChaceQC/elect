@@ -65,3 +65,5 @@ npm run dev
 项目使用 Git 和 GitHub 管理，远程名称为 `origin`。`main` 为主分支，日常默认在 `dev` 开发；当前开发分支可直接 commit 并 push，无需 PR。每完成一个可验证小步，同步文档和进度后用中文说明提交推送；仅合并到 `main` 时必须通过 PR，通常为 `dev → main`。`main` 要求严格必需检查 `容器验证 / check`，对管理员同样生效；只有 PR 最新提交的 Actions 全部成功才能合并。操作与失败处理见 [GitHub 协作与合并流程](docs/GitHub协作与合并流程.md)。
 
 项目版本采用 `X.Y.Z`，Git tag 与发布名称采用 `vX.Y.Z`。非正式版使用 `v0.y.z`，正式稳定发布从 `v1.0.0` 开始。详细规则见 [AGENTS.md](AGENTS.md)。
+
+T5 事件规则已接入新鲜采集事务，次数/回差/配置迁移通过 [事件增量验收](docs/acceptance/T5事件验收记录.md)；邮件投递与真实指定邮箱验收继续实施，M2 尚未完成。

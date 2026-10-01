@@ -80,6 +80,9 @@ async def invalidate(conn, monitor, *, close_episode=True):
         id=monitor["id"],
         close=close_episode,
     )
+    from .alerts import refresh_counts
+
+    await refresh_counts(conn, monitor["id"])
 
 
 async def in_flight(conn, monitor):
