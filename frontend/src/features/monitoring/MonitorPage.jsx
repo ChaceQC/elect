@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useSession } from '../auth/SessionProvider.jsx'
-import { draftFrom, parseDraft } from './draft.js'
+import { draftFrom, DraftValidationError, parseDraft } from './draft.js'
 import { RunControls } from './RunControls.jsx'
 import { NotificationStatus } from './NotificationStatus.jsx'
 
@@ -26,6 +26,8 @@ export function MonitorPage() {
   const [editor, setEditor] = useState(/** @type {Editor|null} */ (cache.getQueryData(draftKey) ?? null))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [invalidField, setInvalidField] = useState(/** @type {keyof import('./draft.js').Draft|null} */ (null))
+  const errorId = useId()
   const [notice, setNotice] = useState('')
   const writing = useRef(false)
   const dirty = !!editor && JSON.stringify(editor.draft) !== JSON.stringify(editor.baseline)
@@ -45,16 +47,20 @@ export function MonitorPage() {
   const current = query.data
   const review = !!editor && (!!editor.review || !!current && (editor.version !== current.version || editor.bindingId !== current.binding_id))
   /** @param {Partial<import('./draft.js').Draft>} values */
-  function edit(values) { setEditor(old => old ? { ...old, draft: { ...old.draft, ...values } } : old) }
+  function edit(values) {
+    setEditor(old => old ? { ...old, draft: { ...old.draft, ...values } } : old)
+    if (invalidField && invalidField in values) { setInvalidField(null); setError('') }
+  }
   /** @param {boolean} closeOnly */
   async function save(closeOnly) {
     if (writing.current || !current || !editor) return
     let body
     try { body = closeOnly ? { enabled: false, expected_version: current.version } :
       { ...parseDraft(editor.draft), expected_version: editor.version } }
-    catch (cause) { setError(cause instanceof Error ? cause.message : '请核对设置。'); return }
+    catch (cause) { setError(cause instanceof Error ? cause.message : '请核对设置。')
+      setInvalidField(cause instanceof DraftValidationError ? cause.field : null); return }
     if (!closeOnly && review) { setError('请先核对当前设置和目标，再提交草稿。'); return }
-    writing.current = true; setBusy(true); setError(''); setNotice('')
+    writing.current = true; setBusy(true); setError(''); setInvalidField(null); setNotice('')
     try {
       const result = await apiClient.request('/monitor', { method: 'PATCH', body })
       const saved = /** @type {Monitor} */ (result.data)
@@ -78,7 +84,7 @@ export function MonitorPage() {
     </StatusBlock>
     {query.isPending && <StatusBlock title="正在读取监控设置…" />}
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '重新读取', onClick: () => { void query.refetch() } }} />}
-    {error && <StatusBlock title={error} error />}{notice && <p role="status">{notice}</p>}
+    {error && <div id={errorId}><StatusBlock title={error} error /></div>}{notice && <p role="status">{notice}</p>}
     {current && <section className="monitor-summary" aria-labelledby="saved-title"><h2 id="saved-title">已保存设置</h2>
       <p>控制状态：{states[current.state]} · 采集健康：{health[current.health]}</p>
       <p>采集间隔 {current.config.interval_minutes} 分钟 · 提醒总次数 {current.config.repeat_limit}（包含第一次）· 阈值 {current.config.threshold} 元</p>
@@ -101,10 +107,10 @@ export function MonitorPage() {
           version: current.version, bindingId: current.binding_id, review: false })}>确认当前目标和版本，保留草稿</button>
       </StatusBlock>}
       <label className="checkbox-label"><input type="checkbox" checked={editor.draft.enabled} onChange={event => edit({ enabled: event.target.checked })} />启用监控</label>
-      <label>采集间隔（整数分钟）<input inputMode="numeric" value={editor.draft.interval_minutes} onChange={event => edit({ interval_minutes: event.target.value })} /></label>
-      <label>提醒总次数（包含第一次）<input inputMode="numeric" value={editor.draft.repeat_limit} onChange={event => edit({ repeat_limit: event.target.value })} /></label>
-      <label>低余额阈值（元）<input inputMode="decimal" value={editor.draft.threshold} onChange={event => edit({ threshold: event.target.value })} /></label>
-      <label>提醒邮箱<input type="email" value={editor.draft.email} onChange={event => edit({ email: event.target.value })} /></label>
+      <label>采集间隔（整数分钟）<input inputMode="numeric" value={editor.draft.interval_minutes} aria-invalid={invalidField === 'interval_minutes'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ interval_minutes: event.target.value })} /></label>
+      <label>提醒总次数（包含第一次）<input inputMode="numeric" value={editor.draft.repeat_limit} aria-invalid={invalidField === 'repeat_limit'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ repeat_limit: event.target.value })} /></label>
+      <label>低余额阈值（元）<input inputMode="decimal" value={editor.draft.threshold} aria-invalid={invalidField === 'threshold'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ threshold: event.target.value })} /></label>
+      <label>提醒邮箱<input type="email" value={editor.draft.email} aria-invalid={invalidField === 'email'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ email: event.target.value })} /></label>
       <button disabled={busy || review}>{busy ? '正在保存…' : '保存设置'}</button>
     </form>}
   </>

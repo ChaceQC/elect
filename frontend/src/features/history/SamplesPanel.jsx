@@ -34,7 +34,7 @@ export function SamplesPanel({ bindingId, range, page, onPageChange }) {
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '从第一页重新读取', onClick: reset }} />}
     {samples && <><p>共 {samples.total} 条 · 当前快照固定记录集合</p>
       {!samples.items.length && <p>{samples.has_monitor_history ? '所选范围内暂无成功采集，历史记录会保留。' : '开启监控后开始积累采集记录。'}</p>}
-      {!!samples.items.length && <div className="table-scroll"><table className="samples-table"><caption>所选日期范围的成功采集</caption><thead><tr><th>采集时间</th><th>寝室余额</th><th>余额净变化</th><th>电表起码 / 止码 / 差值</th><th>读数来源与质量</th></tr></thead>
+      {!!samples.items.length && <div className="table-scroll" tabIndex={0} role="region" aria-label="监控采集数据表"><table className="samples-table"><caption>所选日期范围的成功采集</caption><thead><tr><th>采集时间</th><th>寝室余额</th><th>余额净变化</th><th>电表起码 / 止码 / 差值</th><th>读数来源与质量</th></tr></thead>
         <tbody>{samples.items.map(sample => <tr key={sample.id}><td>{timestampLabel(sample.captured_at)}{sample.gap_detected && <small>采集存在间隔</small>}</td><td>{moneyLabel(sample.balance)}</td><td>{moneyLabel(sample.balance_delta)}</td><td>{sample.meter_last_reading ?? '—'} / {sample.meter_reading ?? '—'} / {sample.meter_delta ?? '—'}</td>
           <td>{sample.meter_record_date && <small>{sample.meter_record_date} · 学校日记录</small>}{quality[sample.quality]}{sample.meter_is_repeated && <small>重复来源读数，不重复累计</small>}</td></tr>)}</tbody></table></div>}
       <div className="pagination"><button className="quiet" disabled={page === 1 || query.isFetching} onClick={() => onPageChange(page - 1)}>上一页</button><span>第{page}页</span><button className="quiet" disabled={page * samples.page_size >= samples.total || query.isFetching || !snapshot} onClick={() => onPageChange(page + 1)}>下一页</button></div></>}

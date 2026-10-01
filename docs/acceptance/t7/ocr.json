@@ -1,0 +1,5 @@
+{
+  "scope": "OCR模型冷加载，无学校请求",
+  "load_seconds": 1.034,
+  "peak_rss_kib": 107964
+}

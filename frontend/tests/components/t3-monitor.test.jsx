@@ -14,6 +14,19 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => { cleanup(); server.resetHandlers(); apiClient.reset() })
 afterAll(() => server.close())
 
+it('无效间隔关联可见错误，修正字段后解除无效标记', async () => {
+  server.use(http.get('/api/v1/monitor', () => HttpResponse.json(envelope(monitor()))))
+  render(<AppProviders><MonitorPage /></AppProviders>)
+  const input = await screen.findByLabelText('采集间隔（整数分钟）')
+  fireEvent.change(input, { target: { value: '59' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存设置' }))
+  await screen.findByText('采集间隔须为 60–1440 的整数分钟。')
+  expect(input).toHaveAttribute('aria-invalid', 'true')
+  expect(document.getElementById(input.getAttribute('aria-describedby') ?? '')).toBeVisible()
+  fireEvent.change(input, { target: { value: '75' } })
+  expect(input).toHaveAttribute('aria-invalid', 'false')
+})
+
 it('无效草稿不影响只提交enabled:false的关闭，保留未保存字段', async () => {
   let saved = monitor()
   const writes = /** @type {unknown[]} */ ([])

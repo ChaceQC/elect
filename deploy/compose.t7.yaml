@@ -1,0 +1,17 @@
+# 合成会话对接真实容器API与生产静态页面，学校/SMTP出口来自restore覆盖的隔离。
+services:
+  nginx:
+    networks: !override
+      app: {aliases: [elect.test.local]}
+  browser-stack:
+    image: ${ELECT_BROWSER_IMAGE:-elect-frontend-browser-check}
+    profiles: [test]
+    user: "0:0"
+    networks: [app]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    command: [node, scripts/t7-stack-browser.mjs]

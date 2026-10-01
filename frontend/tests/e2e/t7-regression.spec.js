@@ -78,6 +78,10 @@ for (const width of [375, 390, 768, 1280, 1440]) {
     await page.goto('/monitor')
     await expect(page.getByRole('alert')).toContainText('学校暂不可用')
     await noOverflow(page)
+    await page.getByRole('button', { name: '我的账户' }).click()
+    await page.getByRole('button', { name: '退出应用' }).click()
+    await expect(page.getByRole('form', { name: '学校账号登录' })).toBeVisible()
+    await noOverflow(page)
   })
 }
 

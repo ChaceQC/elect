@@ -188,7 +188,7 @@ async def verify(args, record):
             record["order_state"], record["qr_status"] = view.state, view.qr_status
             record["paid_confirmed"] = view.paid_confirmed
             image = await proof(adapter, owner, order, record)
-            if image and args.qr_output:
+            if image and args.qr_output and not view.cancelled_at and not view.cancel_pending:
                 args.qr_output.write_bytes(image)
                 args.qr_output.chmod(0o600)
             record["stage"] = "completed_without_automatic_payment"

@@ -214,3 +214,9 @@ monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以
 ## 支付取消升级
 
 0.11.0先运行payment_0004，再重建Payment/Gateway和Payment Worker/恢复器。取消意图与学校状态分开；不能回改迁移或删除学校台账，旧键不重发。测试端口可使用ELECT_TEST_HTTP_PORT/ELECT_TEST_HTTPS_PORT启动第二个独立项目，默认18080/18443。T7本轮按用户要求跳过部署证书/更换演练，现有测试HTTPS与内部TLS保留。
+
+## T7运维与集中验证
+
+0.12.0提供deploy/compose.ops.yaml、backup.sh、restore.sh和status.sh，详细命令/安全门禁见[备份恢复](runbooks/备份恢复与隔离对账.md)、[运行状态](runbooks/运行状态与容量.md)。独立完成test-stack后运行test-t7-recovery.sh，再以ELECT_TEST_IMAGE=elect-backend-smoke:ops运行test-t7-browser.sh；已纳入Actions。模拟容量为同一隔离smoke中的scripts.t7_capacity --plans 100 --workers 8；任何普通运行不自动产生测试数据。
+
+compose.restore.yaml必须和base/ops一起使用；学校/SMTP出口及全部副作用/后台默认隔离。恢复后按原ID逐项对账，不盲重放Outbox或学校写。本轮[RPO/RTO及范围](acceptance/T7验收记录.md)只指本机合成数据，生产异机复制与PITR/持续频率尚未部署，生产证书步骤按用户要求跳过。

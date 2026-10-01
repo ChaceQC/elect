@@ -1,0 +1,17 @@
+{
+  "scope": "单进程并发、30ms模拟学校、实际MySQL/Redis/RabbitMQ，非真实学校容量",
+  "plans": 100,
+  "schedulers": 2,
+  "workers": 8,
+  "schedule_seconds": 0.376,
+  "capture_seconds": 1.806,
+  "samples_per_second": 55.36,
+  "attempt_p50_seconds": 0.066,
+  "attempt_p95_seconds": 0.255,
+  "school_requests": 101,
+  "school_peak_concurrency": 5,
+  "signed_wakeups_confirmed_and_inboxed": 100,
+  "message_seconds": 4.259,
+  "one_sample_per_run": true,
+  "peak_rss_kib": 114740
+}
