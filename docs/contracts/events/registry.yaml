@@ -22,6 +22,13 @@ events:
     aggregate_version: credential_version
     dedupe_key: credential_id/credential_version/revoked
     required_payload: [credential_id, owner_user_id, credential_version]
+  - type: credential.requires_reauth
+    producer: school_adapter
+    consumers: [identity, monitoring]
+    schema_version: 1
+    aggregate_version: credential_version
+    dedupe_key: credential_id/credential_version/requires_reauth
+    required_payload: [credential_id, owner_user_id, credential_version]
   - type: monitor.run_ready
     producer: monitoring
     consumers: [monitoring]

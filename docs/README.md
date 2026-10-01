@@ -38,7 +38,7 @@ deploy/                      # Compose、Nginx 模板、基础服务配置和运
 example/                     # 页面和交互参考，不参加生产构建
 ```
 
-T0 已完成：frontend 独立入口、依赖锁、类型与模拟场景；backend 独立工程、DTO/状态模型与七域迁移。deploy 已有公开配置与 Secret/账号清单；T1 的两端 Dockerfile、Compose、运行/认证/事件/Audit、TLS 与 F1 路由/公共数据层已完成验收。学校业务从 T2 开始。参考材料自己的 README 保留在 example 内。
+T0 已完成：frontend 独立入口、依赖锁、类型与模拟场景；backend 独立工程、DTO/状态模型与七域迁移。deploy 已有公开配置与 Secret/账号清单；T1 的两端 Dockerfile、Compose、运行/认证/事件/Audit、TLS 与 F1 路由/公共数据层已完成验收。T2 后端认证与本人读取已通过真实联调，前端/阶段验收正在实施；详情见 [T2 决策](decisions/T2认证与读取.md)。参考材料自己的 README 保留在 example 内。
 
 ## 部署约定
 
@@ -49,4 +49,4 @@ T0 已完成：frontend 独立入口、依赖锁、类型与模拟场景；backe
 - deploy/.env 配置 ELECT_DOMAIN、ELECT_TLS_CERT_FILE、ELECT_TLS_KEY_FILE；证书链和私钥通过只读 Secret 挂载。
 - Nginx 唯一发布 80/443；HTTPS 域名、后端可信 Origin 与邮件站内链接使用同一配置。
 
-具体配置和目标命令见 [Docker 部署配置说明](Docker部署配置说明.md)。Dockerfile 已建立，Compose 与公共运行设施已建立；学校业务代码尚待实施。
+具体配置和目标命令见 [Docker 部署配置说明](Docker部署配置说明.md)。Dockerfile 已建立，Compose 与公共运行设施已建立；T2 认证与本人读取已经接入，其他业务按阶段实施。

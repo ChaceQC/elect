@@ -10,7 +10,7 @@ from services.common.migration_runtime import DATABASES
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_catalog_matches_seven_independent_initial_revisions():
+def test_catalog_matches_seven_independent_migration_heads():
     value = catalog()
     assert json.loads((ROOT / "docs/database/schema-catalog.json").read_text()) == value
     assert set(value["databases"]) == set(DATABASES)
@@ -18,7 +18,8 @@ def test_catalog_matches_seven_independent_initial_revisions():
     for domain, database in value["databases"].items():
         script = ScriptDirectory.from_config(configuration(domain))
         assert script.get_heads() == [database["revision"]]
-        assert script.get_revision(database["revision"]).down_revision is None
+        bases = [revision for revision in script.walk_revisions() if revision.down_revision is None]
+        assert len(bases) == 1
         revisions.add(database["revision"])
         for table in database["tables"].values():
             assert "password" not in table["columns"]

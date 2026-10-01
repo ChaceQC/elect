@@ -1,6 +1,61 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "LoginRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "student_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Student Id",
+          "type": "string"
+        },
+        "password": {
+          "format": "password",
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Password",
+          "type": "string",
+          "writeOnly": true
+        },
+        "challenge_id": {
+          "maxLength": 128,
+          "minLength": 43,
+          "title": "Challenge Id",
+          "type": "string"
+        },
+        "captcha_answer": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Captcha Answer",
+          "type": "string"
+        },
+        "agreement_version": {
+          "title": "Agreement Version",
+          "type": "string"
+        },
+        "agreement_accepted": {
+          "const": true,
+          "title": "Agreement Accepted",
+          "type": "boolean"
+        },
+        "credential_use_allowed": {
+          "title": "Credential Use Allowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "student_id",
+        "password",
+        "challenge_id",
+        "captcha_answer",
+        "agreement_version",
+        "agreement_accepted",
+        "credential_use_allowed"
+      ],
+      "title": "LoginRequest",
+      "type": "object"
+    },
     "DTO": {
       "additionalProperties": false,
       "properties": {},
@@ -26,6 +81,83 @@
         "request_id"
       ],
       "title": "UserCommand",
+      "type": "object"
+    },
+    "ChallengeCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "browser_nonce_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Browser Nonce Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "browser_nonce_hash"
+      ],
+      "title": "ChallengeCommand",
+      "type": "object"
+    },
+    "AttemptQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "format": "uuid",
+          "title": "Attempt Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_id"
+      ],
+      "title": "AttemptQuery",
+      "type": "object"
+    },
+    "BrowserLogin": {
+      "additionalProperties": false,
+      "properties": {
+        "browser_nonce_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Browser Nonce Hash",
+          "type": "string"
+        },
+        "login": {
+          "$ref": "#/$defs/LoginRequest"
+        }
+      },
+      "required": [
+        "browser_nonce_hash",
+        "login"
+      ],
+      "title": "BrowserLogin",
+      "type": "object"
+    },
+    "BrowserSession": {
+      "additionalProperties": false,
+      "properties": {
+        "session_token": {
+          "format": "password",
+          "title": "Session Token",
+          "type": "string",
+          "writeOnly": true
+        },
+        "csrf_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Csrf Token"
+        }
+      },
+      "required": [
+        "session_token"
+      ],
+      "title": "BrowserSession",
       "type": "object"
     },
     "AuthenticateLogin": {
@@ -151,6 +283,10 @@
             }
           ],
           "title": "Expected Credential Version"
+        },
+        "credential_use_allowed": {
+          "title": "Credential Use Allowed",
+          "type": "boolean"
         }
       },
       "required": [
@@ -158,7 +294,8 @@
         "request_id",
         "attempt_id",
         "credential_ref",
-        "expected_credential_version"
+        "expected_credential_version",
+        "credential_use_allowed"
       ],
       "title": "ActivateCredential",
       "type": "object"
@@ -194,6 +331,45 @@
         "state"
       ],
       "title": "CredentialResult",
+      "type": "object"
+    },
+    "RoomQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "q": {
+          "default": "",
+          "maxLength": 128,
+          "title": "Q",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "room_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Room Id"
+        }
+      },
+      "title": "RoomQuery",
       "type": "object"
     },
     "PrepareRetarget": {
@@ -804,13 +980,25 @@
             }
           ],
           "title": "Expires At"
+        },
+        "csrf_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Csrf Token"
         }
       },
       "required": [
         "active",
         "user_id",
         "session_version",
-        "expires_at"
+        "expires_at",
+        "csrf_token"
       ],
       "title": "SessionContext",
       "type": "object"
@@ -1061,6 +1249,7 @@
           "enum": [
             "credential.updated",
             "credential.revoked",
+            "credential.requires_reauth",
             "monitor.run_ready",
             "monitor.alert_reserved",
             "notification.delivery_reported",

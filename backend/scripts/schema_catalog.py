@@ -34,6 +34,15 @@ class Recorder:
             )
         )
 
+    def add_column(self, table, column):
+        self.metadata.tables[table].append_column(column)
+
+    def alter_column(self, table, column, *, type_, **options):
+        self.metadata.tables[table].c[column].type = type_
+
+    def create_unique_constraint(self, name, table, columns):
+        self.metadata.tables[table].append_constraint(sa.UniqueConstraint(*columns, name=name))
+
 
 def table_schema(table):
     columns = {}
@@ -77,16 +86,24 @@ def table_schema(table):
 def catalog():
     databases = {}
     for domain, database in DATABASES.items():
-        path = BACKEND / "services" / domain / "migrations/versions/0001_initial.py"
-        spec = importlib.util.spec_from_file_location(f"initial_{domain}", path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        from alembic.script import ScriptDirectory
+
+        from scripts.migrations import configuration
+
+        scripts = ScriptDirectory.from_config(configuration(domain))
         recorder = Recorder()
-        module.op = recorder
-        module.upgrade()
+        revisions = list(reversed(list(scripts.walk_revisions())))
+        for revision in revisions:
+            spec = importlib.util.spec_from_file_location(
+                f"schema_{revision.revision}", revision.path
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            module.op = recorder
+            module.upgrade()
         databases[domain] = {
             "database": database,
-            "revision": module.revision,
+            "revision": scripts.get_current_head(),
             "tables": {
                 table.name: table_schema(table) for table in recorder.metadata.tables.values()
             },

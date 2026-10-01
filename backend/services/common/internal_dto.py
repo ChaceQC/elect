@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import Field, SecretStr, model_validator
 
+from services.identity.dto import LoginRequest
+
 from .dto import DTO, PositiveMoney, Timestamp, Version
 from .events import EVENTS, EventPayload
 
@@ -12,6 +14,23 @@ from .events import EVENTS, EventPayload
 class UserCommand(DTO):
     owner_user_id: UUID
     request_id: UUID
+
+
+class ChallengeCommand(DTO):
+    browser_nonce_hash: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
+
+
+class AttemptQuery(DTO):
+    attempt_id: UUID
+
+
+class BrowserLogin(ChallengeCommand):
+    login: LoginRequest
+
+
+class BrowserSession(DTO):
+    session_token: SecretStr
+    csrf_token: str | None = None
 
 
 class AuthenticateLogin(DTO):
@@ -36,12 +55,20 @@ class ActivateCredential(UserCommand):
     attempt_id: UUID
     credential_ref: UUID
     expected_credential_version: Version | None
+    credential_use_allowed: bool
 
 
 class CredentialResult(DTO):
     credential_ref: UUID
     credential_version: Version
     state: Literal["staged", "active", "revoking", "revoked", "failed"]
+
+
+class RoomQuery(DTO):
+    q: Annotated[str, Field(max_length=128)] = ""
+    page: Annotated[int, Field(ge=1)] = 1
+    page_size: Annotated[int, Field(ge=1, le=100)] = 10
+    room_id: Annotated[str, Field(max_length=128)] | None = None
 
 
 class PrepareRetarget(UserCommand):
@@ -134,6 +161,7 @@ class SessionContext(DTO):
     user_id: UUID | None
     session_version: Version | None
     expires_at: Timestamp | None
+    csrf_token: str | None
 
 
 class EventEnvelope(DTO):
@@ -141,6 +169,7 @@ class EventEnvelope(DTO):
     type: Literal[
         "credential.updated",
         "credential.revoked",
+        "credential.requires_reauth",
         "monitor.run_ready",
         "monitor.alert_reserved",
         "notification.delivery_reported",

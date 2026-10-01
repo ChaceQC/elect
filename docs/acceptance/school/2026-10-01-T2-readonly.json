@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-01",
+  "source": "正式 Gateway/Identity/School Adapter/Room + 真实学校",
+  "scope": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "B01",
+    "B02",
+    "B03"
+  ],
+  "external_business_writes": false,
+  "production_adapter_verified": true,
+  "authentication": "passed",
+  "credential_activation": "active",
+  "application_session_restore": "passed",
+  "binding_sync": "passed",
+  "bound_room_count": 1,
+  "bindings_sync_status": "ready",
+  "default_initialization": "deferred_to_T3",
+  "candidate_page": "passed",
+  "candidate_count": 10,
+  "search_quality": "unverified",
+  "application_logout": "passed",
+  "result": "passed"
+}

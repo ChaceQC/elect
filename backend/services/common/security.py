@@ -128,3 +128,15 @@ def require_principal(scope):
 def authorize_owner(principal: Principal, owner_user_id: UUID):
     if principal.user_id is None or principal.user_id != owner_user_id:
         raise ApiError(404, ErrorCode.NOT_FOUND, "对象不存在")
+
+
+def require_user_principal(scope):
+    verified = require_principal(scope)
+
+    async def dependency(request: Request):
+        principal = await verified(request)
+        if principal.user_id is None:
+            raise ApiError(404, ErrorCode.NOT_FOUND, "对象不存在")
+        return principal
+
+    return dependency

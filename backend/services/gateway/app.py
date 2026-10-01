@@ -1,3 +1,3 @@
 from services.common.app import create_app
 
-app = create_app("gateway")
+app = create_app("gateway", business=True)

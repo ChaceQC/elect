@@ -16,8 +16,14 @@ services:
     environment:
       ELECT_TEST_DISPOSABLE: "1"
       ELECT_RUNTIME_FILE: /run/secrets/migration_runtime
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
     secrets:
       - migration_runtime
+      - internal_ca
+      - {source: gateway_runtime, target: gateway_runtime.json}
+      - school_kek_bundle
+      - school_lookup_hmac_bundle
+      - identity_session_pepper
       - {source: identity_runtime, target: identity_runtime.json}
       - {source: school_adapter_runtime, target: school_adapter_runtime.json}
       - {source: room_runtime, target: room_runtime.json}

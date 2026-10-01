@@ -46,6 +46,9 @@ def error_response(request: Request, error: ApiError):
             },
             "meta": metadata(request),
         },
+        headers={"Retry-After": str(error.retry_after_seconds)}
+        if error.status == 429 and error.retry_after_seconds
+        else None,
     )
 
 
@@ -60,8 +63,15 @@ def install_http(app, service: str):
         started = time.monotonic()
         try:
             response = await call_next(request)
-        except Exception:
-            log("request_failed", service=service, request_id=request.state.request_id)
+        except Exception as error:
+            original = getattr(error, "orig", None)
+            number = original.args[0] if original and original.args else None
+            log(
+                "request_failed",
+                service=service,
+                request_id=request.state.request_id,
+                error_code=f"MYSQL_{number}" if type(number) is int else type(error).__name__,
+            )
             response = error_response(
                 request,
                 ApiError(

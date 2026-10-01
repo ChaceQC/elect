@@ -119,3 +119,19 @@ commands:
     request: schemas.json#/$defs/QueryOperation
     response: ../openapi.yaml#/components/schemas/Operation
     idempotency: Gateway 固定白名单查询三域，域内再次校验归属；不接收客户端 URL，run/order 使用专用查询。
+
+# T2 运行路由使用固定代理目标，不接受浏览器内部 URL。
+t2_routes:
+  - {receiver: school_adapter, callers: [gateway], scope: 'captcha:create', path: /captchas, request: 'schemas.json#/$defs/ChallengeCommand', response: '../openapi.yaml#/components/schemas/Captcha'}
+  - {receiver: school_adapter, callers: [identity], scope: 'credential:authenticate', path: /login-attempts/status, request: 'schemas.json#/$defs/AttemptQuery', response: 'schemas.json#/$defs/StagedCredential'}
+  - {receiver: school_adapter, callers: [identity], scope: 'credential:read', path: /credentials/view, request: 已签名用户上下文, response: 本人账号与凭据版本状态，不含密码或token}
+  - {receiver: school_adapter, callers: [room], scope: 'school:rooms', path: /rooms/bound, request: 已签名用户上下文, response: B02精简字段与十进制余额}
+  - {receiver: school_adapter, callers: [room], scope: 'school:rooms', path: /rooms/candidates, request: 'schemas.json#/$defs/RoomQuery', response: '../openapi.yaml#/components/schemas/Candidates'}
+  - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/agreement, request: 无, response: '../openapi.yaml#/components/schemas/Agreement'}
+  - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/login, request: 'schemas.json#/$defs/BrowserLogin', response: TLS-only会话token与LoginResult，Gateway仅置安全Cookie}
+  - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/me, request: 'schemas.json#/$defs/BrowserSession', response: '../openapi.yaml#/components/schemas/Me'}
+  - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/logout, request: 'schemas.json#/$defs/BrowserSession', response: 当前会话吊销确认}
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/bindings, request: 'schemas.json#/$defs/RoomQuery', response: '../openapi.yaml#/components/schemas/Bindings'}
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/sync, request: idempotency_key（16..128）, response: '../openapi.yaml#/components/schemas/AcceptedOperation'}
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/candidates, request: 'schemas.json#/$defs/RoomQuery', response: '../openapi.yaml#/components/schemas/Candidates'}
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/operation, request: operation_id及已签名user_id, response: '../openapi.yaml#/components/schemas/Operation'}

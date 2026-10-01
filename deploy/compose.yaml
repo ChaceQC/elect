@@ -172,19 +172,41 @@ services:
   gateway:
     <<: *python
     networks: [app]
-    secrets: [{source: gateway_runtime, target: runtime}]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: gateway_runtime, target: runtime}, internal_ca]
     command: [python, -m, services.gateway]
   identity:
     <<: *python
-    secrets: [{source: identity_runtime, target: runtime}]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_INTERNAL_TLS_CERT_FILE: /run/secrets/identity_tls_cert
+      ELECT_INTERNAL_TLS_KEY_FILE: /run/secrets/identity_tls_key
+      ELECT_SESSION_PEPPER_FILE: /run/secrets/identity_session_pepper
+    secrets: [{source: identity_runtime, target: runtime}, internal_ca, identity_tls_cert, identity_tls_key, identity_session_pepper]
     command: [python, -m, services.identity]
   school-adapter:
     <<: *python
-    secrets: [{source: school_adapter_runtime, target: runtime}]
+    networks: [app, data, school_egress]
+    mem_limit: 1024m
+    cpus: 1
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_INTERNAL_TLS_CERT_FILE: /run/secrets/school_tls_cert
+      ELECT_INTERNAL_TLS_KEY_FILE: /run/secrets/school_tls_key
+      ELECT_SCHOOL_KEK_FILE: /run/secrets/school_kek_bundle
+      ELECT_SCHOOL_LOOKUP_FILE: /run/secrets/school_lookup_hmac_bundle
+    secrets: [{source: school_adapter_runtime, target: runtime}, internal_ca, school_tls_cert, school_tls_key, school_kek_bundle, school_lookup_hmac_bundle]
     command: [python, -m, services.school_adapter]
   room:
     <<: *python
-    secrets: [{source: room_runtime, target: runtime}]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: room_runtime, target: runtime}, internal_ca]
     command: [python, -m, services.room]
   monitoring:
     <<: *python
@@ -232,10 +254,40 @@ services:
     secrets: [{source: audit_runtime, target: runtime}]
     command: [python, -m, services.common.job, --service, audit, --role, audit]
 
+  identity-recovery:
+    <<: *python
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+      ELECT_SESSION_PEPPER_FILE: /run/secrets/identity_session_pepper
+    secrets: [{source: identity_runtime, target: runtime}, internal_ca, identity_session_pepper]
+    command: [python, -m, services.common.business_worker, --service, identity]
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
+  room-sync-worker:
+    <<: *python
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: room_runtime, target: runtime}, internal_ca]
+    command: [python, -m, services.common.business_worker, --service, room]
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
+  school-maintenance:
+    <<: *python
+    secrets: [{source: school_adapter_runtime, target: runtime}]
+    command: [python, -m, services.common.business_worker, --service, school_adapter]
+    healthcheck:
+      <<: *api-health
+      test: [CMD, python, -m, services.common.healthcheck, worker]
+
 networks:
   edge: {}
   app: {internal: true}
   data: {internal: true}
+  school_egress: {}
 volumes:
   mysql_data: {}
   redis_data: {}
@@ -259,3 +311,11 @@ secrets:
   rabbitmq_definitions: {file: "${ELECT_SECRETS_DIR}/rabbitmq_definitions.json"}
   tls_cert: {file: "${ELECT_TLS_CERT_FILE:?set-fullchain-path}"}
   tls_key: {file: "${ELECT_TLS_KEY_FILE:?set-private-key-path}"}
+  internal_ca: {file: "${ELECT_SECRETS_DIR}/internal_ca.pem"}
+  identity_tls_cert: {file: "${ELECT_SECRETS_DIR}/identity_tls_cert.pem"}
+  identity_tls_key: {file: "${ELECT_SECRETS_DIR}/identity_tls_key.pem"}
+  school_tls_cert: {file: "${ELECT_SECRETS_DIR}/school-adapter_tls_cert.pem"}
+  school_tls_key: {file: "${ELECT_SECRETS_DIR}/school-adapter_tls_key.pem"}
+  school_kek_bundle: {file: "${ELECT_SECRETS_DIR}/school_kek_bundle"}
+  school_lookup_hmac_bundle: {file: "${ELECT_SECRETS_DIR}/school_lookup_hmac_bundle"}
+  identity_session_pepper: {file: "${ELECT_SECRETS_DIR}/identity_session_pepper"}

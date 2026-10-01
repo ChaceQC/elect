@@ -28,8 +28,8 @@ class Captcha(DTO):
 
 class LoginRequest(DTO):
     student_id: Annotated[str, Field(min_length=1, max_length=128)]
-    password: SecretStr
-    challenge_id: str
+    password: Annotated[SecretStr, Field(min_length=1, max_length=1024)]
+    challenge_id: Annotated[str, Field(min_length=43, max_length=128)]
     captcha_answer: Annotated[str, Field(min_length=1, max_length=32)]
     agreement_version: str
     agreement_accepted: Literal[True]

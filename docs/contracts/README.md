@@ -40,3 +40,9 @@
 前端 MSW 场景位于 `frontend/src/mocks/scenarios.json`，覆盖空账户、有绑定、学校失败、部分历史、默认切换中、运行取消、未知订单和快照过期；普通 CI 对响应按 OpenAPI 校验。学校夹具为合成数据，不能作为真实支付状态映射证据。生产入口不导入 mocks，也不注册 service worker。
 
 生成与检查命令见 [开发说明](../开发说明.md)，按钮、字段和实现阶段见 [需求追踪](../T0需求追踪表.md)。
+
+## T2 当前实现
+
+公开认证五接口、本人绑定列表/持久同步/候选和 operation 查询已接通；后续阶段仍返回 FEATURE_DISABLED。LoginRequest 密码 1..1024、challenge 43..128；学号 1..128 且无空白/控制字符，不限制为参考页面的纯数字正则。协议与后台授权独立，未授权不进行后台密码认证。SessionContext 内部增加本人 CSRF；凭据激活内部命令携带显式 credential_use_allowed，凭据失效新增 credential.requires_reauth 持久广播。
+
+T2 默认 id 始终为已有偏好或 null，不自行初始化。首次成功空列表 sync_status=empty，首次失败 failed；已有镜像失败/关系缺失 stale，缺失关系 rechecking，保留历史。B03 候选固定 unverified，完整记录仅在服务端加密短期缓存。细节见 [实施决策](../decisions/T2认证与读取.md)。

@@ -3722,10 +3722,14 @@ components:
           type: string
         password:
           format: password
+          maxLength: 1024
+          minLength: 1
           title: Password
           type: string
           writeOnly: true
         challenge_id:
+          maxLength: 128
+          minLength: 43
           title: Challenge Id
           type: string
         captcha_answer:

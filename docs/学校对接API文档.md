@@ -988,6 +988,8 @@ Host: cwcwx.hbue.edu.cn
 | 2026-10-01 | 本文 Python 实现 | 完成语法和离线流程检查；不等同于该 Python 版本已完成线上验收 |
 | 2026-10-01 | T0 本地 auth.txt 只读烟测 | 按本文参考代码 A01–A04/B01/B02 成功，1 条本人绑定；[分类记录](acceptance/school/2026-10-01-readonly.json)不含真实账户、token 或寝室标识；未执行业务写入，正式 Adapter 尚未验收 |
 
+T2 正式 httpx Adapter 在 2026-10-01 完成 A01–A04/B01/B02/B03 真实链路与本人授权密文后台恢复；CAS JSON 实测可使用 text/plain 且响应压缩，仍按 JSON/图片结构校验。见 [正式只读记录](acceptance/school/2026-10-01-T2-readonly.json)与[后台恢复](acceptance/school/2026-10-01-T2-recovery.json)。仅确认候选第一页，搜索精度未确认；未执行绑定/建单/付款/邮件。
+
 备用支付验证使用 1 元和 `NATIVE`，没有扫码付款。二维码验证使用已有订单，没有再次调用 `phonePay`；支付页面确认自身仍可能生成新的支付流水。
 
 ### 8.2 尚未确认的行为

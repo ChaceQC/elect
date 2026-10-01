@@ -157,3 +157,11 @@ sh deploy/test-stack.sh /absolute/new-test-directory elect-test-local
 check 在容器中执行后端单元/契约/迁移 SQL、前端规则/类型/单元/构建和 Playwright；test-stack 创建明确命名的新项目，容器生成 Secret/临时自签证书，空库启动并执行可靠事件 smoke。测试端口绑定本机 18080/18443，须空闲；默认 `.env` 仍仅由 Nginx 发布 80/443。测试作业拒绝未声明一次性环境和已有输出目录。
 
 CI 位于 `.github/workflows/check.yaml`，不依赖宿主机语言环境、真实学校或 SMTP。操作完可用相同 env/Compose/项目名执行 `down` 停止本次环境，保留命名卷。真实恢复、备份、公网域名/受信任证书和业务容器联调留待 T7/T8。
+
+## T2 认证升级
+
+T2 新增 identity-recovery、room-sync-worker、school-maintenance，长期进程从 19 个增加到 22 个。Identity/Adapter API 使用内部 TLS，只挂载本人服务器私钥；Gateway/Room/Identity 以内部 CA 验证服务器。仅 Adapter 新增 school_egress 外部网络，内存上限 1024 MiB 支持延迟 OCR。KEK、独立 lookup HMAC 与会话 pepper 分域挂载，内部 CA 私钥仅离线保管。服务器证书 90 天、CA 365 天，到期前须更换。
+
+全新部署使用新版 provision 生成全部 Secret。已有 T1 数据卷升级时，停应用并备份现有 Secret，然后在无网络的一次性 root 容器执行 python -m services.deployment.upgrade_auth --directory /run/provision（只读镜像、显式挂载现有 Secret 目录为 /run/provision）。升级保留原 db_url/MQ/Redis 密码、服务签名私钥与已有认证密钥，补充缺失认证文件和命令/消息权限；部分认证文件缺失会拒绝混用。随后用原 env/项目名重建 Redis/RabbitMQ 使 ACL/definitions 生效，执行一次 migrate 作业升级三个领域 head，再启动新版应用。不能重新生成数据库连接 Secret 或删除旧卷。
+
+T2 新增应用恢复字段、学校账号占位/授权与 Room 同步租约/状态表；运行事务采用 READ COMMITTED。认证与读取实现及真实边界见 [T2 决策](decisions/T2认证与读取.md)。四项副作用开关仍默认关闭。

@@ -68,6 +68,7 @@ EventPayload = (
 EVENTS = {
     "credential.updated": (CredentialPayload, ("school_adapter",)),
     "credential.revoked": (CredentialPayload, ("school_adapter",)),
+    "credential.requires_reauth": (CredentialPayload, ("school_adapter",)),
     "monitor.run_ready": (RunReadyPayload, ("monitoring",)),
     "monitor.alert_reserved": (AlertReservedPayload, ("monitoring",)),
     "notification.delivery_reported": (DeliveryReportedPayload, ("notification",)),

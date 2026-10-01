@@ -15,7 +15,7 @@ from .runtime import load_runtime, public_origin, side_effect_policy
 from .security import Principal, require_principal, validate_keys
 
 
-def create_app(service: str):
+def create_app(service: str, *, business=False):
     @asynccontextmanager
     async def lifespan(app):
         configure_logging()
@@ -28,8 +28,16 @@ def create_app(service: str):
         app.state.database = engine
         app.state.migration_head = migration_head(service) if engine else None
         try:
+            if business:
+                from .business import initialize
+
+                await initialize(app, service)
             yield
         finally:
+            if business:
+                from .business import close
+
+                await close(app)
             if engine:
                 await engine.dispose()
 
@@ -64,7 +72,7 @@ def create_app(service: str):
                 "service": service,
                 "status": "ready" if all(components.values()) else "degraded",
                 "components": components,
-                "business_enabled": False,
+                "business_enabled": business,
             }
         except Exception:
             return JSONResponse(
@@ -84,10 +92,16 @@ def create_app(service: str):
             raise ApiError(403, ErrorCode.FEATURE_DISABLED, "该功能尚未开放")
 
         for endpoint in ENDPOINTS:
+            if business and endpoint.stage == "T2":
+                continue
             app.add_api_route(
                 f"/api/v1{endpoint.path}",
                 unavailable,
                 methods=[endpoint.method.upper()],
                 name=endpoint.name,
             )
+    if business:
+        from .business import register
+
+        register(app, service)
     return app

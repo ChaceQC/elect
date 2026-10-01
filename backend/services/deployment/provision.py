@@ -52,7 +52,17 @@ def keys_and_trust():
             )
             .decode(),
             "audiences": list(SERVICES),
-            "scopes": ["foundation:read", "event:audit"],
+            "scopes": ["foundation:read", "event:audit"]
+            + {
+                "gateway": [
+                    "identity:browser",
+                    "session:introspect",
+                    "captcha:create",
+                    "room:browser",
+                ],
+                "identity": ["credential:authenticate", "credential:activate", "credential:read"],
+                "room": ["school:rooms"],
+            }.get(service, []),
         }
     return private, trust
 
@@ -119,6 +129,7 @@ def provision_transport(directory):
         password = secrets.token_hex(24)
         redis_lines.append(
             f"user {service} on >{password} ~{service}:* +@read +@write +ping -@dangerous"
+            + (" +eval +time" if service == "school_adapter" else "")
         )
         redis_urls[service] = f"redis://{service}:{password}@redis:6379/0"
     probe = secrets.token_hex(24)
@@ -137,12 +148,47 @@ def provision_transport(directory):
         "vhosts": [{"name": "elect"}],
         "users": users,
         "permissions": permissions,
+        "queues": [
+            {
+                "name": f"elect.{service}.credentials",
+                "vhost": "elect",
+                "durable": True,
+                "auto_delete": False,
+                "arguments": {},
+            }
+            for service in ["identity", "monitoring"]
+        ],
+        "bindings": [
+            {
+                "source": "elect.events",
+                "vhost": "elect",
+                "destination": f"elect.{service}.credentials",
+                "destination_type": "queue",
+                "routing_key": event,
+                "arguments": {},
+            }
+            for service in ["identity", "monitoring"]
+            for event in ["credential.updated", "credential.revoked", "credential.requires_reauth"]
+        ],
+        "exchanges": [
+            {
+                "name": "elect.events",
+                "vhost": "elect",
+                "type": "topic",
+                "durable": True,
+                "auto_delete": False,
+                "internal": False,
+                "arguments": {},
+            }
+        ],
         "topic_permissions": [
             {
                 "user": service,
                 "vhost": "elect",
                 "exchange": "elect.events",
-                "write": "^audit\\.recorded$",
+                "write": "^(audit\\.recorded|credential\\.(updated|requires_reauth))$"
+                if service == "school_adapter"
+                else "^audit\\.recorded$",
                 "read": "^audit\\.recorded$",
             }
             for service in DATABASES
@@ -197,6 +243,9 @@ def provision(directory: Path, test_domain=None):
     private, trust = keys_and_trust()
     app_urls = provision_databases(directory)
     amqp_urls, redis_urls = provision_transport(directory)
+    from .auth_secrets import provision_auth
+
+    provision_auth(directory, write_file)
     for service in SERVICES:
         runtime = {
             "schema_version": 1,

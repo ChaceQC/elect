@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.2.0。T0/T1 已完成：独立镜像、Docker Compose、七域空库与权限、TLS/域名、服务认证、可靠事件/审计，以及前端路由、会话初始化和公共数据层已验证。学校登录、查询、监控、邮件与支付从 T2 开始实现，当前业务明确关闭。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.2.0。T0/T1 已完成；T2 后端学校认证、密文激活、应用会话与本人寝室读取已通过真实联调，前端与阶段验收正在实施。默认初始化、绑定写、监控、邮件与支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -41,9 +41,9 @@ npm run dev
 
 打开终端显示的本地地址。构建使用 `npm run build`。此演示使用模拟数据，不请求学校 API；详细限制见 [参考说明](example/README.md)。
 
-正式系统的目标环境仅需 Docker Engine/Compose；配置 Secret、域名和证书后使用 [部署入口](docs/Docker部署配置说明.md) 启动当前阶段骨架。学校业务尚未开放。
+正式系统的目标环境仅需 Docker Engine/Compose；配置 Secret、域名和证书后使用 [部署入口](docs/Docker部署配置说明.md) 启动当前阶段服务。T2 认证 Secret、内部 TLS 与恢复/同步进程见 [实施决策](docs/decisions/T2认证与读取.md)。
 
-正式前端开发使用 `cd frontend && npm ci && npm run dev`，当前显示服务准备页面；后端开发使用 `cd backend && uv sync --locked`。详细环境与验证见 [开发说明](docs/开发说明.md)。
+正式前端开发使用 `cd frontend && npm ci && npm run dev`；后端开发使用 `cd backend && uv sync --locked`。详细环境与验证见 [开发说明](docs/开发说明.md)。
 
 ## 开发与版本
 

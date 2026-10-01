@@ -1,5 +1,7 @@
 import asyncio
 import base64
+import gzip
+import json
 from contextlib import asynccontextmanager
 from urllib.parse import parse_qs
 
@@ -127,5 +129,28 @@ def test_non_json_authenticated_read_does_not_become_empty_data():
         with pytest.raises(ApiError) as error:
             await protocol.read("/getInfo", "synthetic", {})
         assert error.value.code == "SCHOOL_REAUTH_REQUIRED"
+
+    asyncio.run(run())
+
+
+def test_gzip_is_decompressed_once_and_cas_text_json_is_validated():
+    def handler(request):
+        if request.url.path == "/authserver/login":
+            return httpx.Response(
+                200,
+                content=gzip.compress(b"<html>CAS</html>"),
+                headers={"content-encoding": "gzip"},
+            )
+        return httpx.Response(
+            200,
+            content=gzip.compress(json.dumps({"uid": "synthetic", "content": IMAGE}).encode()),
+            headers={"content-encoding": "gzip", "content-type": "text/plain;charset=UTF-8"},
+        )
+
+    async def run():
+        protocol = SchoolProtocol(
+            SchoolTransport(Limiter(), transport=httpx.MockTransport(handler), resolve=False)
+        )
+        assert (await protocol.challenge()).image == IMAGE
 
     asyncio.run(run())

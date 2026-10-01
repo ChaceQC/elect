@@ -17,6 +17,7 @@ dependencies = [
   "uuid6>=2024.7.10,<2026",
   "pyyaml>=6.0,<7",
   "pyjwt[crypto]>=2.10,<3",
+  "ddddocr>=1.5.6,<2",
 ]
 
 [dependency-groups]

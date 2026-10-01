@@ -67,7 +67,7 @@ class SchoolProtocol:
             params={"uid": uid},
             headers={"X-Requested-With": "XMLHttpRequest", "Referer": f"{CAS}/login"},
         )
-        value = parse_json(response, check_code=False)
+        value = parse_json(response, check_code=False, allow_text_json=True)
         uid = value.get("uid")
         if not isinstance(uid, (str, int)) or isinstance(uid, bool) or not str(uid):
             raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校验证码标识缺失")
@@ -94,7 +94,7 @@ class SchoolProtocol:
                     "otpcode": "",
                 },
             )
-            value = parse_json(response, check_code=False)
+            value = parse_json(response, check_code=False, allow_text_json=True)
             data = value.get("data")
             if isinstance(data, dict) and data.get("code"):
                 raise ApiError(

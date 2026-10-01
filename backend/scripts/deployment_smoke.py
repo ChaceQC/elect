@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import ssl
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -112,17 +113,19 @@ async def verify_leases_and_transactions(engine):
 
 
 async def verify_context_and_redis(runtimes):
-    async with httpx.AsyncClient(timeout=5) as client:
+    context = ssl.create_default_context(cafile=os.environ["ELECT_INTERNAL_CA_FILE"])
+    async with httpx.AsyncClient(timeout=5, verify=context) as client:
         sender = runtimes["identity"]
         for receiver in DATABASES:
             host = "school-adapter" if receiver == "school_adapter" else receiver
-            assert (await client.get(f"http://{host}:8000/health/ready")).status_code == 200
+            scheme = "https" if receiver in {"identity", "school_adapter"} else "http"
+            assert (await client.get(f"{scheme}://{host}:8000/health/ready")).status_code == 200
             user = new_id()
             token = issue_token(
                 sender, receiver, "foundation:read", new_id(), user_id=user, session_version=1
             )
             response = await client.get(
-                f"http://{host}:8000/internal/v1/context",
+                f"{scheme}://{host}:8000/internal/v1/context",
                 headers={"Authorization": f"Bearer {token}", "X-User-Id": str(new_id())},
             )
             assert response.status_code == 200 and response.json()["user_id"] == str(user)

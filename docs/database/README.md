@@ -1,18 +1,18 @@
-# T0 数据结构与初始化
+# 数据结构与初始化
 
-更新日期：2026-10-01。七个库共有 47 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+更新日期：2026-10-01。七个库共有 49 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
 
-| 领域 | 数据库 | 初始 revision | 领域/事件表数 |
+| 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
-| Identity | elect_identity | identity_0001 | 7 |
-| School Adapter | elect_school | school_0001 | 7 |
-| Room | elect_room | room_0001 | 10 |
+| Identity | elect_identity | identity_0002 | 7 |
+| School Adapter | elect_school | school_0002 | 8 |
+| Room | elect_room | room_0002 | 11 |
 | Monitoring | elect_monitoring | monitoring_0001 | 12 |
 | Payment | elect_payment | payment_0001 | 4 |
 | Notification | elect_notification | notification_0001 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
 
-[schema-catalog.json](schema-catalog.json)从初始迁移导出列类型、null、主键、唯一键、CHECK、外键、生成列与查询索引。可执行定义在 backend/services/{domain}/migrations/versions/0001_initial.py；后续变更使用新 revision，不改已发布迁移。
+[schema-catalog.json](schema-catalog.json)按迁移链导出当前 head 的列类型、null、主键、唯一键、CHECK、外键、生成列与查询索引。可执行定义在 backend/services/{domain}/migrations/versions/0001_initial.py；后续变更使用新 revision，不改已发布迁移。
 
 业务 ID 用 BINARY(16)，hash 用 BINARY(32)，UTC DATETIME(6)、Shanghai DATE、DECIMAL(14,2)/DECIMAL(18,4)。本库 FK 为 RESTRICT，不跨库 FK、不级联删除审计/任务历史。`created_at/updated_at` 有数据库默认值，后续写操作由领域服务更新 updated_at。
 
@@ -24,6 +24,6 @@
 
 开发入口支持每域独立升级及离线 MySQL DDL；在线 URL 必须由本域 `ELECT_{DOMAIN}_DDL_URL_FILE` 提供且指向对应库。临时 MySQL 8.4.8 已验证七域在线升级两次、业务表为空、无跨库 FK、运行账号无 DDL/跨库权限，并验证监控间隔、唯一计划/样本和未知订单屏障。
 
-T1 仍需正式 provisioning、probe、Compose 健康依赖、统一迁移锁与非 root 作业。此处的临时数据库验收不代表目标机器已完成全栈部署。
+T1 已通过正式 provisioning/Compose 验收。T2 新增 Identity 登录恢复元数据、School 账号占位/授权标记和 Room 同步状态/任务租约，已在实际 MySQL 8.4 验证。运行事务采用 READ COMMITTED、学校 room ID 使用 binary collation，详情见 [T2 决策](../decisions/T2认证与读取.md)。
 
 暂存清理先按 attempt 查询激活结果，未激活且过期才能清；expired lease 提升 epoch 后恢复，不删除任务；unknown 操作/投递/订单保留台账；快照先清成员后清快照。日常清理及归档在容量/恢复验收后启用。细节见 [T0 决策](../decisions/T0实施决策.md)。

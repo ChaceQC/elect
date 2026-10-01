@@ -30,6 +30,7 @@ compose() {
 compose config --quiet
 compose up -d --no-build --wait --wait-timeout 180
 compose run --rm --no-deps smoke
+compose run --rm --no-deps smoke python -m scripts.t2_smoke
 compose exec -T nginx nginx -t
 compose run --rm --no-deps tls-check
 compose ps -a

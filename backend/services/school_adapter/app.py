@@ -1,3 +1,3 @@
 from services.common.app import create_app
 
-app = create_app("school_adapter")
+app = create_app("school_adapter", business=True)

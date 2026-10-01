@@ -3,7 +3,7 @@
   "databases": {
     "identity": {
       "database": "elect_identity",
-      "revision": "identity_0001",
+      "revision": "identity_0002",
       "tables": {
         "users": {
           "columns": {
@@ -255,9 +255,63 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "challenge_hash": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "expected_user_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "expected_credential_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "agreement_version": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_use_allowed": {
+              "type": "BOOL",
+              "nullable": true,
+              "primary_key": false
+            },
+            "next_reconcile_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "issued_session_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
             }
           },
-          "unique": [],
+          "unique": [
+            [
+              "challenge_hash"
+            ]
+          ],
           "checks": [
             "state IN ('created', 'authenticating', 'staged', 'identity_committed', 'activating', 'activated', 'session_issued', 'failed', 'expired')"
           ],
@@ -479,7 +533,7 @@
     },
     "school_adapter": {
       "database": "elect_school",
-      "revision": "school_0001",
+      "revision": "school_0002",
       "tables": {
         "school_credentials": {
           "columns": {
@@ -557,6 +611,11 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "use_allowed": {
+              "type": "BOOL",
+              "nullable": false,
+              "primary_key": false
             }
           },
           "unique": [
@@ -632,6 +691,11 @@
             "updated_at": {
               "type": "DATETIME(6)",
               "nullable": false,
+              "primary_key": false
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
               "primary_key": false
             }
           },
@@ -949,12 +1013,50 @@
           "checks": [],
           "foreign_keys": [],
           "indexes": []
+        },
+        "account_reservations": {
+          "columns": {
+            "school_id": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_version": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "lookup_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "credential_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
         }
       }
     },
     "room": {
       "database": "elect_room",
-      "revision": "room_0001",
+      "revision": "room_0002",
       "tables": {
         "rooms": {
           "columns": {
@@ -969,7 +1071,7 @@
               "primary_key": false
             },
             "school_room_id": {
-              "type": "VARCHAR(128)",
+              "type": "VARCHAR(128) COLLATE utf8mb4_bin",
               "nullable": false,
               "primary_key": false
             },
@@ -1182,6 +1284,16 @@
               "nullable": true,
               "primary_key": false,
               "computed": "IF(type = 'switch_default' AND state IN ('accepted', 'running', 'reconciling', 'unknown'), owner_user_id, NULL)"
+            },
+            "lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [
@@ -1823,6 +1935,46 @@
           },
           "unique": [],
           "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "room_sync_state": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "last_synced_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "updated_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [
+            "state IN ('loading','ready','empty','stale','failed')"
+          ],
           "foreign_keys": [],
           "indexes": []
         }

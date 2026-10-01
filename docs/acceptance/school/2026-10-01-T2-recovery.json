@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-01",
+  "source": "正式 School Adapter + 真实学校 + 本人已授权密文",
+  "scope": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "B01",
+    "B02"
+  ],
+  "external_business_writes": false,
+  "background_reauthentication": "passed",
+  "bound_room_count": 1,
+  "credential_version_unchanged": true,
+  "application_session_required": false,
+  "result": "passed"
+}

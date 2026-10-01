@@ -22,6 +22,7 @@ def create_database(url):
         pool_recycle=1800,
         pool_pre_ping=True,
         hide_parameters=True,
+        isolation_level="READ COMMITTED",
     )
 
     @event.listens_for(engine.sync_engine, "connect")
