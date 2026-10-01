@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { bindings, envelope } from '../fixtures/t2.js'
 
 const user = { id: '0199a10c-0000-7000-8000-000000000001', student_id: 'synthetic', school: '合成测试学校',
   csrf_token: 'synthetic-csrf', credential_status: 'active', credential_version: 1,
@@ -10,6 +11,7 @@ for (const width of [1440, 375]) {
   test(`${width}px：直达路由、前进后退、账户入口与键盘弹窗`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await page.route('**/api/v1/auth/me', route => route.fulfill({ json: { data: user, meta: { request_id: user.id } } }))
+    await page.route('**/api/v1/room-bindings?*', route => route.fulfill({ json: envelope(bindings) }))
     await page.goto('/details?start=2026-10-01')
     await expect(page.getByRole('heading', { name: '电费明细' })).toBeVisible()
     await page.getByRole('link', { name: '我的寝室' }).click()

@@ -9,6 +9,7 @@ import { AppProviders } from '../../src/app/providers.jsx'
 import { useSession } from '../../src/features/auth/SessionProvider.jsx'
 import { apiClient } from '../../src/api/client.js'
 import { OperationController } from '../../src/api/intents.js'
+import { agreement, bindings, captcha, envelope } from '../fixtures/t2.js'
 
 /** @typedef {import('../../src/api/generated').components['schemas']['Me']} Me */
 /** @param {string} id @returns {Me} */
@@ -18,7 +19,11 @@ const user = (id) => ({ id, school: '合成测试学校', student_id: 'synthetic
     credential_use_allowed: true, revoked_at: null } })
 const first = user('0199a10c-0000-7000-8000-000000000001')
 const second = user('0199a10c-0000-7000-8000-000000000002')
-const server = setupServer()
+const server = setupServer(
+  http.get('/api/v1/room-bindings', () => HttpResponse.json(envelope(bindings))),
+  http.get('/api/v1/auth/agreement', () => HttpResponse.json(envelope(agreement))),
+  http.post('/api/v1/auth/captcha', () => HttpResponse.json(envelope(captcha()))),
+)
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => { cleanup(); server.resetHandlers(); apiClient.reset(); sessionStorage.clear() })
 afterAll(() => server.close())
@@ -36,7 +41,7 @@ it('应用过期进入登录页，学校异常或不可用不显示登录成功'
   server.use(http.get('/api/v1/auth/me', () => HttpResponse.json({ error: { code: 'APP_SESSION_EXPIRED' },
     meta: { request_id: first.id } }, { status: 401 })))
   const view = render(<MemoryRouter initialEntries={['/monitor']}><AppProviders><App /></AppProviders></MemoryRouter>)
-  expect(await screen.findByText('学校账号登录即将开放')).toBeInTheDocument()
+  expect(await screen.findByRole('form', { name: '学校账号登录' })).toBeInTheDocument()
   view.unmount()
   server.use(http.get('/api/v1/auth/me', () => HttpResponse.json({ error: { code: 'DEPENDENCY_UNAVAILABLE' },
     meta: { request_id: first.id } }, { status: 503 })))

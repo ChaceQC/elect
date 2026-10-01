@@ -14,6 +14,7 @@ task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 mkdir -m 700 -p "$task_dir/secrets"
 cd "$task_root"
 docker build -t elect-backend:test backend
+docker build --target test -t elect-backend-smoke:test backend
 docker build -t elect-frontend:test frontend
 docker run --rm --network none --user 0:0 -v "$task_dir/secrets:/run/provision" \
   elect-backend:test python -m services.deployment.provision \
@@ -30,7 +31,10 @@ compose() {
 compose config --quiet
 compose up -d --no-build --wait --wait-timeout 180
 compose run --rm --no-deps smoke
+# 合成学校的事务/恢复验收由同进程驱动；真实 Worker 不得消费合成任务并访问学校。
+compose stop identity-recovery room-sync-worker
 compose run --rm --no-deps smoke python -m scripts.t2_smoke
+compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker
 compose exec -T nginx nginx -t
 compose run --rm --no-deps tls-check
 compose ps -a

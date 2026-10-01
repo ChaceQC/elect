@@ -274,6 +274,9 @@ async def main():
         raise RuntimeError("仅能使用显式一次性测试环境")
     apps, school = await fixture_apps()
     try:
+        from scripts.t2_safety import verify_shared_limits
+
+        await verify_shared_limits(apps["school_adapter"].state.school_store)
         await verify(apps, school)
     finally:
         for app in apps.values():

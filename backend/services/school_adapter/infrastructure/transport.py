@@ -81,24 +81,35 @@ class SchoolTransport:
         )
 
     async def request(
-        self, client, method, url, deadline, *, authenticated=False, read_timeout=12, **kwargs
+        self,
+        client,
+        method,
+        url,
+        deadline,
+        *,
+        authenticated=False,
+        read_timeout=12,
+        pool="interactive",
+        **kwargs,
     ):
         try:
             async with asyncio.timeout(deadline.remaining()):
                 return await self._request(
-                    client, method, url, deadline, authenticated, read_timeout, kwargs
+                    client, method, url, deadline, authenticated, read_timeout, kwargs, pool
                 )
         except (TimeoutError, httpx.TimeoutException):
             raise ApiError(504, ErrorCode.SCHOOL_TIMEOUT, "学校请求超时", True) from None
         except httpx.HTTPError:
             raise ApiError(503, ErrorCode.SCHOOL_UNAVAILABLE, "学校连接暂时不可用", True) from None
 
-    async def _request(self, client, method, url, deadline, authenticated, read_timeout, kwargs):
+    async def _request(
+        self, client, method, url, deadline, authenticated, read_timeout, kwargs, pool
+    ):
         origin = urlsplit(str(url)).hostname
         for hop in range(7):
             await check_destination(url, resolve=self.resolve, resolver=self.resolver)
             timeout = httpx.Timeout(min(read_timeout, deadline.remaining()), connect=3, pool=2)
-            async with self.limiter.global_slot(deadline):
+            async with self.limiter.global_slot(deadline, pool=pool):
                 async with client.stream(method, url, timeout=timeout, **kwargs) as response:
                     chunks, size = [], 0
                     async for chunk in response.aiter_bytes():
@@ -138,6 +149,7 @@ class SchoolTransport:
             if result.status_code == 429:
                 delay = result.headers.get("retry-after", "30")
                 seconds = min(3600, max(1, int(delay))) if delay.isdigit() else 30
+                await self.limiter.block(seconds)
                 raise ApiError(
                     429,
                     ErrorCode.RATE_LIMITED,

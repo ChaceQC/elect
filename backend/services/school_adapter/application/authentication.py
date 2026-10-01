@@ -1,9 +1,11 @@
+import asyncio
 from datetime import UTC, datetime
 
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 
 from ..infrastructure.crypto import lookup_aliases
+from ..infrastructure.transport import Deadline
 
 
 class Authentication:
@@ -16,6 +18,16 @@ class Authentication:
         )
 
     async def authenticate(self, command):
+        deadline = Deadline(60)
+        try:
+            async with asyncio.timeout(deadline.remaining()):
+                return await self._authenticate(command, deadline)
+        except TimeoutError:
+            raise ApiError(
+                504, ErrorCode.SCHOOL_TIMEOUT, "学校登录超时，请查询当前结果或重新取图", True
+            ) from None
+
+    async def _authenticate(self, command, deadline):
         staged = await self.repository.staged(command.attempt_id)
         if staged:
             return self.repository.stage_result(staged)
@@ -23,7 +35,7 @@ class Authentication:
         alias = aliases[self.lookup.current]
         await self.store.rate("login", alias)
         await self.store.rate("browser_login", command.browser_nonce_hash)
-        async with self.store.account_lock(alias):
+        async with self.store.account_lock(alias, deadline=deadline):
             staged = await self.repository.staged(command.attempt_id)
             if staged:
                 return self.repository.stage_result(staged)
@@ -35,6 +47,7 @@ class Authentication:
                 command.password.get_secret_value(),
                 challenge,
                 command.captcha_answer,
+                deadline=deadline,
             )
             result = await self.repository.stage(
                 command.attempt_id,

@@ -21,6 +21,7 @@
 | [T0 需求追踪](T0需求追踪表.md) | 页面字段、按钮、异步能力、模块和实现阶段 |
 | [T0 验收](acceptance/T0验收记录.md) | 交付物、测试结果和后续边界 |
 | [T1 验收](acceptance/T1验收记录.md) | Docker、TLS、权限、可靠事件与前端公共层 |
+| [T2 验收](acceptance/T2验收记录.md) | 真实学校/生产前端登录读取、后台恢复与隔离/故障边界 |
 
 ## 统一目录
 
@@ -38,7 +39,7 @@ deploy/                      # Compose、Nginx 模板、基础服务配置和运
 example/                     # 页面和交互参考，不参加生产构建
 ```
 
-T0 已完成：frontend 独立入口、依赖锁、类型与模拟场景；backend 独立工程、DTO/状态模型与七域迁移。deploy 已有公开配置与 Secret/账号清单；T1 的两端 Dockerfile、Compose、运行/认证/事件/Audit、TLS 与 F1 路由/公共数据层已完成验收。T2 后端认证与本人读取已通过真实联调，前端/阶段验收正在实施；详情见 [T2 决策](decisions/T2认证与读取.md)。参考材料自己的 README 保留在 example 内。
+T0 已完成：frontend 独立入口、依赖锁、类型与模拟场景；backend 独立工程、DTO/状态模型与七域迁移。deploy 已有公开配置与 Secret/账号清单；T1 的两端 Dockerfile、Compose、运行/认证/事件/Audit、TLS 与 F1 路由/公共数据层已完成验收。T2 认证与本人读取、生产前端已完成真实联调与容器验收；详情见 [T2 决策](decisions/T2认证与读取.md)。参考材料自己的 README 保留在 example 内。
 
 ## 部署约定
 

@@ -12,13 +12,14 @@ RUN uv sync --locked --no-dev
 FROM dependencies AS test
 RUN uv sync --locked
 COPY . .
+ENV PATH="/app/.venv/bin:$PATH"
 CMD ["uv", "run", "pytest", "-q"]
 
 FROM base AS runtime
 RUN groupadd --gid 10001 elect && useradd --uid 10001 --gid elect --no-create-home elect
 COPY --from=dependencies /app/.venv /app/.venv
 COPY services ./services
-COPY scripts ./scripts
+COPY scripts/migrations.py ./scripts/migrations.py
 ENV PATH="/app/.venv/bin:$PATH"
 USER 10001:10001
 CMD ["python", "-m", "services.gateway"]

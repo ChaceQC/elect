@@ -50,30 +50,37 @@ class SchoolProtocol:
     def __init__(self, transport):
         self.transport = transport
 
-    async def challenge(self, *, deadline=None):
+    async def challenge(self, *, deadline=None, pool="interactive"):
         deadline = deadline or Deadline(30)
         async with self.transport.client() as client:
             await self.transport.request(
-                client, "GET", f"{CAS}/login", deadline, params={"service": SERVICE}
+                client, "GET", f"{CAS}/login", deadline, pool=pool, params={"service": SERVICE}
             )
-            return await self.next_challenge(client, "", deadline)
+            return await self.next_challenge(client, "", deadline, pool=pool)
 
-    async def next_challenge(self, client, uid, deadline):
+    async def next_challenge(self, client, uid, deadline, *, pool="interactive"):
         response = await self.transport.request(
             client,
             "GET",
             f"{CAS}/kaptcha",
             deadline,
             params={"uid": uid},
+            pool=pool,
             headers={"X-Requested-With": "XMLHttpRequest", "Referer": f"{CAS}/login"},
         )
         value = parse_json(response, check_code=False, allow_text_json=True)
         uid = value.get("uid")
-        if not isinstance(uid, (str, int)) or isinstance(uid, bool) or not str(uid):
+        if (
+            not isinstance(uid, (str, int))
+            or isinstance(uid, bool)
+            or not 1 <= len(str(uid)) <= 128
+        ):
             raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校验证码标识缺失")
         return SchoolChallenge(str(uid), validate_image(value.get("content")), dump_cookies(client))
 
-    async def authenticate(self, student_id, password, challenge, answer, *, deadline=None):
+    async def authenticate(
+        self, student_id, password, challenge, answer, *, deadline=None, pool="interactive"
+    ):
         deadline = deadline or Deadline(60)
         encrypted = encrypt_password(password)
         async with self.transport.client() as client:
@@ -84,6 +91,7 @@ class SchoolProtocol:
                 f"{CAS}/v1/tickets",
                 deadline,
                 read_timeout=15,
+                pool=pool,
                 data={
                     "username": student_id,
                     "password": encrypted,
@@ -111,20 +119,25 @@ class SchoolProtocol:
                 httpx.URL(SERVICE).copy_merge_params({"ticket": ticket}),
                 deadline,
                 read_timeout=15,
+                pool=pool,
             )
             tokens = parse_qs(response.url.query.decode()).get("token", [])
             if len(tokens) != 1 or not tokens[0] or len(tokens[0]) > 8192:
                 raise ApiError(502, ErrorCode.SCHOOL_PROTOCOL_CHANGED, "学校认证未返回有效令牌")
             token = tokens[0]
         # SDGL 不继承 CAS CookieJar。
-        info = await self.read("/getInfo", token, {}, deadline=deadline)
+        info = await self.read("/getInfo", token, {}, deadline=deadline, pool=pool)
         user = info.get("user")
         uid = user.get("userId") if isinstance(user, dict) else None
-        if not isinstance(uid, (str, int)) or isinstance(uid, bool) or not str(uid):
+        if (
+            not isinstance(uid, (str, int))
+            or isinstance(uid, bool)
+            or not 1 <= len(str(uid)) <= 128
+        ):
             raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校用户信息缺少必要标识")
         return token, str(uid)
 
-    async def read(self, path, token, params, *, deadline=None):
+    async def read(self, path, token, params, *, deadline=None, pool="background"):
         deadline = deadline or Deadline(25)
         async with self.transport.client() as client:
             response = await self.transport.request(
@@ -134,6 +147,7 @@ class SchoolProtocol:
                 deadline,
                 params=params,
                 authenticated=True,
+                pool=pool,
                 headers={"Authorization": f"Bearer {token}"},
             )
             return parse_json(response, authenticated=True)

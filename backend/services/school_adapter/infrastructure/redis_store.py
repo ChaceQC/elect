@@ -38,9 +38,13 @@ SLOT = """
 local t = redis.call('TIME')
 local now = t[1] * 1000 + math.floor(t[2] / 1000)
 redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
+redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now)
 if redis.call('ZCARD', KEYS[1]) >= 5 then return 0 end
+if ARGV[2] == 'background' and redis.call('ZCARD', KEYS[2]) >= 4 then return 0 end
 redis.call('ZADD', KEYS[1], now + 90000, ARGV[1])
+if ARGV[2] == 'background' then redis.call('ZADD', KEYS[2], now + 90000, ARGV[1]) end
 redis.call('PEXPIRE', KEYS[1], 100000)
+redis.call('PEXPIRE', KEYS[2], 100000)
 return 1
 """
 RATE = """
@@ -74,7 +78,7 @@ class SharedStore:
             )
 
     @asynccontextmanager
-    async def global_slot(self, deadline):
+    async def global_slot(self, deadline, *, pool="interactive"):
         if await self.call("exists", "school_adapter:cooldown"):
             raise ApiError(
                 429,
@@ -84,12 +88,17 @@ class SharedStore:
                 retry_after_seconds=30,
             )
         token, key = secrets.token_urlsafe(24), "school_adapter:global_slots"
-        while not await self.call("eval", SLOT, 1, key, token):
+        background_key = "school_adapter:background_slots"
+        while not await self.call("eval", SLOT, 2, key, background_key, token, pool):
             await asyncio.sleep(min(0.1, deadline.remaining()))
         try:
             yield
         finally:
             await self.call("zrem", key, token)
+            await self.call("zrem", background_key, token)
+
+    async def block(self, seconds):
+        await self.call("set", "school_adapter:cooldown", "rate_limited", ex=seconds)
 
     @asynccontextmanager
     async def account_lock(self, alias, *, deadline=None):
@@ -119,13 +128,23 @@ class SharedStore:
         return self.crypto.open(value, key) if value else None
 
     async def create_challenge(self, nonce_hash, protocol):
+        deadline = Deadline(30)
+        try:
+            async with asyncio.timeout(deadline.remaining()):
+                return await self._create_challenge(nonce_hash, protocol, deadline)
+        except TimeoutError:
+            raise ApiError(
+                504, ErrorCode.SCHOOL_TIMEOUT, "验证码请求超时，请重新取图", True
+            ) from None
+
+    async def _create_challenge(self, nonce_hash, protocol, deadline):
         await self.rate("captcha", nonce_hash)
         challenge_id = secrets.token_urlsafe(32)
         pointer = f"school_adapter:browser:{nonce_hash}"
         prefix = "school_adapter:challenge:"
         # 在访问学校前作废旧图；乱序完成者不能发布自己的会话。
         await self.call("eval", SWAP, 1, pointer, prefix, challenge_id)
-        challenge = await protocol.challenge()
+        challenge = await protocol.challenge(deadline=deadline)
         value = self.crypto.seal(
             {"uid": challenge.uid, "cookies": challenge.cookies, "nonce_hash": nonce_hash},
             prefix + challenge_id,

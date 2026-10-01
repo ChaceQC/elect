@@ -6,7 +6,8 @@ services:
       edge: {}
       app: {aliases: [elect.test.local]}
   smoke:
-    image: ${ELECT_IMAGE:?set-backend-image}
+    image: ${ELECT_TEST_IMAGE:-elect-backend-smoke:test}
+    user: "10001:10001"
     profiles: [test]
     networks: [app, data]
     read_only: true

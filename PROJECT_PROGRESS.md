@@ -2,6 +2,44 @@
 
 日期按 `Asia/Shanghai` 记录；完成、验证、阻塞与下一步随任务更新。
 
+## 2026-10-01 · T2 交付与验收完成
+
+### 已完成
+
+- T2-01..04、P2-01..06、P3a-01..04 完成；F2 登录/协议/会话/账户/学校重认证、F3 本人列表与候选只读范围完成，版本统一为 0.3.0。
+- 生产前端验证码、协议阅读/版本重置、独立授权、重复提交保护与密码清理；手机/桌面账户、退出失败处理、学校修复；列表 empty/failed/stale/loading 和候选防抖/限频/乱序/过期处理。
+- 补齐登录/验证码全链路预算、人工保留资源、安全 GET 两次上限、持续学校失效状态与广播；生产镜像只保留服务/必要迁移，合成与烟测脚本使用独立 test 镜像。
+- 全新 Docker 22 长期服务/两项一次性作业与实际 MySQL/Redis 隔离/故障验证完成；合成校务验收期间暂停真实 Worker，完成后恢复健康，不让 CI 合成任务访问学校。
+- 正式后端、生产前端浏览器和本人授权密文后台恢复均完成真实学校复验：1 条本人绑定、候选第一页 10 条、刷新/手机账户/退出正常，浏览器存储未保存认证材料。
+- 同步计划完成范围、README/AGENTS、版本/契约/锁文件、部署与升级说明；保存 T2 验收、三份真实分类记录与四张合成界面截图。
+
+### 进行中
+
+- T2 实现与本地验证已结束；整理最终提交、推送与主分支交付记录。
+
+### 阻塞与风险
+
+- 无 T2 实施阻塞。B03 筛选精度、学校真实 TTL/完整错误码未确认，保持 unverified/应用 TTL；仅一个真实账号，双用户故障验证采用合成学校与真实基础服务。
+- F2-06 撤回、默认初始化/绑定写依赖 T3；监控/历史/提醒/支付仍未开放，四项真实副作用开关 false。
+
+### 下一步
+
+- 按 T3-01/P5a-01 建立每用户 disabled monitor、配置版本/generation/execution_epoch、取消与 prepare/commit-retarget 屏障，再实现凭据撤回协调和绑定台账。
+
+### 主要文件或模块
+
+- frontend/src/features/{auth,rooms}、hooks/useNow、lib/abortableDelay、组件/浏览器测试与 scripts/t2-live-browser.mjs。
+- backend/services/school_adapter、三域服务/迁移、common 认证/工作设施、scripts/t2_*、两端镜像/依赖锁与 deploy/Compose。
+- docs/acceptance/T2验收记录.md、school/2026-10-01-T2-*.json、frontend/t2、T2 决策与总/前后端计划、根/子目录文档。
+
+### 验证
+
+- 容器后端 ruff、82 passed / 1 skipped、三类契约/当前 head 检查及七域离线 DDL 通过。
+- 容器前端 contract/lint/typecheck、20 passed、build 通过；容器 Playwright 6 passed，1440/375px 截图已查看，无横向溢出。
+- 全新 `/tmp/elect-t2-release-proof` 仅 Docker 构建/初始化与内部 TLS/JWT/域权限、Outbox/Inbox/Audit、共享限流/Redis 失败、登录恢复/同步租约等检查全部通过；22 长期 healthy，migrate/tls-check 退出 0。
+- 最新生产前端真实浏览器与后台恢复记录均 passed，不存原始页面/trace 或输出真实认证材料；源码/文档的本地凭据扫描通过。
+- 前两批 50bc0ec、bcd7f16 已推送 origin/dev；最终交付提交及 Git 状态继续在收尾记录。
+
 ## 2026-10-01 · T2 后端真实学校闭环
 
 ### 已完成

@@ -28,10 +28,19 @@ def money(value):
         raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校余额字段异常") from None
 
 
+def text_field(value, maximum):
+    if value is None:
+        return ""
+    if not isinstance(value, (str, int)) or isinstance(value, bool) or len(str(value)) > maximum:
+        raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校房间字段类型或长度异常")
+    return str(value)
+
+
 def room_record(raw):
     if not isinstance(raw, dict):
         raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校房间记录异常")
-    building, number = str(raw.get("buildingName") or ""), str(raw.get("roomNo") or "")
+    building = text_field(raw.get("buildingName"), 128)
+    number = text_field(raw.get("roomNo"), 64)
     if len(building) > 128 or len(number) > 64:
         raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校房间名称异常")
     return {
@@ -39,8 +48,8 @@ def room_record(raw):
         "building": building,
         "number": number,
         "display_name": " ".join(filter(None, [building, number])) or "学校寝室",
-        "meter_code": str(raw["meterCode"])[:128] if raw.get("meterCode") else None,
-        "relation_id": str(raw["id"])[:128] if raw.get("id") else None,
+        "meter_code": text_field(raw.get("meterCode"), 128) or None,
+        "relation_id": text_field(raw.get("id"), 128) or None,
         "balance": money(raw.get("balance")),
     }
 

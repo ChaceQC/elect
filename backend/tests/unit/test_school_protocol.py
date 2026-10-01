@@ -19,7 +19,7 @@ IMAGE = "data:image/png;base64," + base64.b64encode(b"\x89PNG\r\n\x1a\nsynthetic
 
 class Limiter:
     @asynccontextmanager
-    async def global_slot(self, deadline):
+    async def global_slot(self, deadline, **options):
         deadline.remaining()
         yield
 
