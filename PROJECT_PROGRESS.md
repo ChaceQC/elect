@@ -1,3 +1,35 @@
+## 2026-10-02 · T5 主分支交付
+
+### 已完成
+
+- T5 实现提交 660b3cc 的完整 GitHub Actions 已成功：[容器验证 36893685280](https://github.com/ChaceQC/elect/actions/runs/36893685280)，包含规则/契约/构建/浏览器与隔离容器集成。
+- 确认 main 的严格必需检查 check、PR 与管理员约束仍生效；当前 dev 尚未包含上次 PR #2 的 main 合并提交 f8ce023。
+- 将 origin/main 合入当前 dev，无冲突、无业务源码差异；只补齐主分支祖先关系与本次交付进度。
+
+### 进行中
+
+- 创建 dev → main 的 T5 交付 PR，等待同步后最新提交的 push/PR Actions 全部成功。
+
+### 阻塞与风险
+
+- 无合并冲突或实现阻塞；更新后的检查完成前不能合并，旧提交绿色结果不能替代最新提交。
+- 真实 SMTP/学校写/支付开关保持默认关闭，本次不重新执行真实外发或学校操作。
+
+### 下一步
+
+- 最新提交全部检查通过且包含最新 main 后，以 merge commit 合并 T5 PR；随后将 main 合并提交同步回 dev，保留日常开发分支。
+- 完成交付后实施 T6-01/P7-01 支付能力政策与幂等台账。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md、dev/main 的 Git 祖先关系与 T5 交付 PR；T5 源码不变。
+
+### 验证
+
+- 工作区开始时干净，dev 跟踪 origin/dev；fetch 后确认 main=f8ce023、dev=660b3cc，原 dev 缺少 main 最新合并提交。
+- GitHub API 确認 660b3cc 的 check 为 GitHub Actions/success；main 必需 check/app_id=15368、strict=true、审批数0、enforce_admins=true。
+- git merge --no-commit origin/main 成功，无冲突；本次仅 Git 同步和进度文档，不新增或重跑本地业务测试。
+
 ## 2026-10-02 · T5 与 M2 完成
 
 ### 已完成
