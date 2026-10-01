@@ -24,10 +24,12 @@ class ApiError(Exception):
         *,
         retry_after_seconds=None,
         current_version=None,
+        existing_operation_id=None,
     ):
         self.status, self.code, self.message, self.retryable = status, code, message, retryable
         self.retry_after_seconds = retry_after_seconds
         self.current_version = current_version
+        self.existing_operation_id = existing_operation_id
 
 
 def metadata(request: Request):
@@ -46,6 +48,9 @@ def error_response(request: Request, error: ApiError):
                 "requires_reauth": error.code == ErrorCode.SCHOOL_REAUTH_REQUIRED,
                 "field_errors": {},
                 "current_version": error.current_version,
+                "existing_operation_id": str(error.existing_operation_id)
+                if error.existing_operation_id
+                else None,
             },
             "meta": metadata(request),
         },

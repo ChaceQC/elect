@@ -1,4 +1,4 @@
-"""正式 A01–A04/B01–B03 协议；没有绑定或支付写入口。"""
+"""正式学校认证/读取及受持久台账保护的 B04 单次写入。"""
 
 from dataclasses import dataclass
 from urllib.parse import parse_qs
@@ -151,3 +151,18 @@ class SchoolProtocol:
                 headers={"Authorization": f"Bearer {token}"},
             )
             return parse_json(response, authenticated=True)
+
+    async def bind_one(self, token, record, deadline):
+        async with self.transport.client() as client:
+            response = await self.transport.request(
+                client,
+                "POST",
+                f"{API}/base/roomUser/batchAdd",
+                deadline,
+                authenticated=True,
+                read_timeout=15,
+                pool="background",
+                json={"roomUsers": [record]},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            return parse_json(response, authenticated=True, check_code=False)

@@ -6,7 +6,7 @@
 
 ## T3 控制基础升级
 
-T3 启用 Monitoring 配置/屏障/发送许可和 Identity 持久撤回，当前 head 为 `identity_0003`、`school_0003`、`monitoring_0003`。`monitoring_encryption_key_bundle` 是独立 AES-256-GCM 多版本邮箱密钥，只挂载 Monitoring API，不与学校 KEK 共用。首次 provision 自动生成；已有 T2/第一批 T3 Secret 目录必须保留，按以下顺序重复升级：
+T3 启用 Monitoring 配置/屏障/发送许可和 Identity 持久撤回，当前 head 为 `identity_0003`、`school_0004`、`room_0003`、`monitoring_0003`。`monitoring_encryption_key_bundle` 是独立 AES-256-GCM 多版本邮箱密钥，只挂载 Monitoring API，不与学校 KEK 共用。首次 provision 自动生成；已有 T2/第一批 T3 Secret 目录必须保留，按以下顺序重复升级：
 
 ```sh
 docker build -t elect-backend:local backend
@@ -21,7 +21,7 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --force-recre
 
 将 `/opt/elect/secrets` 替换为实际受限目录；离线升级不输出 Secret，重复运行保留邮箱密钥、连接凭据及既有签名私钥，增加所需服务 scope 与 credential.revoked 的 MQ 写权限。数据库须已运行，迁移完成后再启动新 API；健康检查核对各域当前 head。MQ 与应用服务须重建以加载新权限。备份需包含新邮箱密钥及历史版本。升级前备份流程仍按本文对应章节执行。
 
-`monitor:browser` 仅授 Gateway，`monitor:retarget` 授 Room，`monitor:credential`/`credential:revoke` 授 Identity；`credential:control-read` 授 Identity/Monitoring，`monitor:credential-read` 授 Adapter，`monitor:authorize-send` 授 Notification，`room:control` 授 Monitoring。内部控制事务只使用本域 MySQL；沿用 Identity 恢复器，没有新增采集/邮件 Worker，22 个长期服务数量不变。独立验收入口包含 T3 控制与凭据/许可竞态脚本，真实绑定/邮件/支付开关仍关闭。
+`school:binding` 仅授 Room，用于候选核验/一次绑定/已登记操作回查；`monitor:browser` 仅授 Gateway，`monitor:retarget` 授 Room，`monitor:credential`/`credential:revoke` 授 Identity；`credential:control-read` 授 Identity/Monitoring，`monitor:credential-read` 授 Adapter，`monitor:authorize-send` 授 Notification，`room:control` 授 Monitoring。内部控制事务只使用本域 MySQL；沿用 Identity 恢复器，没有新增采集/邮件 Worker，22 个长期服务数量不变。独立验收入口包含 T3 控制与凭据/许可竞态脚本，真实绑定/邮件/支付开关仍关闭。
 
 ## 1. 整套部署方式
 
@@ -184,3 +184,7 @@ T2 新增 identity-recovery、room-sync-worker、school-maintenance，长期进�
 全新部署使用新版 provision 生成全部 Secret。已有 T1 数据卷升级时，停应用并备份现有 Secret，然后在无网络的一次性 root 容器执行 python -m services.deployment.upgrade_auth --directory /run/provision（只读镜像、显式挂载现有 Secret 目录为 /run/provision）。升级保留原 db_url/MQ/Redis 密码、服务签名私钥与已有认证密钥，补充缺失认证文件和命令/消息权限；部分认证文件缺失会拒绝混用。随后用原 env/项目名重建 Redis/RabbitMQ 使 ACL/definitions 生效，执行一次 migrate 作业升级三个领域 head，再启动新版应用。不能重新生成数据库连接 Secret 或删除旧卷。
 
 T2 新增应用恢复字段、学校账号占位/授权与 Room 同步租约/状态表；运行事务采用 READ COMMITTED。认证与读取实现及真实边界见 [T2 决策](decisions/T2认证与读取.md)。四项副作用开关仍默认关闭。
+
+## T3 绑定与默认增量
+
+Room 既有 Worker 同时扫描同步、默认和绑定，无新增进程。已有第二批 T3 部署重复执行上述 upgrade_controls 后迁移 room_0003/school_0004，再重建服务加载新 scope；不能回改已发布迁移或删除未知台账。deploy/test-stack.sh 增加默认 Saga 与绑定一次 dispatch/unknown/Outbox 故障验证，均使用隔离基础服务和合成学校。真实新增仅在明确指定目标的验收项目临时开启 ELECT_ALLOW_SCHOOL_BINDING_WRITES，验收后关闭，支付/SMTP 始终保持 false。

@@ -27,6 +27,8 @@ QUERY = {
     "page_size": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10},
     "binding_id": {"type": "string", "format": "uuid"},
     "room_id": {"type": "string", "maxLength": 128},
+    "building_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "floor": {"type": "string", "minLength": 1, "maxLength": 128},
     "start_date": {"type": "string", "format": "date"},
     "end_date": {"type": "string", "format": "date"},
     "granularity": {"type": "string", "enum": ["day", "week", "month"], "default": "day"},
@@ -98,7 +100,7 @@ def parameters(endpoint):
             }
         )
     for name in endpoint.query:
-        required = name in {"start_date", "end_date"} or (
+        required = name in {"start_date", "end_date", "building_id", "floor"} or (
             name == "binding_id" and endpoint.name == "get_capabilities"
         )
         result.append({"name": name, "in": "query", "required": required, "schema": QUERY[name]})
@@ -148,7 +150,7 @@ def build_contract():
         "openapi": "3.1.0",
         "info": {
             "title": "寝室电费学生端 API",
-            "version": "0.5.0",
+            "version": "0.6.0",
             "description": "T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，"
             "时间戳带时区。202 仅表示持久受理。业务服务按 x-stage 实现。",
         },
@@ -197,7 +199,7 @@ def main():
     else:
         TARGET.parent.mkdir(parents=True, exist_ok=True)
         TARGET.write_text(content)
-        print("已生成 docs/contracts/openapi.yaml，28 个公开接口")
+        print(f"已生成 docs/contracts/openapi.yaml，{len(ENDPOINTS)} 个公开接口")
 
 
 if __name__ == "__main__":

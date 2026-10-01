@@ -192,6 +192,7 @@ async def verify_browser(apps, engine, crypto):
         )
         assert sorted(r.status_code for r in responses) == [200, 409]
         current = (await client.get("/api/v1/monitor")).json()["data"]
+        assert current["config"]["repeat_limit"] == 2
         no_op = await client.patch(
             "/api/v1/monitor", json={"expected_version": current["version"], **current["config"]}
         )

@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 
 from services.common.dto import DTO
-from services.common.internal_dto import OperationQuery, RoomQuery
+from services.common.internal_dto import BindingQuery, OperationQuery, RoomFilterQuery, RoomQuery
 from services.common.security import Principal, require_user_principal
 
 from .defaults import accept_default
-from .dto import Candidates, DefaultRequest
+from .dto import BindRequest, Candidates, DefaultRequest
 from .repository import RoomRepository
 
 router = APIRouter(prefix="/internal/v1/browser")
@@ -19,10 +19,21 @@ class SyncCommand(DTO):
     idempotency_key: str = Field(min_length=16, max_length=128)
 
 
+class BindCommand(BindRequest, SyncCommand):
+    pass
+
+
 @router.post("/bindings")
 async def bindings(command: RoomQuery, request: Request, principal: Browser):
     return await RoomRepository(request.app.state.database).list(
         principal.user_id, command.q, command.page, command.page_size
+    )
+
+
+@router.post("/binding")
+async def binding(command: BindingQuery, request: Request, principal: Browser):
+    return await RoomRepository(request.app.state.database).get_binding(
+        principal.user_id, command.binding_id
     )
 
 
@@ -80,6 +91,35 @@ async def set_default(command: DefaultRequest, request: Request, principal: Brow
             "preference_version": command.expected_version,
             "state": "ready",
         }
+    current = await RoomRepository(request.app.state.database).operation(
+        principal.user_id, operation
+    )
+    return {
+        "operation_id": str(operation),
+        "state": current["state"],
+        "poll_url": f"/api/v1/operations/{operation}",
+    }
+
+
+@router.post("/filters")
+async def filters(command: RoomFilterQuery, request: Request, principal: Browser):
+    return await request.app.state.service_client.call(
+        "school_adapter",
+        "/rooms/filters",
+        "school:rooms",
+        principal.request_id,
+        command.model_dump(mode="json"),
+        principal=principal,
+    )
+
+
+@router.post("/bind")
+async def bind(command: BindCommand, request: Request, principal: Browser):
+    from .bindings import accept
+
+    operation = await accept(
+        request.app.state, principal, command.candidate_id, command.idempotency_key
+    )
     current = await RoomRepository(request.app.state.database).operation(
         principal.user_id, operation
     )

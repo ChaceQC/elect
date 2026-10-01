@@ -387,6 +387,177 @@
       "title": "OperationQuery",
       "type": "object"
     },
+    "BindingQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id"
+      ],
+      "title": "BindingQuery",
+      "type": "object"
+    },
+    "RoomFilterQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "buildings",
+            "floors",
+            "rooms"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "building_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Building Id"
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Floor"
+        }
+      },
+      "required": [
+        "level"
+      ],
+      "title": "RoomFilterQuery",
+      "type": "object"
+    },
+    "CandidateQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Candidate Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id"
+      ],
+      "title": "CandidateQuery",
+      "type": "object"
+    },
+    "SchoolBindingRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "room_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Room Id",
+          "type": "string"
+        },
+        "building": {
+          "title": "Building",
+          "type": "string"
+        },
+        "number": {
+          "title": "Number",
+          "type": "string"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "meter_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Meter Code"
+        },
+        "relation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Relation Id"
+        },
+        "balance": {
+          "anyOf": [
+            {
+              "pattern": "^-?(0|[1-9]\\d{0,11})\\.\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Balance"
+        }
+      },
+      "required": [
+        "room_id",
+        "building",
+        "number",
+        "display_name",
+        "meter_code",
+        "relation_id",
+        "balance"
+      ],
+      "title": "SchoolBindingRecord",
+      "type": "object"
+    },
+    "VerifiedCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/SchoolBindingRecord"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "record",
+        "credential_ref",
+        "credential_version"
+      ],
+      "title": "VerifiedCandidate",
+      "type": "object"
+    },
     "PrepareRetarget": {
       "additionalProperties": false,
       "properties": {
@@ -983,6 +1154,17 @@
             }
           ],
           "title": "Error Code"
+        },
+        "binding_record": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SchoolBindingRecord"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [

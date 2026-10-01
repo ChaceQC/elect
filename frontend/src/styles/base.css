@@ -97,3 +97,13 @@ input:focus-visible { outline: 3px solid #71b5ed; outline-offset: 2px; }
   .search-label { max-width: none; }
   .pagination { justify-content: space-between; }
 }
+.filter-steps, .room-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.filter-steps { margin: 16px 0; }
+.filter-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; max-height: 320px; overflow-y: auto; }
+.filter-list button { width: 100%; text-align: left; background: white; border: 1px solid #d8e8f6; }
+.selected-candidate, .monitor-summary, .monitor-form { background: white; border: 1px solid #d8e8f6; border-radius: 16px; padding: 24px; margin: 20px 0; }
+.monitor-summary h2, .monitor-form h2 { font-size: 20px; margin-top: 0; }
+.monitor-form { max-width: 620px; display: grid; gap: 16px; }
+.monitor-form label { display: grid; gap: 8px; }
+.monitor-form .checkbox-label { display: flex; }
+@media (max-width: 760px) { .selected-candidate, .monitor-summary, .monitor-form { padding: 18px; } .monitor-summary p { overflow-wrap: anywhere; } }

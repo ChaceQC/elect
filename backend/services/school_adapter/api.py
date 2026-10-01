@@ -6,9 +6,13 @@ from services.common.internal_dto import (
     ActivateCredential,
     AttemptQuery,
     AuthenticateLogin,
+    CandidateQuery,
     ChallengeCommand,
     CredentialProof,
+    DispatchBinding,
+    QueryOperation,
     RevokeCredential,
+    RoomFilterQuery,
     RoomQuery,
 )
 from services.common.security import (
@@ -146,3 +150,51 @@ async def candidates(
     from .application.candidates import search_candidates
 
     return await search_candidates(request.app.state, principal, command)
+
+
+@router.post("/rooms/filters")
+async def filters(
+    command: RoomFilterQuery,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("school:rooms"))],
+):
+    from .application.room_filters import filter_choices
+
+    return await filter_choices(request.app.state, principal, command)
+
+
+@router.post("/rooms/candidate")
+async def verify_candidate(
+    command: CandidateQuery,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("school:binding"))],
+):
+    from .application.binding_candidates import verify_candidate
+
+    return await verify_candidate(request.app.state, principal, command.candidate_id)
+
+
+@router.post("/upstream/bindings")
+async def bind(
+    command: DispatchBinding,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("school:binding"))],
+):
+    from .application.binding_writes import BindingWrites
+
+    authorize_owner(principal, command.owner_user_id)
+    return await BindingWrites(request.app.state).dispatch(command)
+
+
+@router.post("/upstream/operations")
+async def upstream_operation(
+    command: QueryOperation,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_user_principal("school:binding"))],
+):
+    from .application.binding_writes import BindingWrites
+
+    authorize_owner(principal, command.owner_user_id)
+    return await BindingWrites(request.app.state).query(
+        principal.user_id, command.operation_id, principal.request_id
+    )

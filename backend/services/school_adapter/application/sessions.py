@@ -159,3 +159,31 @@ class SchoolSessions:
                     await asyncio.sleep(min(random.uniform(0.05, 0.2), deadline.remaining()))
                 else:
                     raise
+
+    async def bind_once(self, command, record, reserve):
+        deadline = Deadline(60)
+        try:
+            async with asyncio.timeout(deadline.remaining()):
+                row = await self.repository.current(command.owner_user_id)
+                if row["status"] != "active" or not row["use_allowed"]:
+                    raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "请修复学校认证后绑定")
+                payload = self.repository.payload(row)
+                alias = lookup_aliases(self.lookup, "hbue", payload["student_id"])[
+                    self.lookup.current
+                ]
+                async with self.store.account_lock(alias, deadline=deadline):
+                    token, school_user, row = await self.token(
+                        command.owner_user_id, command.request_id, deadline, locked=True
+                    )
+                    if (
+                        row["id"] != command.credential_ref.bytes
+                        or row["version"] != command.credential_version
+                    ):
+                        raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化")
+                    if not await reserve():
+                        return None
+                    return await self.protocol.bind_one(
+                        token, {**record, "userId": school_user}, deadline
+                    )
+        except TimeoutError:
+            raise ApiError(504, ErrorCode.SCHOOL_TIMEOUT, "学校绑定结果待确认", True) from None

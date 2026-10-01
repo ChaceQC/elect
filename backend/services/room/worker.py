@@ -4,6 +4,7 @@ from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.security import Principal
 
+from .binding_saga import BindingSaga
 from .control_jobs import claim, update
 from .default_saga import DefaultSaga
 from .repository import RoomRepository
@@ -33,7 +34,8 @@ async def control_tick(app):
         return False
     principal = Principal("room", UUID(bytes=row["owner_user_id"]), 1, new_id())
     try:
-        await DefaultSaga(app.state.database, app.state.service_client).advance(row, principal)
+        saga = BindingSaga if row["type"] == "bind_room" else DefaultSaga
+        await saga(app.state.database, app.state.service_client).advance(row, principal)
     except ApiError as error:
         await update(app.state.database, row, error=error.code, state="reconciling", release=True)
     return True

@@ -5,8 +5,8 @@
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
 | Identity | elect_identity | identity_0003 | 7 |
-| School Adapter | elect_school | school_0003 | 9 |
-| Room | elect_room | room_0002 | 11 |
+| School Adapter | elect_school | school_0004 | 9 |
+| Room | elect_room | room_0003 | 11 |
 | Monitoring | elect_monitoring | monitoring_0003 | 13 |
 | Payment | elect_payment | payment_0001 | 4 |
 | Notification | elect_notification | notification_0001 | 4 |
@@ -31,3 +31,5 @@ T3 第一批 monitoring_0002 增加 monitors.preference_version、credential_ope
 第二批 identity_0003 增加 users.credential_version/status/operation_id 与 credential_operations 用户+版本唯一键；school_0003 增加 account_display 密文和 credential_revocations；monitoring_0003 增加 send_permits，job_id/execution_epoch 唯一且引用本域 slot。撤回会清空当前凭据和全部历史 activated/staged 密码暂存，展示账号单独加密，旧 token 清理可恢复。见 [凭据/许可决策](../decisions/T3凭据协调与发送许可.md)。
 
 暂存清理先按 attempt 查询激活结果，未激活且过期才能清；expired lease 提升 epoch 后恢复，不删除任务；unknown 操作/投递/订单保留台账；快照先清成员后清快照。日常清理及归档在容量/恢复验收后启用。细节见 [T0 决策](../decisions/T0实施决策.md)。
+
+第三批 school_0004 增加 upstream_operations 加密候选/脱敏 B02 确认记录、binary 目标比较与同用户未解决目标唯一约束；room_0003 增加候选/凭据快照、绑定/默认状态和默认子操作引用。学校 dispatched 后不能重新发送，unknown 不能普通过期清除。详见 [绑定决策](../decisions/T3绑定筛选与异步界面.md)。

@@ -90,6 +90,7 @@ class RoomQueries:
         fetched = aware(row["fetched_at"])
         stale = (
             sync_state != "ready"
+            or row["quality"] != "fresh"
             or not fetched
             or (datetime.now(UTC) - fetched).total_seconds() > 300
         )
@@ -137,7 +138,7 @@ class RoomQueries:
             if row["target_binding_id"]
             else None,
             "created_at": aware(row["created_at"]),
-            "binding_status": None,
+            "binding_status": row.get("binding_status"),
             "default_status": (
                 "confirmed"
                 if row["state"] == "succeeded"
@@ -146,12 +147,17 @@ class RoomQueries:
                 else "switching"
             )
             if row["type"] == "switch_default"
-            else None,
+            else row.get("default_status"),
             "retryable": bool(row["error_code"]) and row["type"] == "binding_sync",
             "error_code": row["error_code"],
             "next_reconcile_at": aware(row["next_reconcile_at"]),
             "result_binding_id": str(UUID(bytes=row["target_binding_id"]))
-            if row["type"] == "switch_default" and row["state"] == "succeeded"
+            if row["target_binding_id"]
+            and (
+                row["type"] == "switch_default"
+                and row["state"] == "succeeded"
+                or row.get("binding_status") == "confirmed"
+            )
             else None,
             "result_order_id": None,
         }
@@ -166,3 +172,19 @@ class RoomQueries:
                 owner=owner.bytes,
             )
             return set(rows.scalars())
+
+    async def get_binding(self, owner, binding):
+        async with self.engine.connect() as conn:
+            row = await first(
+                conn,
+                "SELECT b.*,r.building_name,r.room_no,c.balance,c.fetched_at,"
+                "c.school_observed_at,c.quality,c.error_code FROM room_bindings b "
+                "JOIN rooms r ON r.id=b.room_id LEFT JOIN room_balance_cache c "
+                "ON c.binding_id=b.id "
+                "WHERE b.id=:id AND b.owner_user_id=:owner AND b.status<>'inactive'",
+                id=binding.bytes,
+                owner=owner.bytes,
+            )
+        if not row:
+            raise ApiError(404, ErrorCode.NOT_FOUND, "本人绑定不存在或已失效")
+        return self.binding(row, "ready" if row["status"] == "active" else "stale")

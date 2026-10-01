@@ -66,6 +66,15 @@ class Candidates(Page):
     expires_at: Timestamp
 
 
+class FilterChoice(DTO):
+    id: Annotated[str, Field(min_length=1, max_length=128)]
+    label: Annotated[str, Field(min_length=1, max_length=128)]
+
+
+class FilterChoices(DTO):
+    items: Annotated[list[FilterChoice], Field(max_length=1000)]
+
+
 class BindRequest(DTO):
     candidate_id: Annotated[str, Field(min_length=1, max_length=128)]
 

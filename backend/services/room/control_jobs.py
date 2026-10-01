@@ -25,7 +25,7 @@ async def claim(engine):
         await execute(
             conn,
             "UPDATE room_operations SET "
-            "state=IF(state='failed',state,'running'),lease_owner=:lease,"
+            "state=IF(state='accepted','running',state),lease_owner=:lease,"
             "lease_until=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 120 "
             "SECOND),updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
             lease=lease,
@@ -34,7 +34,18 @@ async def claim(engine):
         return {**row, "lease_owner": lease}
 
 
-async def update(engine, row, *, step=None, error=None, state="running", done=False, release=False):
+async def update(
+    engine,
+    row,
+    *,
+    step=None,
+    error=None,
+    state="running",
+    done=False,
+    release=False,
+    delay=5,
+    binding_status=None,
+):
     async with engine.begin() as conn:
         current = await locked_operation(conn, row)
         if not current:
@@ -42,7 +53,8 @@ async def update(engine, row, *, step=None, error=None, state="running", done=Fa
         await execute(
             conn,
             "UPDATE room_operations SET state=:state,saga_step=:step,error_code=:error,"
-            "next_reconcile_at=IF(:done,NULL,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 5 SECOND)),"
+            "binding_status=COALESCE(:binding_status,binding_status),"
+            "next_reconcile_at=IF(:done,NULL,TIMESTAMPADD(SECOND,:delay,UTC_TIMESTAMP(6))),"
             "lease_owner=IF(:release,NULL,lease_owner),"
             "lease_until=IF(:release,NULL,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 120 SECOND)),"
             "updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
@@ -51,5 +63,7 @@ async def update(engine, row, *, step=None, error=None, state="running", done=Fa
             step=step or current["saga_step"],
             error=error,
             done=done,
+            delay=delay,
+            binding_status=binding_status,
             release=release or done,
         )

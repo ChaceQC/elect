@@ -7,6 +7,22 @@ authentication:
   user_context: 单次请求的 user_id/session_version 经 Identity 校验，由 Gateway 签名；owner_user_id 必须匹配可信上下文。
   enforcement: 接收方验证服务身份、权限、对象归属；拒绝任意 X-User-Id，禁止跨库访问。
 commands:
+  - name: read_room_filters
+    receiver: school_adapter
+    callers: [room]
+    method: POST
+    path: /rooms/filters
+    request: schemas.json#/$defs/RoomFilterQuery
+    response: 三级 FilterChoices items.id/label；不回显其他住户
+    idempotency: 安全读取；搜索在前端当前列表内完成，学校 searchValue 固定为空。
+  - name: verify_binding_candidate
+    receiver: school_adapter
+    callers: [room]
+    method: POST
+    path: /rooms/candidate
+    request: schemas.json#/$defs/CandidateQuery
+    response: schemas.json#/$defs/VerifiedCandidate
+    idempotency: school:binding 权限；校验本人/TTL/精确 roomId，仅返回脱敏目标和凭据快照。
   - name: introspect_session
     receiver: identity
     callers: [gateway]
@@ -142,7 +158,7 @@ commands:
     path: /upstream/bindings
     request: schemas.json#/$defs/DispatchBinding
     response: schemas.json#/$defs/UpstreamResult
-    idempotency: upstream_operation_id 唯一；相同摘要仅一次 dispatch；unknown 只回查 B02。
+    idempotency: school:binding 权限；upstream_operation_id 唯一、同用户/目标未解决屏障；prepared 先查 B02，dispatched 后只回查；10分钟 unknown 保留台账；binding_record 仅含脱敏确认事实。
   - name: dispatch_order
     receiver: school_adapter
     callers: [payment]

@@ -43,6 +43,9 @@ class Recorder:
     def create_unique_constraint(self, name, table, columns):
         self.metadata.tables[table].append_constraint(sa.UniqueConstraint(*columns, name=name))
 
+    def create_check_constraint(self, name, table, condition):
+        self.metadata.tables[table].append_constraint(sa.CheckConstraint(condition, name=name))
+
 
 def table_schema(table):
     columns = {}

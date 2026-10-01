@@ -69,7 +69,7 @@ def keys_and_trust():
                     "credential:control-read",
                     "credential:revoke",
                 ],
-                "room": ["school:rooms", "monitor:retarget"],
+                "room": ["school:rooms", "school:binding", "monitor:retarget"],
                 "monitoring": ["room:control", "credential:control-read"],
                 "school_adapter": ["monitor:credential-read"],
                 "notification": ["monitor:authorize-send"],

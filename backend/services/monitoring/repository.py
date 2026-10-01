@@ -14,7 +14,7 @@ async def lock_monitor(conn, owner):
         conn,
         "INSERT INTO monitors (id,owner_user_id,desired_enabled,state,health,"
         "interval_minutes,repeat_limit,threshold,email_version,version,generation,"
-        "consecutive_failures) VALUES (:id,:owner,0,'disabled','unavailable',60,1,20,1,1,1,0) "
+        "consecutive_failures) VALUES (:id,:owner,0,'disabled','unavailable',60,2,20,1,1,1,0) "
         "ON DUPLICATE KEY UPDATE owner_user_id=owner_user_id",
         id=new_id().bytes,
         owner=owner.bytes,

@@ -10,6 +10,7 @@ export function useBindings({ q = '', page = 1, pageSize = 10 } = {}) {
     queryFn: async ({ signal }) => /** @type {Bindings} */ ((await apiClient.request(`/room-bindings?${new URLSearchParams({
       q, page: String(page), page_size: String(pageSize) })}`, { signal })).data),
     refetchInterval: (query) => query.state.data?.sync_status === 'loading' ||
-      query.state.data?.pending_operations.some(item => ['accepted', 'running'].includes(item.state)) ? 2000 : false,
+      query.state.data?.default_switch_operation_id ||
+      query.state.data?.pending_operations.some(item => ['accepted', 'running', 'reconciling'].includes(item.state)) ? 2000 : false,
   })
 }

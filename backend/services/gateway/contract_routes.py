@@ -22,6 +22,26 @@ class Endpoint:
 
 
 ENDPOINTS = (
+    Endpoint("get", "/room-bindings/{id}", "get_binding", "room", "T3", "Binding"),
+    Endpoint("get", "/room-candidates/buildings", "list_buildings", "room", "T3", "FilterChoices"),
+    Endpoint(
+        "get",
+        "/room-candidates/floors",
+        "list_floors",
+        "room",
+        "T3",
+        "FilterChoices",
+        query=("building_id",),
+    ),
+    Endpoint(
+        "get",
+        "/room-candidates/rooms",
+        "list_filtered_rooms",
+        "room",
+        "T3",
+        "FilterChoices",
+        query=("building_id", "floor"),
+    ),
     Endpoint(
         "get", "/auth/agreement", "get_agreement", "identity", "T2", "Agreement", anonymous=True
     ),

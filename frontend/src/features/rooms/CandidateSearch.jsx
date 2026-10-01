@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
@@ -7,43 +7,72 @@ import { useNow } from '../../hooks/useNow.js'
 import { abortableDelay } from '../../lib/abortableDelay.js'
 
 /** @typedef {import('../../api/generated').components['schemas']['Candidates']} Candidates */
-export function CandidateSearch() {
+/** @typedef {import('../../api/generated').components['schemas']['Candidate']} Candidate */
+/** @typedef {import('../../api/generated').components['schemas']['FilterChoice']} Choice */
+/** @typedef {import('../../api/generated').components['schemas']['FilterChoices']} Choices */
+/** @param {{onBind?: (candidate: Candidate)=>void}} props */
+export function CandidateSearch({ onBind } = {}) {
   const { user } = useSession()
+  const [opened, setOpened] = useState(false)
+  const [building, setBuilding] = useState(/** @type {Choice|null} */ (null))
+  const [floor, setFloor] = useState(/** @type {Choice|null} */ (null))
+  const [room, setRoom] = useState(/** @type {Choice|null} */ (null))
   const [input, setInput] = useState('')
-  const [q, setQ] = useState('')
-  const [page, setPage] = useState(1)
-  const [enabled, setEnabled] = useState(false)
   const lastRequest = useRef(0)
   const now = useNow()
-  useEffect(() => {
-    const timer = setTimeout(() => { setQ(input.trim()); setPage(1) }, 400)
-    return () => clearTimeout(timer)
-  }, [input])
-  const settled = input.trim() === q
-  const query = useQuery({ queryKey: ['candidates', user?.id, { q, page }], enabled: !!user && enabled && settled,
-    staleTime: 0, retry: false,
+  const level = !building ? 'buildings' : !floor ? 'floors' : 'rooms'
+  const labels = { buildings: '楼栋', floors: '楼层', rooms: '房间' }
+  const choices = useQuery({ queryKey: ['room-filters', user?.id, level, building?.id, floor?.id],
+    enabled: !!user && opened, retry: false, staleTime: 60_000,
+    queryFn: async ({ signal }) => {
+      const params = new URLSearchParams()
+      if (building) params.set('building_id', building.id)
+      if (floor) params.set('floor', floor.id)
+      return /** @type {Choices} */ ((await apiClient.request(`/room-candidates/${level}?${params}`, { signal })).data)
+    } })
+  const candidate = useQuery({ queryKey: ['candidates', user?.id, room?.id], enabled: !!user && !!room,
+    retry: false, staleTime: 0,
     queryFn: async ({ signal }) => {
       await abortableDelay(Math.max(0, 1000 - (Date.now() - lastRequest.current)), signal)
       lastRequest.current = Date.now()
       return /** @type {Candidates} */ ((await apiClient.request(`/room-candidates?${new URLSearchParams({
-        q, page: String(page), page_size: '10' })}`, { signal })).data)
+        room_id: /** @type {Choice} */ (room).id, page: '1', page_size: '10' })}`, { signal })).data)
     } })
-  return <section className="room-section" aria-labelledby="candidate-title"><h2 id="candidate-title">查找学校寝室</h2>
-    <p className="muted">查看学校对当前账号开放的房间；新增绑定功能开放后可选择绑定。</p>
-    <label className="search-label">楼栋或房号<input value={input} maxLength={128} placeholder="输入楼栋或房号"
-      onChange={event => { setInput(event.target.value); setEnabled(true) }} /></label>
-    <button className="quiet" onClick={() => { setEnabled(true); if (enabled) void query.refetch() }} disabled={query.isFetching || !settled}>查询一页</button>
-    {query.isFetching && <p role="status">正在查询学校候选…</p>}
-    {query.error && <StatusBlock title={query.error.message} error action={{ label: '重试查询', onClick: () => { void query.refetch() } }} />}
-    {query.data && !query.isFetching && settled && <>
-      <p className="muted">共 {query.data.total} 条，当前第 {query.data.page} 页。{query.data.search_quality !== 'exact' && '学校筛选精度尚未确认，请核对返回的楼栋与房号。'}</p>
-      {Date.parse(query.data.expires_at) <= now ? <StatusBlock title="候选已过期，请重新查询" /> :
-        query.data.items.length === 0 ? <StatusBlock title="本页没有候选寝室" /> :
-          <ul className="candidate-list">{query.data.items.map(item => <li key={item.candidate_id}><span>{item.display_name}</span>
-            <span className="badge">{item.already_bound ? '已绑定' : '可见候选'}</span></li>)}</ul>}
-      <div className="pagination"><button className="quiet" disabled={page <= 1 || query.isFetching}
-        onClick={() => setPage(page - 1)}>上一页候选</button><button className="quiet" disabled={page * 10 >= query.data.total || query.isFetching}
-        onClick={() => setPage(page + 1)}>下一页候选</button></div>
+  const items = choices.data?.items.filter(item => item.label.toLocaleLowerCase().includes(input.trim().toLocaleLowerCase())) ?? []
+  /** @param {Choice} item */
+  function choose(item) {
+    setInput(''); setRoom(null)
+    if (level === 'buildings') { setBuilding(item); setFloor(null) }
+    else if (level === 'floors') setFloor(item)
+    else setRoom(item)
+  }
+  const selected = candidate.data?.items.find(item => item.room_id === room?.id)
+  return <section className="room-section" aria-labelledby="candidate-title"><h2 id="candidate-title">新增学校绑定</h2>
+    <p className="muted">先选择楼栋、楼层和房间；搜索只在当前列表中查找。</p>
+    {!opened ? <button onClick={() => setOpened(true)}>选择寝室</button> : <>
+      <div className="filter-steps" aria-label="寝室筛选">
+        <button className="quiet" onClick={() => { setBuilding(null); setFloor(null); setRoom(null); setInput('') }}>1. {building?.label ?? '选择楼栋'}</button>
+        <button className="quiet" disabled={!building} onClick={() => { setFloor(null); setRoom(null); setInput('') }}>2. {floor?.label ?? '选择楼层'}</button>
+        <span>3. {room?.label ?? '选择房间'}</span>
+      </div>
+      <label className="search-label">搜索当前{labels[level]}列表<input value={input} maxLength={128}
+        placeholder={`在已取得的${labels[level]}中查找`} onChange={event => setInput(event.target.value)} /></label>
+      <button className="quiet" disabled={choices.isFetching} onClick={() => { setRoom(null); void choices.refetch() }}>刷新当前列表</button>
+      {choices.isFetching && <p role="status">正在读取{labels[level]}列表…</p>}
+      {choices.error && <StatusBlock title={choices.error.message} error action={{ label: '重试列表', onClick: () => { void choices.refetch() } }} />}
+      {choices.data && !choices.isFetching && <>
+        <p className="muted">当前列表 {choices.data.items.length} 项，匹配 {items.length} 项。</p>
+        {items.length === 0 && <StatusBlock title={choices.data.items.length ? '当前列表没有匹配项' : '学校返回的当前列表为空'} />}
+        <ul className="filter-list">{items.map(item => <li key={item.id}><button className="quiet" onClick={() => choose(item)}>{item.label}</button></li>)}</ul>
+      </>}
+      {room && candidate.isFetching && <p role="status">正在核对所选房间…</p>}
+      {room && candidate.error && <StatusBlock title={candidate.error.message} error action={{ label: '重新核对', onClick: () => { void candidate.refetch() } }} />}
+      {room && candidate.data && !candidate.isFetching && (Date.parse(candidate.data.expires_at) <= now
+        ? <StatusBlock title="候选已过期，请重新核对" action={{ label: '重新核对', onClick: () => { void candidate.refetch() } }} />
+        : selected ? <div className="selected-candidate"><strong>{selected.display_name}</strong>
+          <p className="muted">{selected.already_bound ? '该寝室已在本人绑定列表中。' : '请核对楼栋与房号，确认后提交学校绑定。'}</p>
+          <button disabled={selected.already_bound || !onBind} onClick={() => onBind?.(Object.freeze({ ...selected }))}>绑定该寝室</button></div>
+          : <StatusBlock title="学校没有确认所选房间，请重新筛选" error />)}
     </>}
   </section>
 }

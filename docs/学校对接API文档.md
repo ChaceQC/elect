@@ -43,7 +43,10 @@
 | [B01](#b01) | SDGL | `GET /api/getInfo` | 当前学校用户信息 | 2026-09-30 通过 |
 | [B02](#b02) | SDGL | `GET /api/base/roomUser/selectRoomListByUserId` | 账号绑定寝室及余额 | 2026-09-30 通过 |
 | [B03](#b03) | SDGL | `GET /api/base/rooms/queryRoomList` | 分页查询可见房间余额 | 2026-10-01 分页容器通过，筛选语义待验证 |
-| [B04](#b04) | SDGL | `POST /api/base/roomUser/batchAdd` | 将选中的房间绑定到当前学校账号 | 2026-10-01 已核对学校实际页面调用；未执行新增绑定 |
+| [B04](#b04) | SDGL | `POST /api/base/roomUser/batchAdd` | 将选中的房间绑定到当前学校账号 | 2026-10-01 指定枫苑5号-402 的生产前端新增/B02/台账通过 |
+| [B05](#b05) | SDGL | `GET /api/base/baseBuildings/getBuildList` | 楼栋筛选列表 | 当前页面声明与指定目标只读核验 |
+| [B06](#b06) | SDGL | `GET /api/base/rooms/getAllFoolNumByBuildId` | 按楼栋取得楼层 | 当前页面声明与指定目标只读核验 |
+| [B07](#b07) | SDGL | `GET /api/base/rooms/getRoomListByBuildIdAndFloor` | 按楼栋/楼层取得房间 | 当前页面声明与指定目标只读核验 |
 | [C01](#c01) | SDGL | `GET /api/base/record/queryUsageByTime` | 查询用量记录 | 有数据，日期窗口语义受限 |
 | [C02](#c02) | SDGL | `GET /api/base/record/queryRecordByTime` | 查询扣费／用电记录 | 2026-09-30 返回区间内明细 |
 | [C03](#c03) | SDGL | `GET /api/home/queryEleTrendByTimeType` | 统计趋势 | `timeType=0` 通过，单寝室范围未确认 |
@@ -427,6 +430,49 @@ batchAdd({ roomUsers });
 - [绑定列表页面](https://sdgl.hbue.edu.cn/mobile/static/js/pages-bindingAccount-index.0a617094.js)：使用 B02 查询绑定；解绑操作使用关系 `bruId`，不能把它与 `roomId` 混用。解绑不在本次新增接口范围内。
 
 上述脚本名称随学校发版可能变化；路径或结构改变时重新定位调用链。本节为对原接入文档的补充，不把静态调用链核验写成真实绑定验收通过。
+
+
+<a id="b05"></a>
+### B05 楼栋筛选列表 getBuildList
+
+**请求**：`GET https://sdgl.hbue.edu.cn/api/base/baseBuildings/getBuildList`，当前学校账号 Bearer 认证。
+
+| Query | 类型 | 学校页面使用值/来源 |
+| --- | --- | --- |
+| `size` | integer | `999` |
+| `current` | integer | `1` |
+| `searchValue` | string | 本系统固定空字符串；前端在返回列表内搜索 |
+
+业务 code 为整数 200，`data.records` 为 `{label,value}` 数组，`data.total` 为总数。label 是楼栋名称，value 是学校楼栋 ID，禁止用名称代替 ID。本系统检查完整列表和 999 条上限，不把部分结果当完整筛选列表。
+
+<a id="b06"></a>
+### B06 楼层筛选列表 getAllFoolNumByBuildId
+
+**请求**：`GET https://sdgl.hbue.edu.cn/api/base/rooms/getAllFoolNumByBuildId`。
+
+| Query | 类型 | 来源 |
+| --- | --- | --- |
+| `buildingId` | string | B05 选中的 value |
+| `searchValue` | string | 本系统固定空字符串 |
+
+业务 code 200，`data` 为 `{label,value}` 数组。学校页面使用 `value.split('-')[0]` 取得 floorNum，本系统按相同行为解析，不把显示文字“4层”作为学校参数。
+
+<a id="b07"></a>
+### B07 房间筛选列表 getRoomListByBuildIdAndFloor
+
+**请求**：`GET https://sdgl.hbue.edu.cn/api/base/rooms/getRoomListByBuildIdAndFloor`。
+
+| Query | 类型 | 来源 |
+| --- | --- | --- |
+| `buildingId` | string | B05 选中的 value |
+| `floorNum` | string | B06 解析后的楼层值 |
+| `searchValue` | string | 本系统固定空字符串 |
+
+业务 code 200，`data` 为 `{label,value}` 数组，value 为学校 roomId。选择后按 B03 `roomId=<value>` 再核对完整候选，只接受与该 ID 一致的记录。B05–B07 只返回 ID/名称，不公开其他住户资料；B03 完整记录在 Adapter 加密缓存，受理后加密保存于台账。
+
+**2026-10-01 证据与范围**：学校 `pages/module/search` 为楼栋 → 楼层 → 房间三级选择，绑定页面接收 roomId。脚本 [pages-module-search.cd6846bf.js](https://sdgl.hbue.edu.cn/mobile/static/js/pages-module-search.cd6846bf.js)，SHA-256 `efc39c0ee773001cbca2ded59637ac8395865ee1648d892986128ac0d8b7206c`；请求声明在前述主包。指定账号只读实测唯一定位到枫苑5号、4 层和 402，B03 roomId 返回唯一匹配、楼栋/房号一致，B02 当时尚无该目标。用户说明直接搜索无效，正式前端改为筛选配合当前列表内搜索，不把非空 searchValue 当作已验证精确搜索。
+
+实际新增 B04 在台账与容器验证后单独执行并记录；本节只读证据不表示已完成新增绑定。
 
 ## 4. 历史用电与统计趋势
 
@@ -1663,3 +1709,7 @@ def create_order_and_qr(client, user_id, room_id, amount, *, confirmed=False):
 本文的 Python 实现已检查代码块语法、独立导入、登录密码加密一致性，并使用离线响应模拟核对日期转换、历史解析和二维码的 GET → POST → POST → GET 顺序。二维码检查包括最新 VIEWSTATE、`cb=on`、不发送 AJAX 参数，以及错误 Content-Type 下的 PNG 文件头识别。
 
 这些检查没有读取真实账号、请求学校服务、创建电费订单或使用真实 `prePayId`。线上接口的已知验证日期与限制见第 8 节。
+
+## T3 真实新增补充（2026-10-01）
+
+用户明确授权的枫苑5号-402 已通过生产前端执行 B05–B07 筛选、B03 精确核验与 B04 单次写入，并经 B02 和持久台账确认。绑定数 1 → 2，原默认保留，临时写开关恢复 false；记录见 [真实分类结果](acceptance/school/2026-10-01-T3-binding.json)。本例仍不证明学校累计上限、重复写入行为、最小必填字段或其他目标均可绑定。用户追加了同一目标的删除验收，删除尚未执行。

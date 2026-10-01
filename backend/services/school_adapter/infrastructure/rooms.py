@@ -49,7 +49,7 @@ def room_record(raw):
         "number": number,
         "display_name": " ".join(filter(None, [building, number])) or "学校寝室",
         "meter_code": text_field(raw.get("meterCode"), 128) or None,
-        "relation_id": text_field(raw.get("id"), 128) or None,
+        "relation_id": text_field(raw.get("bruId", raw.get("id")), 128) or None,
         "balance": money(raw.get("balance")),
     }
 

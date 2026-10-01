@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
@@ -11,49 +11,70 @@ const server = setupServer(http.get('/api/v1/auth/me', () => HttpResponse.json(e
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => { cleanup(); server.resetHandlers(); apiClient.reset() })
 afterAll(() => server.close())
-
-/** @param {string} name @param {string} [expires] */
-const result = (name, expires = new Date(Date.now() + 300_000).toISOString()) => ({ items: [
-  { candidate_id: name, room_id: name, building: name, number: '001', display_name: `${name}候选`,
+const choices = () => [
+  http.get('/api/v1/room-candidates/buildings', () => HttpResponse.json(envelope({ items: [
+    { id: 'b1', label: '枫苑5号' }, { id: 'b2', label: '其他楼栋' }] }))),
+  http.get('/api/v1/room-candidates/floors', () => HttpResponse.json(envelope({ items: [{ id: '4', label: '4层' }] }))),
+  http.get('/api/v1/room-candidates/rooms', () => HttpResponse.json(envelope({ items: [
+    { id: 'r402', label: '402' }, { id: 'r403', label: '403' }] }))),
+]
+/** @param {string} id @param {string} [expires] */
+const result = (id, expires = new Date(Date.now() + 300_000).toISOString()) => ({ items: [
+  { candidate_id: id, room_id: id, building: '枫苑5号', number: id.slice(1), display_name: `${id}候选`,
     already_bound: false, expires_at: expires }], page: 1, page_size: 10, total: 1,
-  search_quality: 'unverified', expires_at: expires })
+  search_quality: 'exact', expires_at: expires })
+async function openRooms() {
+  await waitFor(() => expect(apiClient.csrfToken).toBe(me.csrf_token))
+  fireEvent.click(screen.getByRole('button', { name: '选择寝室' }))
+  fireEvent.click(await screen.findByRole('button', { name: '枫苑5号' }))
+  fireEvent.click(await screen.findByRole('button', { name: '4层' }))
+  await screen.findByRole('button', { name: '402' })
+}
 
-it('防抖后才请求目标搜索，丢弃迟到的旧候选，遵守至少一秒请求间隔', async () => {
-  const calls = /** @type {{q: string|null, time: number}[]} */ ([])
+it('搜索只过滤三级筛选取得的列表，按room_id核对，丢弃迟到候选', async () => {
+  const calls = /** @type {string[]} */ ([])
   let release = /** @type {(()=>void)|null} */ (null)
   const held = new Promise(resolve => { release = () => resolve(null) })
-  server.use(http.get('/api/v1/room-candidates', async ({ request }) => {
-    const q = new URL(request.url).searchParams.get('q')
-    calls.push({ q, time: Date.now() })
-    if (q === 'Alpha') await held
-    return HttpResponse.json(envelope(result(q ?? '')))
+  server.use(...choices(), http.get('/api/v1/room-candidates', async ({ request }) => {
+    const params = new URL(request.url).searchParams
+    expect(params.has('q')).toBe(false)
+    const id = params.get('room_id') ?? ''
+    calls.push(id)
+    if (id === 'r402') await held
+    return HttpResponse.json(envelope(result(id)))
   }))
-  render(<AppProviders><CandidateSearch /></AppProviders>)
-  await waitFor(() => expect(apiClient.csrfToken).toBe(me.csrf_token))
-  fireEvent.change(screen.getByLabelText('楼栋或房号'), { target: { value: 'Alpha' } })
-  await waitFor(() => expect(calls).toHaveLength(1))
-  expect(calls[0].q).toBe('Alpha')
-  fireEvent.change(screen.getByLabelText('楼栋或房号'), { target: { value: 'Beta' } })
-  await screen.findByText('Beta候选', {}, { timeout: 2500 })
+  render(<AppProviders><CandidateSearch onBind={vi.fn()} /></AppProviders>)
+  await openRooms()
+  fireEvent.change(screen.getByLabelText('搜索当前房间列表'), { target: { value: '402' } })
+  expect(screen.getByRole('button', { name: '402' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '403' })).not.toBeInTheDocument()
+  expect(calls).toHaveLength(0)
+  fireEvent.change(screen.getByLabelText('搜索当前房间列表'), { target: { value: '' } })
+  fireEvent.click(screen.getByRole('button', { name: '402' }))
+  await waitFor(() => expect(calls).toEqual(['r402']))
+  fireEvent.click(screen.getByRole('button', { name: '403' }))
+  await screen.findByText('r403候选', {}, { timeout: 2500 })
   if (release) /** @type {()=>void} */ (release)()
-  expect(screen.queryByText('Alpha候选')).not.toBeInTheDocument()
-  expect(calls.map(item => item.q)).toEqual(['Alpha', 'Beta'])
-  expect(calls[1].time - calls[0].time).toBeGreaterThanOrEqual(990)
+  expect(screen.queryByText('r402候选')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '1. 枫苑5号' }))
+  expect(screen.queryByText('r403候选')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '2. 选择楼层' })).toBeDisabled()
 })
 
-it('过期候选显示重新查询，刷新沿用当前页而不显示绑定成功', async () => {
+it('过期候选要求重新核对，保留room_id并不显示绑定成功', async () => {
   let count = 0
-  server.use(http.get('/api/v1/room-candidates', () => {
+  server.use(...choices(), http.get('/api/v1/room-candidates', ({ request }) => {
+    expect(new URL(request.url).searchParams.get('room_id')).toBe('r402')
     count += 1
-    return HttpResponse.json(envelope(result('当前', count === 1 ? '2020-01-01T00:00:00Z' : undefined)))
+    return HttpResponse.json(envelope(result('r402', count === 1 ? '2020-01-01T00:00:00Z' : undefined)))
   }))
   render(<AppProviders><CandidateSearch /></AppProviders>)
-  await waitFor(() => expect(apiClient.csrfToken).toBe(me.csrf_token))
-  fireEvent.click(screen.getByRole('button', { name: '查询一页' }))
-  await screen.findByText('候选已过期，请重新查询')
-  expect(screen.queryByText('当前候选')).not.toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: '查询一页' }))
-  await screen.findByText('当前候选', {}, { timeout: 2500 })
+  await openRooms()
+  fireEvent.click(screen.getByRole('button', { name: '402' }))
+  await screen.findByText('候选已过期，请重新核对')
+  expect(screen.queryByText('r402候选')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '重新核对' }))
+  await screen.findByText('r402候选', {}, { timeout: 2500 })
   expect(count).toBe(2)
   expect(screen.queryByText('绑定成功')).not.toBeInTheDocument()
 })

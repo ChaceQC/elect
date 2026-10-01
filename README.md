@@ -2,7 +2,7 @@
 
 面向学生的寝室电费系统，目标提供学校登录、寝室绑定、电费查询、持久监控、低余额邮件与缴费能力。
 
-当前版本：0.5.0。T0/T1/T2 已完成；T3 已接通监控配置/控制屏障、Identity/Adapter 凭据更新与持久撤回、发送许可，以及学生端账户撤回和进度恢复。Room 默认切换 Saga 与首次同步默认初始化已接通；绑定台账、筛选绑定与监控设置页面仍在推进；采集、邮件和支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
+当前版本：0.6.0。T0/T1/T2 已完成；T3 已接通监控控制/凭据撤回/发送许可、Room 绑定/默认 Saga、三级筛选和异步界面、监控草稿与独立关闭。指定枫苑5号-402 的生产前端真实新增及 B02 回查已通过，绑定写开关已恢复关闭。用户补充的删除绑定正在实现；采集、邮件和支付尚未开放。任务进度与验证结果见 [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)。
 
 GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 
@@ -17,6 +17,8 @@ GitHub 公开仓库：[ChaceQC/elect](https://github.com/ChaceQC/elect)。
 - [T2 验收](docs/acceptance/T2验收记录.md)：真实学校/生产前端登录、本人读取、后台恢复与隔离/故障边界。
 - [T3 控制基础](docs/acceptance/T3控制基础验收记录.md)：监控配置、取消/切换/凭据屏障原语与实际数据库验证，T3 整体仍在进行。
 - [T3 凭据与许可](docs/acceptance/T3凭据与许可验收记录.md)：持久撤回、激活故障/补偿、token 竞态、发送授权及账户界面，验证使用合成学校。
+
+- [T3 绑定与界面](docs/acceptance/T3绑定与界面验收记录.md)：一次 dispatch/unknown、筛选与操作恢复、监控草稿和指定目标真实新增。
 
 ## 目录
 

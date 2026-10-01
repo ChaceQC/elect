@@ -7,7 +7,7 @@ from pydantic import Field, SecretStr, model_validator
 
 from services.identity.dto import LoginRequest
 
-from .dto import DTO, Count, PositiveMoney, Timestamp, Version
+from .dto import DTO, Count, Money, PositiveMoney, Timestamp, Version
 from .events import EVENTS, EventPayload
 
 
@@ -73,6 +73,44 @@ class RoomQuery(DTO):
 
 class OperationQuery(DTO):
     operation_id: UUID
+
+
+class BindingQuery(DTO):
+    binding_id: UUID
+
+
+class RoomFilterQuery(DTO):
+    level: Literal["buildings", "floors", "rooms"]
+    building_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    floor: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+
+    @model_validator(mode="after")
+    def parents(self):
+        if self.level != "buildings" and not self.building_id:
+            raise ValueError("请选择楼栋")
+        if self.level == "rooms" and not self.floor:
+            raise ValueError("请选择楼层")
+        return self
+
+
+class CandidateQuery(DTO):
+    candidate_id: Annotated[str, Field(min_length=1, max_length=128)]
+
+
+class SchoolBindingRecord(DTO):
+    room_id: Annotated[str, Field(min_length=1, max_length=128)]
+    building: str
+    number: str
+    display_name: str
+    meter_code: str | None
+    relation_id: str | None
+    balance: Money | None
+
+
+class VerifiedCandidate(DTO):
+    record: SchoolBindingRecord
+    credential_ref: UUID
+    credential_version: Version
 
 
 class PrepareRetarget(UserCommand):
@@ -164,6 +202,7 @@ class UpstreamResult(DTO):
     dispatched_at: Timestamp | None
     result_ref: UUID | None
     error_code: str | None
+    binding_record: SchoolBindingRecord | None = None
 
 
 class QueryOperation(UserCommand):

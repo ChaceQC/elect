@@ -4,6 +4,74 @@
  */
 
 export interface paths {
+    "/room-bindings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** get_binding */
+        get: operations["get_binding"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-candidates/buildings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** list_buildings */
+        get: operations["list_buildings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-candidates/floors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** list_floors */
+        get: operations["list_floors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-candidates/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** list_filtered_rooms */
+        get: operations["list_filtered_rooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/agreement": {
         parameters: {
             query?: never;
@@ -471,7 +539,7 @@ export interface components {
          * ErrorCode
          * @enum {string}
          */
-        ErrorCode: "INVALID_ARGUMENT" | "INVALID_INTERVAL" | "INVALID_DATE_RANGE" | "CAPTCHA_INVALID" | "CAPTCHA_EXPIRED" | "APP_SESSION_EXPIRED" | "SCHOOL_LOGIN_REJECTED" | "CSRF_REJECTED" | "ORIGIN_REJECTED" | "NOT_FOUND" | "VERSION_CONFLICT" | "IDEMPOTENCY_CONFLICT" | "OPERATION_IN_PROGRESS" | "SCHOOL_REAUTH_REQUIRED" | "REAUTH_ACCOUNT_MISMATCH" | "ROOM_CANDIDATE_EXPIRED" | "SNAPSHOT_EXPIRED" | "SNAPSHOT_MISMATCH" | "PRECONDITION_REQUIRED" | "RATE_LIMITED" | "SCHOOL_PROTOCOL_CHANGED" | "SCHOOL_INVALID_RESPONSE" | "SCHOOL_UNAVAILABLE" | "CIRCUIT_OPEN" | "DEPENDENCY_UNAVAILABLE" | "SCHOOL_TIMEOUT" | "PAYMENT_UNAVAILABLE" | "FEATURE_DISABLED";
+        ErrorCode: "INVALID_ARGUMENT" | "INVALID_INTERVAL" | "INVALID_DATE_RANGE" | "CAPTCHA_INVALID" | "CAPTCHA_EXPIRED" | "APP_SESSION_EXPIRED" | "SCHOOL_LOGIN_REJECTED" | "CSRF_REJECTED" | "ORIGIN_REJECTED" | "NOT_FOUND" | "VERSION_CONFLICT" | "IDEMPOTENCY_CONFLICT" | "OPERATION_IN_PROGRESS" | "SCHOOL_REAUTH_REQUIRED" | "REAUTH_ACCOUNT_MISMATCH" | "ROOM_CANDIDATE_EXPIRED" | "SCHOOL_BINDING_REJECTED" | "SNAPSHOT_EXPIRED" | "SNAPSHOT_MISMATCH" | "PRECONDITION_REQUIRED" | "RATE_LIMITED" | "SCHOOL_PROTOCOL_CHANGED" | "SCHOOL_INVALID_RESPONSE" | "SCHOOL_UNAVAILABLE" | "CIRCUIT_OPEN" | "DEPENDENCY_UNAVAILABLE" | "SCHOOL_TIMEOUT" | "PAYMENT_UNAVAILABLE" | "FEATURE_DISABLED";
         /** Error */
         Error: {
             code: components["schemas"]["ErrorCode"];
@@ -843,6 +911,18 @@ export interface components {
              * Format: date-time
              */
             expires_at: string;
+        };
+        /** FilterChoice */
+        FilterChoice: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** FilterChoices */
+        FilterChoices: {
+            /** Items */
+            items: components["schemas"]["FilterChoice"][];
         };
         /** BindRequest */
         BindRequest: {
@@ -1398,6 +1478,537 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_binding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Binding"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS, SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description PRECONDITION_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_buildings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FilterChoices"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS, SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description PRECONDITION_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_floors: {
+        parameters: {
+            query: {
+                building_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FilterChoices"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS, SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description PRECONDITION_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_filtered_rooms: {
+        parameters: {
+            query: {
+                building_id: string;
+                floor: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FilterChoices"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS, SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description PRECONDITION_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     get_agreement: {
         parameters: {
             query?: never;

@@ -32,6 +32,8 @@ async def search_candidates(state, principal, command):
     items = []
     for raw in records:
         record = room_record(raw)
+        if command.room_id and record["room_id"] != command.room_id:
+            raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校未返回所选房间，请重新筛选")
         candidate_id = secrets.token_urlsafe(32)
         await state.school_store.put_secret(
             f"school_adapter:candidate:{candidate_id}",
@@ -60,6 +62,6 @@ async def search_candidates(state, principal, command):
         "page": command.page,
         "page_size": command.page_size,
         "total": total,
-        "search_quality": "unverified",
+        "search_quality": "exact" if command.room_id else "unverified",
         "expires_at": expires,
     }

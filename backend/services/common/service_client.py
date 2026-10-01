@@ -66,6 +66,7 @@ class ServiceClient:
                     error.get("retryable", False),
                     retry_after_seconds=error.get("retry_after_seconds"),
                     current_version=error.get("current_version"),
+                    existing_operation_id=error.get("existing_operation_id"),
                 )
             return value
         except (ValueError, KeyError, TypeError):

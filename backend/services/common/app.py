@@ -95,7 +95,16 @@ def create_app(service: str, *, business=False):
             if business and (
                 endpoint.stage == "T2"
                 or endpoint.path
-                in {"/monitor", "/auth/school-credential", "/room-preferences/default"}
+                in {
+                    "/monitor",
+                    "/auth/school-credential",
+                    "/room-preferences/default",
+                    "/room-bindings",
+                    "/room-candidates/buildings",
+                    "/room-candidates/floors",
+                    "/room-candidates/rooms",
+                    "/room-bindings/{id}",
+                }
             ):
                 continue
             app.add_api_route(

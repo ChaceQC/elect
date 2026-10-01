@@ -552,7 +552,7 @@
     },
     "school_adapter": {
       "database": "elect_school",
-      "revision": "school_0003",
+      "revision": "school_0004",
       "tables": {
         "school_credentials": {
           "columns": {
@@ -801,7 +801,7 @@
               "primary_key": false
             },
             "target_ref": {
-              "type": "VARCHAR(128)",
+              "type": "VARCHAR(128) COLLATE utf8mb4_bin",
               "nullable": false,
               "primary_key": false
             },
@@ -849,9 +849,30 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "candidate_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "confirmed_record": {
+              "type": "JSON",
+              "nullable": true,
+              "primary_key": false
+            },
+            "open_binding_target": {
+              "type": "VARCHAR(128) COLLATE utf8mb4_bin",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(operation_type='bind_room' AND state IN ('prepared','dispatched','reconciling','unknown'),target_ref,NULL)"
             }
           },
-          "unique": [],
+          "unique": [
+            [
+              "owner_user_id",
+              "open_binding_target"
+            ]
+          ],
           "checks": [
             "credential_version >= 1",
             "operation_type IN ('bind_room', 'create_order', 'E01', 'E02', 'E03', 'E04')",
@@ -1120,7 +1141,7 @@
     },
     "room": {
       "database": "elect_room",
-      "revision": "room_0002",
+      "revision": "room_0003",
       "tables": {
         "rooms": {
           "columns": {
@@ -1358,6 +1379,36 @@
               "type": "DATETIME(6)",
               "nullable": true,
               "primary_key": false
+            },
+            "candidate_id": {
+              "type": "VARCHAR(128) COLLATE utf8mb4_bin",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "binding_status": {
+              "type": "VARCHAR(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "default_status": {
+              "type": "VARCHAR(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "default_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [
@@ -1375,10 +1426,22 @@
             ]
           ],
           "checks": [
+            "binding_status IN ('pending','confirmed','failed','unknown')",
+            "credential_version >= 1",
+            "default_status IN ('pending','switching','confirmed','unchanged','failed')",
             "state IN ('accepted', 'running', 'reconciling', 'unknown', 'succeeded', 'failed', 'cancelled')",
             "type IN ('binding_sync', 'bind_room', 'switch_default', 'balance_refresh', 'history_sync')"
           ],
-          "foreign_keys": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "default_operation_id"
+              ],
+              "targets": [
+                "room_operations.id"
+              ]
+            }
+          ],
           "indexes": [
             [
               "owner_user_id",
