@@ -1,7 +1,7 @@
 # 独立验收项目使用本机临时端口，正式入口仍为 80/443。
 services:
   nginx:
-    ports: !override ["127.0.0.1:18080:80", "127.0.0.1:18443:443"]
+    ports: !override ["127.0.0.1:${ELECT_TEST_HTTP_PORT:-18080}:80", "127.0.0.1:${ELECT_TEST_HTTPS_PORT:-18443}:443"]
     networks:
       edge: {}
       app: {aliases: [elect.test.local]}

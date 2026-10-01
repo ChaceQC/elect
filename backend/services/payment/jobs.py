@@ -113,6 +113,9 @@ async def update(
 
 
 async def recover(engine):
+    from .cancellation import settle_cancellations
+
+    cancelled = await settle_cancellations(engine)
     async with engine.begin() as conn:
         result = await execute(
             conn,
@@ -126,7 +129,7 @@ async def recover(engine):
             "SET p.state='submit_unknown',p.error_code='WORKER_INTERRUPTED',p.version=p.version+1 "
             "WHERE p.state='submitting' AND o.kind='create_order' AND o.state='reconciling'",
         )
-    return bool(result.rowcount)
+    return cancelled or bool(result.rowcount)
 
 
 async def dispatch_proof(engine, owner, command):
@@ -152,6 +155,7 @@ async def dispatch_proof(engine, owner, command):
             row["valid_lease"]
             and row["operation_state"] == "running"
             and row["unresolved_binding_id"]
+            and not row["cancel_requested_at"]
         ),
         "binding_id": str(UUID(bytes=row["binding_id"])),
         "credential_ref": str(UUID(bytes=row["credential_ref"])),

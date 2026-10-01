@@ -89,3 +89,33 @@ it('二维码202不创建图片URL；图片更新和关闭释放旧URL，200 HTM
   render(<AppProviders><PaymentQr order={{ ...order, qr_status: 'ready' }} onRefresh={vi.fn()} /></AppProviders>)
   await screen.findByText('二维码接口未返回有效图片')
 })
+
+
+it('取消原订单清理二维码与原引用，重新选择默认1元；重复点击只提交一次', async () => {
+  let cancelled = false
+  const calls = vi.fn()
+  const original = { ...order, state: 'submit_unknown', qr_status: 'not_requested' }
+  server.use(
+    http.get('/api/v1/payments/capabilities', () => HttpResponse.json(envelope({ ...capability,
+      unresolved_order: cancelled ? null : original }))),
+    http.get(`/api/v1/payment-orders/${orderId}`, () => HttpResponse.json(envelope(cancelled ? {
+      ...original, version: 2, cancelled_at: '2026-10-02T03:00:00+08:00' } : original))),
+    http.post(`/api/v1/payment-orders/${orderId}/cancel`, async ({ request }) => {
+      calls(await request.json()); cancelled = true
+      await new Promise(resolve => setTimeout(resolve, 20))
+      return HttpResponse.json(envelope({ ...original, version: 2,
+        cancelled_at: '2026-10-02T03:00:00+08:00' }))
+    }))
+  render(<AppProviders><PaymentDialog bindingId={bindingId} displayName="合成寝室" onClose={vi.fn()} /></AppProviders>)
+  await screen.findByText('建单结果尚未确认')
+  fireEvent.click(screen.getByRole('button', { name: '取消支付' }))
+  expect(screen.getByText(/取消不会退款/)).toBeVisible()
+  const button = screen.getByRole('button', { name: '确认取消支付' })
+  fireEvent.click(button); fireEvent.click(button)
+  await screen.findByText('支付已取消')
+  expect(calls).toHaveBeenCalledExactlyOnceWith({ expected_version: 1 })
+  expect(screen.queryByAltText('此充值订单的微信支付二维码')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '重新选择充值金额' }))
+  await waitFor(() => expect(screen.getByLabelText('充值金额（元）')).toHaveValue('1'))
+  expect(screen.getByRole('button', { name: '确认创建充值订单' })).toBeEnabled()
+})

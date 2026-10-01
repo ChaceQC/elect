@@ -412,7 +412,10 @@
           "last_checked_at": null,
           "qr_status": "unknown",
           "qr_expires_at": null,
-          "error_code": "SCHOOL_TIMEOUT"
+          "error_code": "SCHOOL_TIMEOUT",
+          "version": 1,
+          "cancel_pending": false,
+          "cancelled_at": null
         },
         "meta": {
           "request_id": "0199a10c-0000-7000-8000-000000000001",

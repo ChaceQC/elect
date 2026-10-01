@@ -10,7 +10,7 @@ from fastapi.responses import Response
 from services.common.browser_security import require_browser_write
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.payment.dto import OrderRequest
+from services.payment.dto import OrderCancelRequest, OrderRequest
 
 from .api import session, success
 
@@ -54,6 +54,13 @@ async def create(
 @router.get("/payment-orders/{id}")
 async def order(id: UUID, request: Request):
     return success(request, await call(request, "order", {"order_id": str(id)}))
+
+
+@router.post("/payment-orders/{id}/cancel")
+async def cancel_order(id: UUID, command: OrderCancelRequest, request: Request):
+    return success(request, await call(
+        request, "cancel", {"order_id": str(id), **command.model_dump(mode="json")}, write=True
+    ))
 
 
 @router.get("/payment-orders/{id}/qr")

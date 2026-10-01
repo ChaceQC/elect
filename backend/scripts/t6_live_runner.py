@@ -14,8 +14,10 @@ def main():
     parser.add_argument("--test-dir", type=Path, required=True)
     parser.add_argument("--project", required=True)
     parser.add_argument("--record", type=Path, required=True)
-    parser.add_argument("--phase", choices=["readonly", "create", "check"], required=True)
-    parser.add_argument("--relation", choices=["lower", "higher"], default="lower")
+    parser.add_argument("--phase", choices=["readonly", "create", "check", "cancel"], required=True)
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--relation", choices=["lower", "higher"])
+    selection.add_argument("--amount", help="仅使用用户明确指定的验收金额")
     parser.add_argument("--order-id")
     parser.add_argument("--qr-output", type=Path)
     args = parser.parse_args()
@@ -55,9 +57,10 @@ def main():
         "scripts.t6_live",
         "--phase",
         args.phase,
-        "--relation",
-        args.relation,
     ]
+    command += (
+        ["--amount", args.amount] if args.amount else ["--relation", args.relation or "lower"]
+    )
     if args.order_id:
         command += ["--order-id", args.order_id]
     if args.qr_output:

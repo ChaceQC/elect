@@ -150,7 +150,7 @@ def build_contract():
         "openapi": "3.1.0",
         "info": {
             "title": "寝室电费学生端 API",
-            "version": "0.10.0",
+            "version": "0.11.0",
             "description": "T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，"
             "时间戳带时区。202 仅表示持久受理。业务服务按 x-stage 实现。",
         },

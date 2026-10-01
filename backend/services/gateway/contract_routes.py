@@ -257,6 +257,11 @@ ENDPOINTS = (
     ),
     Endpoint("get", "/payment-orders/{id}", "get_order", "payment", "T6", "Order"),
     Endpoint(
+        "post", "/payment-orders/{id}/cancel", "cancel_order", "payment", "T6", "Order",
+        "OrderCancelRequest", versioned=True,
+        recovery="/payment-orders/{id}", persistence="payment.payment_orders",
+    ),
+    Endpoint(
         "get",
         "/payment-orders/{id}/qr",
         "get_qr",

@@ -33,6 +33,9 @@ async def account(apps, school):
         await sync_tick(apps["room"])
         bindings = (await client.get("/api/v1/room-bindings")).json()["data"]
         if bindings["items"]:
+            from scripts.room_test_setup import ready_default
+
+            await ready_default(client, apps["room"])
             return client, user, bindings["items"][0]["id"]
     raise AssertionError("合成绑定未同步")
 
@@ -176,6 +179,9 @@ async def main():
 
         await status_checks(apps, school, client, order, binding)
         await faults(apps, school)
+        from scripts.t6_cancel_smoke import verify_cancellation
+
+        await verify_cancellation(apps, school)
     finally:
         if client:
             await client.aclose()

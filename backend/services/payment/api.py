@@ -17,7 +17,7 @@ from services.common.internal_dto import (
 from services.common.security import Principal, require_user_principal
 from services.common.sql import execute
 
-from .dto import Capabilities, OrderRequest, QRPending
+from .dto import Capabilities, OrderCancelRequest, OrderRequest, QRPending
 from .orders import accepted, create_order, get_order, order_view, reference, replay, unresolved
 from .policy import MAXIMUM, MINIMUM, STEP, unavailable, validate_amount
 
@@ -31,6 +31,19 @@ class CreateCommand(OrderRequest):
 
 class QRCommand(OrderQuery):
     idempotency_key: str = Field(min_length=16, max_length=128)
+
+
+class CancelCommand(OrderQuery, OrderCancelRequest):
+    pass
+
+
+@router.post("/browser/cancel")
+async def cancel_order(command: CancelCommand, request: Request, principal: Browser):
+    from .cancellation import cancel
+
+    return await cancel(
+        request.app.state.database, principal, command.order_id, command.expected_version
+    )
 
 
 async def context(state, principal, binding):
@@ -102,7 +115,9 @@ async def read_order(command: OrderQuery, request: Request, principal: Browser):
 @router.post("/browser/qr")
 async def qr(command: OrderQuery, request: Request, principal: Browser):
     row = await get_order(request.app.state.database, principal.user_id, command.order_id)
-    if row["state"] in {"paid_confirmed", "rejected", "expired_confirmed", "closed_confirmed"}:
+    if row["cancel_requested_at"] or row["state"] in {
+        "paid_confirmed", "rejected", "expired_confirmed", "closed_confirmed"
+    }:
         raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS, "订单已终结，请查询支付结果")
     if row["qr_status"] == "ready":
         value = await request.app.state.service_client.call(

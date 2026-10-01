@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-02",
+  "scope": "本人默认寝室指定金额",
+  "real_payment_performed": false,
+  "public_payment_enabled": false,
+  "stage": "local_cancellation_recorded",
+  "school_login_with_captcha": "passed",
+  "default_binding_confirmed": true,
+  "amount_policy": "application_1_to_500_integer",
+  "unresolved_order_present": true,
+  "order_id": "01a0f8d1-e4fb-73fe-b356-a5d4bec84caf",
+  "cancel_pending": false,
+  "locally_cancelled": true,
+  "school_cancelled_confirmed": false
+}

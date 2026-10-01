@@ -6,7 +6,7 @@ import { binding, bindingId, capability, order, orderId } from '../fixtures/t6.j
 for (const width of [1440, 375]) {
   test(`${width}px：能力规则、建单重复防护、未知订单重开和刷新恢复`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
-    let accepted = false, writes = 0, amount = '20.00'
+    let accepted = false, cancelled = false, cancels = 0, writes = 0, amount = '20.00'
     await page.route('**/api/v1/**', async route => {
       const request = route.request(), path = new URL(request.url()).pathname
       if (path === '/api/v1/auth/me') return route.fulfill({ json: envelope(me) })
@@ -14,14 +14,22 @@ for (const width of [1440, 375]) {
         items: [binding], total: 1, default_binding_id: bindingId }) })
       if (path === '/api/v1/room-candidates/buildings') return route.fulfill({ json: envelope({ items: [] }) })
       if (path === '/api/v1/payments/capabilities') return route.fulfill({ json: envelope({ ...capability,
-        unresolved_order: accepted ? { ...order, amount } : null }) })
+        unresolved_order: accepted && !cancelled ? { ...order, amount } : null }) })
       if (path === '/api/v1/payment-orders') {
         writes += 1; amount = request.postDataJSON().amount
         expect(request.postDataJSON().binding_id).toBe(bindingId)
         accepted = true
         return route.fulfill({ status: 202, json: envelope({ order_id: orderId, state: 'created', poll_url: `/api/v1/payment-orders/${orderId}` }) })
       }
-      if (path === `/api/v1/payment-orders/${orderId}`) return route.fulfill({ json: envelope({ ...order, amount }) })
+      const current = { ...order, amount, version: cancelled ? 2 : 1,
+        cancelled_at: cancelled ? '2026-10-02T03:00:00+08:00' : null }
+      if (path === `/api/v1/payment-orders/${orderId}`) return route.fulfill({ json: envelope(current) })
+      if (path === `/api/v1/payment-orders/${orderId}/cancel`) {
+        expect(request.postDataJSON()).toEqual({ expected_version: 1 })
+        expect(request.headers()['x-csrf-token']).toBe(me.csrf_token)
+        cancelled = true; cancels += 1
+        return route.fulfill({ json: envelope({ ...current, version: 2, cancelled_at: '2026-10-02T03:00:00+08:00' }) })
+      }
       return route.fulfill({ status: 404, json: { error: { code: 'NOT_FOUND', message: '合成未使用接口' } } })
     })
     await page.goto('/rooms')
@@ -48,6 +56,13 @@ for (const width of [1440, 375]) {
       await mkdir(directory, { recursive: true })
       await page.screenshot({ path: `${directory}/${width}-payment-unknown.png`, fullPage: true })
     }
+    await page.getByRole('button', { name: '取消支付', exact: true }).click()
+    await page.getByRole('button', { name: '确认取消支付', exact: true }).click()
+    await expect(page.getByRole('heading', { name: '支付已取消' })).toBeVisible()
+    await page.getByRole('button', { name: '重新选择充值金额' }).click()
+    await expect(page.getByLabel('充值金额（元）')).toHaveValue('1')
+    expect(cancels).toBe(1)
+    expect(writes).toBe(1)
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(page.getByRole('button', { name: '充值电费' })).toBeFocused()

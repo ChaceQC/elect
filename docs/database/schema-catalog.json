@@ -3891,7 +3891,7 @@
     },
     "payment": {
       "database": "elect_payment",
-      "revision": "payment_0003",
+      "revision": "payment_0004",
       "tables": {
         "payment_orders": {
           "columns": {
@@ -4000,12 +4000,6 @@
               "nullable": false,
               "primary_key": false
             },
-            "unresolved_binding_id": {
-              "type": "BINARY(16)",
-              "nullable": true,
-              "primary_key": false,
-              "computed": "IF(state IN ('created','submitting','awaiting_payment','submit_unknown','status_unknown'), binding_id, NULL)"
-            },
             "qr_status": {
               "type": "VARCHAR(32)",
               "nullable": false,
@@ -4045,6 +4039,27 @@
               "type": "BINARY(16)",
               "nullable": true,
               "primary_key": false
+            },
+            "cancel_requested_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "cancel_after": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "cancelled_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "unresolved_binding_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(cancelled_at IS NULL AND state IN ('created','submitting','awaiting_payment','submit_unknown','status_unknown'),binding_id,NULL)"
             }
           },
           "unique": [
@@ -4068,6 +4083,10 @@
           ],
           "foreign_keys": [],
           "indexes": [
+            [
+              "cancelled_at",
+              "cancel_after"
+            ],
             [
               "next_check_at",
               "check_lease_until"

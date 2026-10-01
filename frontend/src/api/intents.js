@@ -47,13 +47,19 @@ export class OperationController {
     this.client = client
     this.storage = storage
     /** @type {Map<string,Intent>} */ this.memory = new Map()
+    /** @type {Set<string>} */ this.persisted = new Set()
     /** @type {Map<string,Promise<Intent>>} */ this.inFlight = new Map()
   }
 
   /** @param {Intent} intent */
   remember(intent) {
     this.memory.set(intent.key, intent)
-    try { this.storage?.setItem(`elect.intent.${this.userId}.${intent.key}`, JSON.stringify(intent)) }
+    try {
+      if (this.storage) {
+        this.storage.setItem(`elect.intent.${this.userId}.${intent.key}`, JSON.stringify(intent))
+        this.persisted.add(intent.key)
+      }
+    }
     catch { /* 存储不可用时保留本次内存记录，服务端摘要负责刷新恢复。 */ }
     return intent
   }
@@ -88,6 +94,11 @@ export class OperationController {
   /** @returns {Intent[]} */
   restore() {
     try {
+      for (const key of this.persisted) {
+        if (this.storage?.getItem(`elect.intent.${this.userId}.${key}`) === null) {
+          this.memory.delete(key); this.persisted.delete(key)
+        }
+      }
       for (const key of Object.keys(this.storage ?? {})) {
         if (!key.startsWith(`elect.intent.${this.userId}.`)) continue
         try {
@@ -98,6 +109,7 @@ export class OperationController {
             !Number.isFinite(item.createdAt) || key !== `elect.intent.${this.userId}.${item.key}`) throw new Error('invalid')
           this.memory.set(item.key, Object.freeze({ key: item.key, path: item.path, kind: item.kind,
             id: item.id, createdAt: item.createdAt, method: item.method ?? 'POST', body: sanitize(item.body) }))
+          this.persisted.add(item.key)
         } catch { this.storage?.removeItem(key) }
       }
     } catch { /* sessionStorage 可被浏览器策略禁用。 */ }
@@ -117,6 +129,7 @@ export class OperationController {
   /** @param {string} key */
   forget(key) {
     this.memory.delete(key)
+    this.persisted.delete(key)
     try { this.storage?.removeItem(`elect.intent.${this.userId}.${key}`) } catch { /* 无可清理记录。 */ }
   }
 }

@@ -96,3 +96,17 @@ it('用户/日期/快照隔离缓存，金额用十进制，日期按上海', ()
   expect(validDateRange('2026-01-01', '2027-01-01')).toBe(true)
   expect(validDateRange('2026-01-01', '2027-01-02')).toBe(false)
 })
+
+
+it('一个组件完成或取消订单后，另一个组件不从旧内存复活原引用', () => {
+  sessionStorage.clear()
+  const first = new OperationController(user)
+  const intent = first.create('/payment-orders', { binding_id: order, amount: '1.00' }, 'order')
+  const second = new OperationController(user)
+  expect(second.restore()).toHaveLength(1)
+  second.forget(intent.key)
+  expect(first.restore()).toEqual([])
+  const memory = new OperationController(user, undefined, null)
+  memory.create('/payment-orders', { binding_id: order, amount: '1.00' }, 'order')
+  expect(memory.restore()).toHaveLength(1)
+})

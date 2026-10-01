@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-02",
+  "order_id": "01a0f8f7-61e4-7e54-a0cf-ced7564ba137",
+  "scope": "指定1元原订单只读核对",
+  "public_payment_enabled": false,
+  "d02_http_status": 200,
+  "d02_business_code": 500,
+  "d02_data_type": "NoneType",
+  "d02_status_candidates": {},
+  "order_state": "awaiting_payment",
+  "paid_confirmed": false,
+  "order_error_code": "SCHOOL_INVALID_RESPONSE",
+  "fresh_b02_same_room": true,
+  "balance_increased_by_one_yuan": true,
+  "user_reported_payment_success": true
+}

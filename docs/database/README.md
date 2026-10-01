@@ -8,7 +8,7 @@
 | School Adapter | elect_school | school_0006 | 10 |
 | Room | elect_room | room_0004 | 11 |
 | Monitoring | elect_monitoring | monitoring_0005 | 14 |
-| Payment | elect_payment | payment_0003 | 6 |
+| Payment | elect_payment | payment_0004 | 6 |
 | Notification | elect_notification | notification_0002 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
 
@@ -43,3 +43,5 @@ T5 monitoring_0005 增加有效序号唯一键（取消/明确失败可释放）
 T5 notification_0002 为 job 保存正文白名单快照、body_started_at 和 reported_version；邮箱只保存在本域密文，不将正文、地址或 SMTP 凭据放入 MQ。
 
 T6增加school_0006的Adapter订单密文及支付会话阶段/租约/图片、payment_0002的本人事务锁/开放操作/回查及刷新状态、payment_0003的QR每键原操作引用。D01/E02/E03发送台账永久保留，Unknown不按时间删除或释放；支付与Room仍无跨库读取。
+
+`payment_0004`增加cancel_requested_at/cancel_after/cancelled_at与恢复索引；未解决生成列只排除本地取消完成的订单。保留原学校状态、原键和永久上游发送台账；取消请求立即推进任务epoch，运行租约安全结束后释放占位。取消之后可能有新订单，本迁移禁止自动downgrade，采用向前修复或验证过的备份恢复。

@@ -1,10 +1,10 @@
 # API 契约
 
-当前版本：0.7.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.11.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
 
 ## 公开 API
 
-[openapi.yaml](openapi.yaml)包含全部 33 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
+[openapi.yaml](openapi.yaml)包含全部 34 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
 
 - 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。
 - 匿名验证码/登录使用浏览器 nonce、Origin 与限流；已有会话的重认证还要校验当前会话与 CSRF，登录接口不得静默切账号，账号不同返回 `409 REAUTH_ACCOUNT_MISMATCH`。
@@ -76,3 +76,7 @@ AlertSlotQuery/AlertSnapshot仅Notification受限本人上下文读取，包含�
 能力、建单和订单读取接入本人会话与内部 payment:browser 权限。capabilities.amount_policy_source=application_policy，金额初始为1–500元整数；不是学校确认上限。原键重放返回原订单，键同内容不同409，同用户/寝室未解决订单以409 existing_operation_id恢复，不能换键重建。订单新增qr_error_code、balance_refresh_state/operation_id（兼容默认）；尚未确认付款时不计算充值后余额。学校写入/二维码/真实状态继续实施，普通部署开关仍关闭。
 
 T6后续接通原订单QR/qr-refresh和三域operation查询。QR 200仅image/png或image/jpeg（二进制/no-store），202为QRPending JSON；未知表单只查原结果，不重发。订单余额刷新状态的succeeded仅表示School余额已重新查询，不表示本地已加到账。内部SchoolOrderResult/SchoolQRResult/PaymentImage/PaymentDispatchProof及实际路径已同步；Adapter独占票据密文。
+
+## 支付本地取消
+
+`POST /payment-orders/{id}/cancel` 使用本人Cookie、Origin、CSRF与 `expected_version`，返回含 `version/cancel_pending/cancelled_at` 的 Order；订单ID使重复取消返回原结果，不需要新的幂等键。缺版本428、冲突409、跨用户404；已确认付款不能取消。取消停止本系统执行，不撤销学校订单或退款，不删除D01/E02/E03台账。未取得许可的后续发送被阻断；已有运行等待原租约安全边界结束，随后释放未解决槽。旧键仍返回原订单，不重新派发；二维码读取/刷新拒绝取消订单。学校只读核对仍可记录原订单真实终态。

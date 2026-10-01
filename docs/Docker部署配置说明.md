@@ -210,3 +210,7 @@ monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以
 ## T6支付升级
 
 保留原Secret与卷，重复运行upgrade_controls补充payment:browser/school:payment/payment:proof及签名支付队列权限，重建RabbitMQ加载定义。升级school_0006与payment_0002/0003，Payment/Gateway/Adapter重建，新增payment-worker/payment-recovery挂载Payment runtime和internal_ca；Worker在app/data网络，学校出口仍只由Adapter持有。30个长期服务含两个新增进程，心跳反映真实数据库扫描/续租。普通环境两项支付写开关和PAYMENT_ACCEPTANCE_PASSED保持false；完整真实建单/状态/到账验收后再开放。Worker退出宽限180秒，每10秒续租90秒，恢复器不重放已发送的D01/E02/E03。见[T6决策](decisions/T6支付与二维码.md)。
+
+## 支付取消升级
+
+0.11.0先运行payment_0004，再重建Payment/Gateway和Payment Worker/恢复器。取消意图与学校状态分开；不能回改迁移或删除学校台账，旧键不重发。测试端口可使用ELECT_TEST_HTTP_PORT/ELECT_TEST_HTTPS_PORT启动第二个独立项目，默认18080/18443。T7本轮按用户要求跳过部署证书/更换演练，现有测试HTTPS与内部TLS保留。

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Decimal from 'decimal.js'
 import { ApiError, apiClient } from '../../api/client.js'
@@ -13,7 +13,7 @@ import { OrderStatus } from './OrderStatus.jsx'
 export function PaymentDialog({ bindingId, displayName, onClose }) {
   const { user } = useSession()
   const { controller, submit, busy } = useRequestIntent()
-  const [amount, setAmount] = useState('50')
+  const [amount, setAmount] = useState('1')
   const [orderId, setOrderId] = useState(/** @type {string|null} */ (null))
   const [frozen, setFrozen] = useState(/** @type {import('../../api/intents.js').Intent|null} */ (null))
   const [error, setError] = useState('')
@@ -25,6 +25,7 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
   const restored = controller?.restore().find(item => item.kind === 'order' && item.path === '/payment-orders' && item.body.binding_id === bindingId)
   const intent = frozen ?? restored
   const id = orderId ?? rules?.unresolved_order?.order_id ?? intent?.id ?? null
+  useEffect(() => { if (id && !orderId) setOrderId(id) }, [id, orderId])
   const normalized = /^\d+(?:\.\d{1,2})?$/.test(amount) ? new Decimal(amount).toFixed(2) : ''
   const limits = rules ? { minimum: rules.min_amount, maximum: rules.max_amount, step: rules.amount_step } : null
   const valid = !!limits && validateAmount(normalized, limits)
@@ -50,12 +51,14 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
     {capability.isPending && <StatusBlock title="正在读取支付规则与原订单…" />}
     {capability.error && <StatusBlock title={capability.error.message} error action={{ label: '重新读取支付规则', onClick: () => { void capability.refetch() } }} />}
     {rules && !rules.enabled && <StatusBlock title={rules.unavailable_reason ?? '支付暂未开放'} />}
-    {id ? <OrderStatus key={id} id={id} /> : <>
+    {id ? <OrderStatus key={id} id={id} onStartNew={() => {
+      void capability.refetch().then(() => { setOrderId(null); setFrozen(null); setAmount('1') })
+    }} /> : <>
       {rules && <p className="muted">{rules.currency} · {rules.min_amount}–{rules.max_amount}元，步长{rules.amount_step}元 · 应用充值规则</p>}
       <label className="payment-amount">充值金额（元）<input inputMode="decimal" maxLength={16}
         value={intent ? String(intent.body.amount) : amount} disabled={busy || !!intent || !rules?.enabled}
         onChange={event => setAmount(event.target.value)} /></label>
-      {rules?.enabled && !intent && <div className="payment-presets">{['10.00', '20.00', '50.00', '100.00'].filter(value => limits && validateAmount(value, limits))
+      {rules?.enabled && !intent && <div className="payment-presets">{['1.00', '10.00', '20.00', '50.00', '100.00'].filter(value => limits && validateAmount(value, limits))
         .map(value => <button className="quiet" key={value} onClick={() => setAmount(value)}>{new Decimal(value).toFixed(0)}元</button>)}</div>}
       {rules?.enabled && !intent && !valid && <p role="alert">请按当前金额范围和步长输入充值金额。</p>}
       {intent && <p role="status">原订单受理结果待确认，寝室和金额已固定；再次提交会保留原请求。</p>}

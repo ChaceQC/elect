@@ -28,3 +28,5 @@ monitor.run_ready和room.history_sync_requested为持久签名唤醒；任务以
 `test-stack.sh`合成阶段暂停Identity/Room与监控三个进程、Monitoring Relay，运行t4_query_smoke/t4_monitor_smoke；合成监控全部关闭后再恢复。新验收见 [T4采集引擎](../docs/acceptance/T4采集引擎验收记录.md)。
 
 T5新增 monitor-alerts、notification-worker、notification-recovery，长期进程共28个；SMTP默认关闭，仅Worker持有notification_egress出口。升级需要重复upgrade_controls、迁移monitoring_0005/notification_0002并重建RabbitMQ/应用加载Secret。本域密钥、HTTP CONNECT代理和本机TUN排查见 [邮件运行说明](../docs/runbooks/邮件投递与代理排查.md)。
+
+0.11.0新增payment_0004和本人支付取消，仍为30个长期服务；保留原Secret/卷，先迁移再重建Payment/Gateway和两个支付后台进程。独立测试端口可通过ELECT_TEST_HTTP_PORT/ELECT_TEST_HTTPS_PORT覆盖，不停止原项目。

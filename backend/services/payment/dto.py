@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import model_validator
 
-from services.common.dto import DTO, Money, PositiveMoney, Timestamp
+from services.common.dto import DTO, Money, PositiveMoney, Timestamp, Version, VersionRequest
 
 OrderState = Literal[
     "created",
@@ -52,6 +52,9 @@ class AcceptedOrder(DTO):
 
 
 class Order(OrderReference):
+    version: Version
+    cancel_pending: bool = False
+    cancelled_at: Timestamp | None = None
     binding_display_name: str
     paid_confirmed: bool
     last_checked_at: Timestamp | None
@@ -69,6 +72,10 @@ class Order(OrderReference):
         if self.paid_confirmed != (self.state == "paid_confirmed"):
             raise ValueError("付款确认必须与已确认终态一致")
         return self
+
+
+class OrderCancelRequest(VersionRequest):
+    pass
 
 
 class QRPending(DTO):

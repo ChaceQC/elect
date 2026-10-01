@@ -1749,3 +1749,7 @@ def create_order_and_qr(client, user_id, room_id, amount, *, confirmed=False):
 ## 2026-10-02 T6指定真实增量
 
 使用auth.txt本人账号与应用默认寝室，生产Adapter执行一次10元D01、E01–E04取得可解码学校二维码；URL/prePayId与Cookie/VIEWSTATE保留在Adapter密文，SDGL内部单号仍未知。D02未取得可确认结果，错误分类SCHOOL_INVALID_RESPONSE；本地awaiting_payment仅表示建单后等待，不能当成已验证学校枚举。用户要求本轮先交付代码、暂不扫码；未付款、未核对到账、未建第二笔，公共支付保持关闭。见[T6记录](acceptance/T6验收记录.md)及[分类证据](acceptance/school/2026-10-02-T6-order.json)。
+
+## 2026-10-02指定1元增量
+
+用户将真实范围改为默认寝室1元并要求本地取消原10元。应用保留原D01/E02/E03台账、本地取消释放占位后一次1元D01/E链路；用户明确确认付款。精确匹配同一学校roomId的新鲜B02余额较付款前增加1.00元。D02仍为HTTP200、业务500、data=null，没有可验收的已支付枚举；不按空结果或余额差自动捏造支付状态，不开放D03备用写入。本地取消不表示学校撤单或二维码失效。

@@ -113,8 +113,9 @@ async def verify(args, record):
             )
             record["stage"] = "default_binding_read"
             target = await binding(client, apps, record)
-            amounts = candidate_amounts(target["balance"]["amount"])
-            record["candidates"] = amounts
+            amounts = candidate_amounts(target["balance"]["amount"]) if not args.amount else None
+            if amounts:
+                record["candidates"] = amounts
             record["amount_policy"] = "application_1_to_500_integer"
             pending = await unresolved(apps["payment"].state.database, owner, UUID(target["id"]))
             record["unresolved_order_present"] = pending is not None
@@ -136,15 +137,17 @@ async def verify(args, record):
                 )
                 command = CreateCommand(
                     binding_id=UUID(target["id"]),
-                    amount=amounts[args.relation],
-                    idempotency_key=f"t6-live:{owner}:{args.relation}",
+                    amount=format(validate_amount(args.amount), ".2f")
+                    if args.amount else amounts[args.relation],
+                    idempotency_key=f"t6-live:{owner}:amount:{args.amount}"
+                    if args.amount else f"t6-live:{owner}:{args.relation}",
                 )
                 # 专用指定目标验收直接受理；公共 capabilities 仍为 false，不伪造已验收标志。
                 accepted = await create_order(
                     apps["payment"].state.database, principal, command, target, credential
                 )
                 order = accepted.order_id
-                record["selected_relation"] = args.relation
+                record["selected_relation"] = "explicit" if args.amount else args.relation
                 record["selected_amount"] = command.amount
                 record["stage"] = "one_d01_dispatch"
                 adapter.side_effect_policy = SideEffectPolicy(
@@ -157,6 +160,20 @@ async def verify(args, record):
                 if existing["binding_id"] != UUID(target["id"]).bytes:
                     raise RuntimeError("指定订单不是本人默认寝室")
             record["order_id"] = str(order)
+            if args.phase == "cancel":
+                response = await client.post(
+                    f"/api/v1/payment-orders/{order}/cancel",
+                    json={"expected_version": existing["version"]},
+                )
+                if response.status_code != 200:
+                    raise RuntimeError("取消未确认，请查询原订单")
+                result = response.json()["data"]
+                record["cancel_pending"] = result["cancel_pending"]
+                record["locally_cancelled"] = result["cancelled_at"] is not None
+                record["school_cancelled_confirmed"] = False
+                record["stage"] = "local_cancellation_recorded"
+                await client.post("/api/v1/auth/logout")
+                return
             record["stage"] = "read_payment_status"
             async with apps["payment"].state.database.begin() as conn:
                 from services.common.sql import execute
@@ -187,8 +204,9 @@ async def verify(args, record):
 
 async def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--phase", choices=["readonly", "create", "check"], required=True)
+    parser.add_argument("--phase", choices=["readonly", "create", "check", "cancel"], required=True)
     parser.add_argument("--relation", choices=["lower", "higher"], default="lower")
+    parser.add_argument("--amount", help="仅限用户明确指定的验收金额")
     parser.add_argument("--order-id")
     parser.add_argument("--qr-output", type=Path)
     args = parser.parse_args()

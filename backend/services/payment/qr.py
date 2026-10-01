@@ -52,6 +52,8 @@ async def refresh(engine, owner, order, key):
             id=order.bytes,
             owner=owner.bytes,
         )
+        if row["cancel_requested_at"]:
+            raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS, "支付已取消，不能继续获取二维码")
         previous = await first(
             conn,
             "SELECT q.*,o.state FROM payment_qr_requests q JOIN payment_operations o "

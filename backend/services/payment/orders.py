@@ -39,6 +39,9 @@ def reference(row):
 def order_view(row):
     return Order(
         **reference(row).model_dump(),
+        version=row["version"],
+        cancel_pending=bool(row["cancel_requested_at"] and not row["cancelled_at"]),
+        cancelled_at=aware(row["cancelled_at"]),
         binding_display_name=row["binding_display_name"],
         paid_confirmed=row["state"] == "paid_confirmed",
         last_checked_at=aware(row["last_checked_at"]),
