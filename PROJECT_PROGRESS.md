@@ -5,20 +5,21 @@
 - T5 实现提交 660b3cc 的完整 GitHub Actions 已成功：[容器验证 36893685280](https://github.com/ChaceQC/elect/actions/runs/36893685280)，包含规则/契约/构建/浏览器与隔离容器集成。
 - 确认 main 的严格必需检查 check、PR 与管理员约束仍生效；当前 dev 尚未包含上次 PR #2 的 main 合并提交 f8ce023。
 - 将 origin/main 合入当前 dev，无冲突、无业务源码差异；只补齐主分支祖先关系与本次交付进度。
+- 同步提交 5cb00c7 的 [push Actions](https://github.com/ChaceQC/elect/actions/runs/36900430563) 与 [PR Actions](https://github.com/ChaceQC/elect/actions/runs/36900491814) 全部成功后，核对 head、严格检查与最新 main，再合并 [T5 PR #3](https://github.com/ChaceQC/elect/pull/3)。
+- PR #3 于上海时间 2026-10-02 01:43 合入 main，merge commit 为 4ac0127；未使用 admin、自动合并或绕过保护。已将本地 main/dev 快进到该交付提交，保留 dev，并在 dev 更新本次完成记录。
 
 ### 进行中
 
-- 创建 dev → main 的 T5 交付 PR，等待同步后最新提交的 push/PR Actions 全部成功。
+- 无 T5 合并工作进行中；main 例行 push CI 由合并触发，分支同步和完成记录在 dev 正常推送。
 
 ### 阻塞与风险
 
-- 无合并冲突或实现阻塞；更新后的检查完成前不能合并，旧提交绿色结果不能替代最新提交。
+- 无合并冲突或交付阻塞；合并前最新提交两套 Actions 均已成功，未用旧提交绿色结果代替。
 - 真实 SMTP/学校写/支付开关保持默认关闭，本次不重新执行真实外发或学校操作。
 
 ### 下一步
 
-- 最新提交全部检查通过且包含最新 main 后，以 merge commit 合并 T5 PR；随后将 main 合并提交同步回 dev，保留日常开发分支。
-- 完成交付后实施 T6-01/P7-01 支付能力政策与幂等台账。
+- 实施 T6-01/P7-01 支付能力政策与幂等台账；真实支付开关保持关闭，后续合入 main 继续经过 PR 与最新 Actions 门禁。
 
 ### 主要文件或模块
 
@@ -29,6 +30,7 @@
 - 工作区开始时干净，dev 跟踪 origin/dev；fetch 后确认 main=f8ce023、dev=660b3cc，原 dev 缺少 main 最新合并提交。
 - GitHub API 确認 660b3cc 的 check 为 GitHub Actions/success；main 必需 check/app_id=15368、strict=true、审批数0、enforce_admins=true。
 - git merge --no-commit origin/main 成功，无冲突；本次仅 Git 同步和进度文档，不新增或重跑本地业务测试。
+- 合并前 PR head=5cb00c7、base=f8ce023、mergeStateStatus=CLEAN，push/PR check 均为 SUCCESS；合并后 GitHub main=4ac0127，本地 main/dev 快进成功。完成记录另在 dev 提交推送，不直接推 main。
 
 ## 2026-10-02 · T5 与 M2 完成
 
