@@ -243,3 +243,12 @@ t3_control_routes:
   - {receiver: room, callers: [monitoring], scope: 'room:control', path: /controls/preference, request: 'schemas.json#/$defs/OperationQuery', response: 'schemas.json#/$defs/PreferenceProof'}
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/revoke, request: '../openapi.yaml#/components/schemas/VersionRequest', response: '../openapi.yaml#/components/schemas/AcceptedOperation'}
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/operation, request: 'schemas.json#/$defs/OperationQuery', response: '../openapi.yaml#/components/schemas/Operation'}
+
+t4_query_routes:
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/balance, request: 'schemas.json#/$defs/BindingQuery', response: '../openapi.yaml#/components/schemas/Balance'}
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/balance-refresh, request: binding_id与idempotency_key, response: '../openapi.yaml#/components/schemas/AcceptedOperation'}
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/consumption, request: 'schemas.json#/$defs/ConsumptionQuery', response: '../openapi.yaml#/components/schemas/Consumption'}
+  - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/history-sync, request: binding_id/日期范围/idempotency_key, response: '../openapi.yaml#/components/schemas/AcceptedOperation'}
+  - {receiver: room, callers: [school_adapter, monitoring], scope: 'room:query', path: /controls/query-target, request: 'schemas.json#/$defs/BindingQuery', response: 本人active绑定的school_room_id，仅内部使用}
+  - {receiver: school_adapter, callers: [room], scope: 'school:history', path: /queries/history, request: 'schemas.json#/$defs/HistoryWindowQuery', response: 授权请求C02白名单行/指纹/请求归属}
+  - {receiver: school_adapter, callers: [monitoring], scope: 'school:collect', path: /queries/collect, request: 'schemas.json#/$defs/BindingQuery', response: 逐school_room_id精确匹配的B02余额}

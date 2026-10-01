@@ -104,6 +104,11 @@ def create_app(service: str, *, business=False):
                     "/room-candidates/floors",
                     "/room-candidates/rooms",
                     "/room-bindings/{id}",
+                    "/overview",
+                    "/room-bindings/{id}/balance",
+                    "/room-bindings/{id}/balance-refresh",
+                    "/room-bindings/{id}/consumption",
+                    "/room-bindings/{id}/history-sync",
                 }
             ):
                 continue

@@ -17,8 +17,18 @@ def register(app, service):
 
         app.include_router(router)
         app.include_router(room_router)
+        from services.gateway.query_api import router as query_router
+
+        app.include_router(query_router)
     if service == "room":
         from services.room.control_api import router
+
+        app.include_router(router)
+        from services.room.query_api import router as query_router
+
+        app.include_router(query_router)
+    if service == "school_adapter":
+        from services.school_adapter.query_api import router
 
         app.include_router(router)
     if service == "monitoring":

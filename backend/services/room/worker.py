@@ -47,6 +47,9 @@ async def control_tick(app):
 
 
 async def room_tick(app):
+    from .query_worker import query_tick
+
     controls = await control_tick(app)
     synced = await sync_tick(app)
-    return controls or synced
+    queried = await query_tick(app)
+    return controls or synced or queried

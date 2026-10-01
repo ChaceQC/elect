@@ -14,9 +14,14 @@ from .upgrade_auth import replace_secret
 SCOPES = {
     "gateway": ["monitor:browser"],
     "identity": ["monitor:credential", "credential:control-read", "credential:revoke"],
-    "room": ["monitor:retarget", "school:binding", "credential:control-read"],
-    "monitoring": ["room:control", "credential:control-read"],
-    "school_adapter": ["monitor:credential-read", "monitor:retarget-read", "room:remove-read"],
+    "room": ["monitor:retarget", "school:binding", "school:history", "credential:control-read"],
+    "monitoring": ["room:control", "room:query", "school:collect", "credential:control-read"],
+    "school_adapter": [
+        "monitor:credential-read",
+        "monitor:retarget-read",
+        "room:remove-read",
+        "room:query",
+    ],
     "notification": ["monitor:authorize-send"],
 }
 

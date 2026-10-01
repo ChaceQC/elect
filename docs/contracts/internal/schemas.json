@@ -62,6 +62,27 @@
       "title": "DTO",
       "type": "object"
     },
+    "DateRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start_date": {
+          "format": "date",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "format": "date",
+          "title": "End Date",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_date",
+        "end_date"
+      ],
+      "title": "DateRange",
+      "type": "object"
+    },
     "UserCommand": {
       "additionalProperties": false,
       "properties": {
@@ -400,6 +421,160 @@
         "binding_id"
       ],
       "title": "BindingQuery",
+      "type": "object"
+    },
+    "ConsumptionQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "start_date": {
+          "format": "date",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "format": "date",
+          "title": "End Date",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "granularity": {
+          "default": "day",
+          "enum": [
+            "day",
+            "week",
+            "month"
+          ],
+          "title": "Granularity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_date",
+        "end_date",
+        "binding_id"
+      ],
+      "title": "ConsumptionQuery",
+      "type": "object"
+    },
+    "HistoryWindowQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "start_date": {
+          "format": "date",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "format": "date",
+          "title": "End Date",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_date",
+        "end_date",
+        "binding_id"
+      ],
+      "title": "HistoryWindowQuery",
+      "type": "object"
+    },
+    "SampleQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "start_date": {
+          "format": "date",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "format": "date",
+          "title": "End Date",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_size": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "snapshot_token": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 16,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snapshot Token"
+        }
+      },
+      "required": [
+        "start_date",
+        "end_date",
+        "binding_id"
+      ],
+      "title": "SampleQuery",
+      "type": "object"
+    },
+    "RunQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "title": "RunQuery",
+      "type": "object"
+    },
+    "CancelRunQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "expected_version": {
+          "minimum": 1,
+          "title": "Expected Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "run_id",
+        "expected_version"
+      ],
+      "title": "CancelRunQuery",
       "type": "object"
     },
     "RoomFilterQuery": {

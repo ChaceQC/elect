@@ -7,7 +7,7 @@ from pydantic import Field, SecretStr, model_validator
 
 from services.identity.dto import LoginRequest
 
-from .dto import DTO, Count, Money, PositiveMoney, Timestamp, Version
+from .dto import DTO, Count, DateRange, Money, PositiveMoney, Timestamp, Version
 from .events import EVENTS, EventPayload
 
 
@@ -77,6 +77,28 @@ class OperationQuery(DTO):
 
 class BindingQuery(DTO):
     binding_id: UUID
+
+
+class ConsumptionQuery(BindingQuery, DateRange):
+    granularity: Literal["day", "week", "month"] = "day"
+
+
+class HistoryWindowQuery(BindingQuery, DateRange):
+    pass
+
+
+class SampleQuery(BindingQuery, DateRange):
+    page: Annotated[int, Field(ge=1)] = 1
+    page_size: Annotated[int, Field(ge=1, le=100)] = 10
+    snapshot_token: Annotated[str, Field(min_length=16, max_length=128)] | None = None
+
+
+class RunQuery(DTO):
+    run_id: UUID
+
+
+class CancelRunQuery(RunQuery):
+    expected_version: Version
 
 
 class RoomFilterQuery(DTO):
