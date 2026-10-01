@@ -58,9 +58,58 @@ try {
   await expect(page.locator('.room-card').first()).toBeVisible({ timeout: 70_000 })
   const bindings = await context.request.get('/api/v1/room-bindings')
   assert(bindings.ok())
-  const binding = (await bindings.json()).data.items[0]
+  const beforeSync = (await bindings.json()).data
+  let binding = beforeSync.items[0]
   assert(binding?.id)
   record.school_binding_read = 'passed'
+  if (process.env.ELECT_VERIFY_SCHOOL_SYNC === 'true') {
+    record.stage = 'school_sync'
+    const accepted = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/room-bindings/sync')
+    await page.getByRole('button', { name: '同步学校绑定', exact: true }).click()
+    const response = await accepted
+    assert(response.status() === 202)
+    const operationId = (await response.json()).data.operation_id
+    let synced
+    let operation
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      operation = (await (await context.request.get(`/api/v1/operations/${operationId}`)).json()).data
+      synced = (await (await context.request.get('/api/v1/room-bindings?page_size=100')).json()).data
+      if (operation.state === 'succeeded' && !synced.default_switch_operation_id) break
+      assert(operation.state !== 'failed')
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+    assert(operation.state === 'succeeded' && !synced.default_switch_operation_id)
+    assert(synced.sync_status === 'ready' && synced.total === synced.items.length)
+    assert(synced.items.every(item => item.status === 'active'))
+    if (synced.items.some(item => item.id === beforeSync.default_binding_id)) {
+      assert(synced.default_binding_id === beforeSync.default_binding_id)
+      record.default_policy = 'preserved'
+    } else {
+      assert(synced.default_binding_id === operation.target_binding_id)
+      record.default_policy = 'school_first'
+    }
+    record.authoritative_school_sync = 'passed'
+    record.synced_rooms = synced.total
+    binding = synced.items.find(item => item.id === synced.default_binding_id)
+    record.stage = 'balance_refresh'
+    await page.goto(`/rooms/${binding.id}`)
+    const refreshed = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/balance-refresh'))
+    await page.getByRole('button', { name: '刷新学校余额', exact: true }).click()
+    const refresh = await refreshed
+    assert(refresh.status() === 202)
+    const refreshId = (await refresh.json()).data.operation_id
+    let completed
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      completed = (await (await context.request.get(`/api/v1/operations/${refreshId}`)).json()).data
+      if (completed.state === 'succeeded') break
+      assert(completed.state !== 'failed')
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+    assert(completed.state === 'succeeded')
+    const balance = (await (await context.request.get(`/api/v1/room-bindings/${binding.id}/balance`)).json()).data
+    assert(typeof balance.amount === 'string' && !balance.stale && balance.fetched_at)
+    record.manual_balance_refresh = 'passed'
+  }
   const payments = await context.request.get(`/api/v1/payments/capabilities?binding_id=${binding.id}`)
   assert(payments.ok() && !(await payments.json()).data.enabled)
   record.payment_closed = true

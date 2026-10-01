@@ -37,6 +37,7 @@ compose run --rm --no-deps smoke python -m scripts.t2_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_control_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_credential_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_default_smoke
+compose run --rm --no-deps smoke python -m scripts.t7_sync_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_binding_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_removal_smoke
 compose run --rm --no-deps smoke python -m scripts.t4_query_smoke

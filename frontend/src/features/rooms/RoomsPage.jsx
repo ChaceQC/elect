@@ -92,7 +92,7 @@ export function RoomsPage() {
             <button className="quiet" disabled={binding.status !== 'active' || !!data.default_switch_operation_id ||
               !!data.binding_removal_operation_id || defaultBusy} onClick={() => setRemoval(binding)}>删除绑定</button></div></div>
       </li>)}</ul>
-      {data.items.length > 0 && !data.default_binding_id && <p className="muted">{data.preference_state === 'blocked' ? '默认已清空，请重新选择默认寝室；监控等待新的目标。' : '首次同步会按学校房间标识的稳定顺序初始化默认，完成前以操作进度为准。'}</p>}
+      {data.items.length > 0 && !data.default_binding_id && <p className="muted">{data.preference_state === 'blocked' ? '默认已清空，请重新选择默认寝室；监控等待新的目标。' : '首次同步会按学校返回的顺序初始化默认，完成前以操作进度为准。'}</p>}
       {data.pending_operations_truncated && <p className="muted">待完成操作较多，当前仅展示最近 20 条；默认切换进度单独保留。</p>}
       <div className="pagination"><button className="quiet" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</button>
         <span>第 {page} 页</span><button className="quiet" disabled={page * 10 >= data.total} onClick={() => setPage(page + 1)}>下一页</button></div>

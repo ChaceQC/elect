@@ -198,13 +198,13 @@ async def verify(apps, school):
             "/api/v1/room-bindings/sync", headers={"Idempotency-Key": str(new_id())}
         )
         assert await sync_tick(room)
-        rechecking = (await first_browser.get("/api/v1/room-bindings")).json()["data"]
+        replaced = (await first_browser.get("/api/v1/room-bindings")).json()["data"]
         assert (
-            rechecking["sync_status"] == "stale"
-            and rechecking["items"][0]["status"] == "rechecking"
+            replaced["sync_status"] == "empty"
+            and replaced["items"] == [] and replaced["total"] == 0
         )
         school.empty_rooms = False
-        print("学校失败保留余额、短暂空列表复核且保留镜像：通过")
+        print("学校失败保留余额；成功空列表覆盖当前绑定、保留持久历史：通过")
         assert (
             await first_browser.post("/api/v1/auth/logout", headers={"X-CSRF-Token": "wrong"})
         ).status_code == 403

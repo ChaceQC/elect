@@ -18,6 +18,7 @@ class SyntheticSchool:
         self.tokens, self.tickets = {}, {}
         self.posts, self.reads = 0, 0
         self.fail_rooms, self.empty_rooms = False, False
+        self.room_numbers = None
         self.reject_login = False
 
     def handler(self, request):
@@ -61,8 +62,12 @@ class SyntheticSchool:
         }
         if path == "/api/base/roomUser/selectRoomListByUserId":
             assert request.url.params["userId"] == f"school-{user}"
+            records = [record] if self.room_numbers is None else [
+                {**record, "roomId": f"synced-{user}-{number}", "roomNo": number}
+                for number in self.room_numbers
+            ]
             return httpx.Response(
-                200, json={"code": 200, "data": [] if self.empty_rooms else [record]}
+                200, json={"code": 200, "data": [] if self.empty_rooms else records}
             )
         assert path == "/api/base/rooms/queryRoomList"
         return httpx.Response(200, json={"code": 200, "data": {"records": [record], "total": 1}})
