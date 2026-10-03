@@ -19,6 +19,8 @@ jobs:
         run: sh deploy/test-stack.sh "$RUNNER_TEMP/elect-t1" elect-test-ci combined
       - name: 七域轻量组合与退出恢复升级
         run: sh deploy/test-low-resource.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
+      - name: 共享连接池与基础服务资源参数
+        run: sh deploy/test-resource-parameters.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 加密备份与隔离恢复
         run: sh deploy/test-t7-recovery.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 模拟容量与生产前端容器联调

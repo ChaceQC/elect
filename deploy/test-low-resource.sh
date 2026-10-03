@@ -14,6 +14,10 @@ restored() {
   ELECT_DEPLOYMENT_MODE=combined sh "$task_root/deploy/compose.sh" \
     "$task_dir/stack.env" "$task_project" --test --restore "$@"
 }
+smoke() {
+  compose run -T --rm --no-deps -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1 \
+    -e ELECT_TEST_DEBUG_FRAMES=1 smoke "$@"
+}
 count_running() {
   task_count=$(compose --profile '*' ps --status running --services | wc -l | tr -d ' ')
   [ "$task_count" -eq "$1" ] || { echo '运行容器数不符合组合预期' >&2; exit 1; }
@@ -44,8 +48,8 @@ else:
     raise SystemExit("独立后台未被禁用")
 '
 restored stop gateway identity school-adapter room monitoring notification payment audit
-compose run -T --rm --no-deps -e ELECT_TEST_DEBUG_FRAMES=1 smoke python -m scripts.monitoring_combined_smoke
-compose run -T --rm --no-deps -e ELECT_TEST_DEBUG_FRAMES=1 smoke python -m scripts.domain_combined_smoke
+smoke python -m scripts.monitoring_combined_smoke
+smoke python -m scripts.domain_combined_smoke
 # 原卷与Secret不变，验证双向模式升级及旧profile角色全部停止。
 ELECT_DEPLOYMENT_MODE=standalone sh "$task_root/deploy/upgrade.sh" "$task_dir/stack.env" "$task_project" --test
 count_running 30

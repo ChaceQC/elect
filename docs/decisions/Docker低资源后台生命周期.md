@@ -1,8 +1,8 @@
 # Docker低资源后台生命周期
 
-日期：2026-10-03（Asia/Shanghai）；版本：0.15.0。
+日期：2026-10-03（Asia/Shanghai）；版本：0.16.0。
 
-0.14.0以Monitoring验证[优化方案](../Docker低资源部署优化方案.md)第一步；0.15.0推广到七域，形成第二步13个长期容器的轻量组合。MySQL/Redis/RabbitMQ参数、连接池和扫描周期不变，2核2GB容量尚未验收。
+0.14.0以Monitoring验证[优化方案](../Docker低资源部署优化方案.md)第一步；0.15.0推广到七域，形成第二步13个长期容器的轻量组合。0.16.0调整共享池、基础服务、探针与OCR，见[资源参数决策](Docker低资源资源参数.md)。业务扫描周期仍保持原值，2核2GB容量尚未验收。
 
 ## 运行模式与角色
 
@@ -27,7 +27,7 @@
 
 `BackgroundSupervisor`复用业务初始化后的上下文，不重新加载Secret或创建连接池。`BrokerHub`按领域共享一条AMQP连接；Relay、采集/回报、Room历史及Payment唤醒使用独立channel，保留confirm、手动ACK及消费者prefetch=1。角色退出先释放channel，最后关闭共享连接。独立发送Worker有自己的运行上下文和连接。
 
-每个角色写独立`/tmp/elect-job-health/<service>-<role>.json`，启动清空旧成功状态；成功扫描/提交或真实数据库/租约检查才更新心跳。API健康返回`background_roles`，包含状态、最近推进、处理和失败计数。意外返回、异常、取消或心跳过期返回503，live可响应不能掩盖后台故障；MQ等暂不可用但持久扫描仍推进时显示degraded。20秒窗口用于活跃角色，Relay/Audit及15秒扫描恢复器使用45秒窗口；健康探针降频留待第三步。
+每个角色写独立`/tmp/elect-job-health/<service>-<role>.json`，启动清空旧成功状态；成功扫描/提交或真实数据库/租约检查才更新心跳。API健康返回`background_roles`，包含状态、最近推进、处理和失败计数。意外返回、异常、取消或心跳过期返回503，live可响应不能掩盖后台故障；MQ等暂不可用但持久扫描仍推进时显示degraded。20秒窗口用于活跃角色，Relay/Audit及15秒扫描恢复器使用45秒窗口；Docker探针在combined改为30秒/启动5秒，独立角色心跳及20/45秒失效窗口保持原值。
 
 Monitoring每轮处理MQ提示后仍尝试MySQL持久领取；重复/已终结提示不能使数据库扫描跳过，否则旧队列积压会延迟新任务。领取前再次核对停止事件，签名/Inbox/提交后ACK及持久执行幂等保持原边界。
 
@@ -50,9 +50,10 @@ Uvicorn统一处理SIGTERM/SIGINT，先设置停止事件，再退出HTTP。角�
 ```sh
 sh deploy/test-stack.sh /absolute/new-test-dir elect-test-name combined
 sh deploy/test-low-resource.sh /absolute/new-test-dir elect-test-name
+sh deploy/test-resource-parameters.sh /absolute/new-test-dir elect-test-name
 sh deploy/test-t7-recovery.sh /absolute/new-test-dir elect-test-name
 ```
 
 test-stack同时支持省略第三参数的standalone；合成阶段停止合并API，避免生产SchoolSessions领取假账号。第二条验证实际七域健康、MQ断线持久扫描、恢复只启动API而无后台、合成同进程任务，以及原卷从13→30→13的双向升级。恢复验证保留unknown和Outbox隔离。证据见[第一步验收](../acceptance/Docker低资源第一步验收.md)和[第二步验收](../acceptance/Docker低资源第二步验收.md)。
 
-轻量模式仍有8个持库进程（七域API及独立发送Worker），池保持2+3，理论40条应用连接；MySQL上限仍200。连接池/基础服务调参、执行效率、固定镜像发布和目标机验收按方案第三至六步推进。进程数、短时内存快照和本机合成恢复均不能替代2核2GB/50人/24小时容量或生产灾备验收。
+轻量模式仍有8个持库进程（七域API及独立发送Worker），池为2+1，理论24条应用连接；MySQL上限40，为迁移、备份和运维留出16条。执行效率、固定镜像发布和目标机验收按方案第四至六步推进。进程数、短时内存快照和本机合成恢复均不能替代2核2GB/50人/24小时容量或生产灾备验收。

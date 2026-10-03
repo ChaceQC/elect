@@ -20,6 +20,10 @@ def test_new_secret_bundle_is_isolated_and_never_overwritten(tmp_path):
     assert gateway.db_url is None
     assert gateway.signing_key != runtime.signing_key
     definitions = json.loads((target / "rabbitmq_definitions.json").read_text())
+    config = (target / "rabbitmq.conf").read_text()
+    assert "definitions.import_backend = local_filesystem" in config
+    assert "definitions.local.path = /run/secrets/rabbitmq_definitions" in config
+    assert "management.load_definitions" not in config
     assert all("password" not in user and user["tags"] == [] for user in definitions["users"])
     before = (target / "mysql_root_password").read_bytes()
     with pytest.raises(ValueError, match="拒绝覆盖"):

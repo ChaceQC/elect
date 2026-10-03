@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import time
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -96,6 +97,31 @@ async def healthy(app):
         return response.status_code == 200 and response.json()["status"] == "ready"
 
 
+async def verify_pool_progress(app, client, run):
+    engine = app.state.database
+    async with engine.connect() as conn:
+        before = await first(
+            conn, "SELECT lease_until FROM monitor_runs WHERE id=:id", id=run.bytes,
+        )
+    started = time.perf_counter()
+    responses = await asyncio.gather(*(client.get("/api/v1/monitor") for _ in range(50)))
+    assert all(response.status_code == 200 for response in responses)
+    api_seconds = time.perf_counter() - started
+    assert await healthy(app)
+
+    async def renewed():
+        async with engine.connect() as conn:
+            after = await first(conn, "SELECT lease_until FROM monitor_runs WHERE id=:id",
+                                id=run.bytes)
+        return after["lease_until"] > before["lease_until"]
+
+    await until(renewed, seconds=16)
+    assert app.state.background.available() and await healthy(app)
+    print({"pool_capacity": engine.pool.size() + engine.pool._max_overflow,
+           "concurrent_control_reads": 50, "api_batch_seconds": round(api_seconds, 4),
+           "lease_renewed_during_school_wait": True, "roles_healthy": True})
+
+
 async def verify_cycle(app, client, collection, owner):
     engine = app.state.database
     async with engine.begin() as conn:
@@ -119,6 +145,7 @@ async def verify_cycle(app, client, collection, owner):
             id=owner.bytes,
         )
     scheduled = UUID(bytes=row["active_run_id"])
+    await verify_pool_progress(app, client, scheduled)
     collection.release.set()
     await until(lambda: run_state(engine, scheduled, "succeeded"))
     assert await sample_count(engine, scheduled) == 1

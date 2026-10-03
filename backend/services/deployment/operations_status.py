@@ -51,7 +51,8 @@ async def collect():
                 if domain == "identity":
                     rows = (await execute(
                         conn, "SHOW GLOBAL STATUS WHERE Variable_name IN "
-                        "('Threads_connected','Max_used_connections','Slow_queries')",
+                        "('Threads_connected','Max_used_connections','Slow_queries',"
+                        "'Connection_errors_max_connections','Created_tmp_disk_tables')",
                     )).mappings().all()
                     value["mysql"] = {row["Variable_name"]: int(row["Value"]) for row in rows}
                     value["mysql"]["max_connections"] = (await first(

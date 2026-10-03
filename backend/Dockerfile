@@ -7,10 +7,10 @@ FROM base AS dependencies
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev
+RUN --mount=type=cache,id=elect-uv,target=/root/.cache/uv,sharing=locked uv sync --locked --no-dev
 
 FROM dependencies AS test
-RUN uv sync --locked
+RUN --mount=type=cache,id=elect-uv,target=/root/.cache/uv,sharing=locked uv sync --locked
 COPY . .
 ENV PATH="/app/.venv/bin:$PATH"
 CMD ["uv", "run", "pytest", "-q"]

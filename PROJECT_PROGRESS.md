@@ -1,3 +1,48 @@
+## 2026-10-03 · Docker低资源优化第三步（0.16.0）
+
+### 已完成
+
+- 在combined八个持库入口固定2+1，理论应用连接40→24，Gateway无库、发送Worker仍独立；3秒等待/回收、UTC、READ COMMITTED与原租约/控制语义保持。
+- MySQL附加参数40连接/128MiB Buffer Pool、256/400 cache、32MiB TempTable与8MiB单表/640MiB限额，实际核对binlog/两项事务刷盘均为1；standalone保留原配置。
+- Redis32MiB/noeviction/AOF与96MiB限额，实际写满拒绝而不淘汰、重写并发/重启保留合成会话/锁/槽；普通RabbitMQ固定摘要、核心定义导入/1调度2异步各1脏线程/128MiB绝对水位/256MiB限额，兼容旧Secret/账号/队列和原卷双向切换。
+- 13容器Docker探针30秒/启动5秒、约60/120秒故障判定，原20/45秒后台心跳不变；OCR锁定已有ddddocr1.6.1/ONNX1.30，单会话各1线程/顺序执行/禁自旋、BLAS/OMP各1，保留冷加载/推理锁/人工验证码，Adapter384MiB限额。
+- 增加满池/健康/MQ流控/Redis真实预算/OCR探针与9项必要单位用例，合并采集补单合成账号50次并发控制读取及实际续租；CI增加第三步入口。两段uv sync复用BuildKit锁定依赖缓存，生产镜像不包含缓存，固定镜像发布仍待第五步。
+- 同步0.16.0版本/锁文件/契约元数据、根/子目录README、AGENTS/架构/总与后端计划/部署/恢复/容量/本机手册及优化方案；新增资源决策、第三步验收与逐项/cold/OCR/Redis/恢复资源JSON，无AGENT.md。
+
+### 进行中
+
+- 第三步实现和隔离验证已完成，交付在当前dev提交并推送；第四至六步尚未交付，原业务环境保持停机。
+
+### 阻塞与风险
+
+- 第三步无阻塞。2核2GB/50人/24小时、实际运行API加载OCR、多账号恢复、持续负载备份峰值及生产灾备仍未验收；真实D02、生产异机/PITR、T8和既有证书跳过边界保留，没有读取真实凭据/调用真实学校/SMTP/支付。
+- 首次MySQL嵌套只读conf.d挂载失败，改目录外defaults-extra-file后生效值/原卷/空库通过；Redis/Nginx补Docker要求的start_period后30秒探针启动通过。
+- 首次依赖下载过慢，停止该次构建，加BuildKit缓存并从旧测试镜像中相同锁定依赖播种，正式Dockerfile运行/测试/check/空库镜像通过。没有改变依赖实际锁定版本或将缓存放入运行镜像。
+- Docker默认地址池耗尽，新测试项目仅使用10.243/10.244小网段；恢复首次失败后补10.245内部网段并从已存加密快照继续，未删历史网络/修改全局地址池。恢复RTO59秒只计成功重入，不含首次失败/排障。
+- 本轮基线末次13容器1394.09MiB，最终另一空库首次healthy末次1237.68MiB（约降11.2%），2秒采样窗口峰值1257.93MiB/零OOM。各容器memory.peak与OCR RSS另列，不相加作全栈同一时刻峰值；不作为2GB可用结论。
+
+### 下一步
+
+- 按第四步先实现本域事务成功提交后Outbox唤醒和1→2→5→10秒空闲退避，保留可靠扫描、confirm后标记与发布租约；用MQ断线/重连、重复提示和取消/授权撤回验证，再接推送消费及有限业务并发。
+
+### 主要文件或模块
+
+- backend/services/common/database.py、school_adapter/infrastructure/ocr.py、deployment/provision.py/operations_status.py、Dockerfile与依赖锁。
+- backend/scripts/database_pool_probe.py/resource_parameters_smoke.py/ocr_resource_probe.py/monitoring_combined_smoke.py、tests/unit/test_database_pool.py/test_ocr_resources.py/test_provision.py。
+- deploy/compose.low-resource.yaml、mysql/low-resource.cnf、rabbitmq/low-resource.conf、公开模板、test-low-resource.sh/test-resource-parameters.sh/test-redis-budget.sh及CI。
+- docs/decisions/Docker低资源资源参数.md、acceptance/Docker低资源第三步验收.md/资源.json、方案及受影响的计划/架构/部署/运维和根/子README/AGENTS。
+
+### 验证
+
+- sh deploy/check.sh通过：后端ruff、207 passed / 1 skipped、公开/内部契约/目录/七域离线DDL；前端规则/类型/契约/49项单元组件/构建、32项Playwright通过。资源压力脚本最后加强“Relay已尝试发布”断言后ruff与最终真实基础服务验收通过。
+- 满池三条，第4条等待归还约0.20秒；饱和约3.00秒超时、归还后0借出/ready/UTC；32个真实HTTP健康请求约0.119秒全部ready。2+1下单合成账号50个并发监控读取约0.604秒全部200，学校等待期间实际续租/后台健康保持；不是50名账号容量。
+- test-low-resource旧Secret/原卷MQ故障降级与持久扫描、恢复无后台、取消/单样本/旧epoch/接管/退出及七域合成unknown通过；13→30→13双向切换全部healthy，17旧角色全部exited。
+- 最终新空库test-stack combined通过七域权限/并发迁移、签名/Inbox去重、T2–T6合成学校/SMTP/支付与实际MySQL/Redis/MQ中断、内部TLS/Nginx，13长期容器全部healthy。
+- test-resource-parameters两次通过，最后一次是最终空库/镜像；MySQL生效值/持久性、最高19连接/0上限错误；MQ实际1/2线程/无management/128MiB水位，内存告警时已尝试Outbox未published，解除后Audit/Inbox与Outbox唯一完成。
+- 无网络Redis实际OOM写入拒绝、0淘汰，AOF明确开始/并发更新/终态ok/重启保留会话锁槽，96MiB限额下实测内核峰值72.27MiB、0OOM。单独1CPU OCR同图10次结果摘要不变，线程17→2、P50约82.06→12.76ms、2秒空闲CPU0.3045→0秒；不是学校验证码识别率验收。
+- T7加密快照/封存binlog与隔离恢复最终通过，62张表计数/密文保留、快照后合成邮件/建单unknown、旧Outbox无自动重放、重复apply通过；RPO4.548秒、成功重入RTO59秒，未外推生产。冻结应用后的备份/恢复基础服务0OOM。
+- 最终104个受影响Markdown本地链接、版本/锁文件/资源JSON、Shell语法、公开standalone/combined/all-profile restore配置、真实凭据忽略与git diff --check通过。仅down本轮来源/恢复项目，保留9个命名数据卷和受限证据；所有elect运行容器0，其余原5个容器保持运行。
+
 ## 2026-10-03 · Docker低资源优化第二步（0.15.0）
 
 ### 已完成
