@@ -1,3 +1,33 @@
+## 2026-10-03 · 停止当前Docker部署
+
+### 已完成
+
+- 按用户要求确认当前部署为elect-local，使用原.env.local、compose.yaml/compose.local.yaml/compose.smtp-direct.yaml和项目名正常停止全部31个长期服务。
+- 保留32个容器（含已完成的migrate）及MySQL、Redis、RabbitMQ三个原数据卷；历史测试/恢复环境继续停止，所有elect项目运行容器数为0。
+- 同步README与运行状态文档，明确当前网页入口和SMTP定向通道已关闭。此次仅记录运维状态，版本、业务规则、Secret与部署配置无变化；已检查AGENTS及前后端/deploy README，无需同步修改，无AGENT.md。
+
+### 进行中
+
+- 本次停机已完成；elect-local与本项目历史测试/恢复环境保持停止，等待用户安排下一项任务。
+
+### 阻塞与风险
+
+- 本次无阻塞。停机期间网页、后台采集和邮件处理不可用；配置、待处理任务及订单台账保留，停机不改变持久业务状态。
+
+### 下一步
+
+- 保持当前停机状态；用户要求恢复部署时，先对原env与三份编排执行config --quiet，再显式up --wait并核对31个长期服务及/healthz。
+
+### 主要文件或模块
+
+- Docker项目elect-local；README.md、PROJECT_PROGRESS.md、docs/runbooks/运行状态与容量.md。
+
+### 验证
+
+- `docker compose ... -p elect-local stop --timeout 30`返回码0；`docker ps -a`确认32个保留容器全部exited，`docker ps`确认所有elect项目运行数0。
+- 停机前后数据卷名称逐项一致，三个原卷全部保留；其他五个运行中的非本项目容器ID逐项一致。
+- `ss`确认6874/16874均无TCP监听；原入口/healthz连接失败，curl返回码7、HTTP 000，符合停机状态。
+
 ## 2026-10-02 · 部署资源检查与停止全部测试容器
 
 ### 已完成
