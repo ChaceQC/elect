@@ -7,6 +7,7 @@ from uuid import UUID
 
 import httpx
 
+from scripts.room_test_setup import select_default
 from scripts.t2_smoke import browser, fixture_apps, login, prepare
 from scripts.t4_query_smoke import QuerySchool
 from services.common.dates import today
@@ -94,8 +95,8 @@ async def verify(apps, school):
         owner = UUID(user["id"])
         await client.post("/api/v1/room-bindings/sync", headers={"Idempotency-Key": str(new_id())})
         assert await sync_tick(apps["room"])
-        for _ in range(5):
-            await control_tick(apps["room"])
+        # 学校顺序先返回002；本场景的余额差断言明确针对001。
+        await select_default(client, apps["room"], "001")
         await enable(client)
         key = str(new_id())
         run = await run_request(client, key)

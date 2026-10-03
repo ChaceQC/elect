@@ -1,5 +1,6 @@
 # 恢复隔离覆盖：不提供外部出口，不自动运行后台；必须显式采用本文件。
 x-recovery-env: &recovery-env
+  ELECT_BACKGROUND_ENABLED: "false"
   ELECT_ALLOW_SCHOOL_BINDING_WRITES: "false"
   ELECT_ALLOW_PAYMENT_ORDER_WRITES: "false"
   ELECT_ALLOW_PAYMENT_FORM_WRITES: "false"

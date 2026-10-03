@@ -13,7 +13,7 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build
 
 当前基础编排为 30 个长期服务及 migrate/tls-check 一次性作业，包括八个 API、六个 Relay、Audit Worker 和各域已实现的后台角色；本机 SMTP 定向通道另加一个长期服务。`down` 保留命名卷，普通启停不使用 `down -v`。
 
-50 人、2 核 2GB 的资源改造见 [Docker 低资源部署优化方案](../docs/Docker低资源部署优化方案.md)。约 13 个长期容器及内存预算均为待实现、待验收目标，当前没有可直接启用的轻量编排。
+50人、2核2GB的资源改造见[Docker低资源部署优化方案](../docs/Docker低资源部署优化方案.md)。0.14.0提供`compose.monitoring-combined.yaml`第一步试点：基础长期容器30→25，Monitoring API和五个后台角色共用一个Python进程。默认部署仍使用独立角色；13容器组合及2GB内存预算未交付。试点与恢复覆盖顺序、110秒退出宽限和隔离测试见[生命周期决策](../docs/decisions/Docker低资源后台生命周期.md)。
 
 仅依赖 Docker 的离线检查：`sh deploy/check.sh`；全新集成：`sh deploy/test-stack.sh /absolute/new-directory elect-test-local`。T2 认证 Secret、内部 TLS、学校出口与资源配置见 [实施决策](../docs/decisions/T2认证与读取.md)。已通过基础范围见 [T1 验收](../docs/acceptance/T1验收记录.md)。
 

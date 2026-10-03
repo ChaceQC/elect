@@ -5,6 +5,7 @@ import asyncio
 import signal
 
 from .app import create_app
+from .background import require_standalone
 from .heartbeat import Heartbeat
 from .job import pause
 from .logging import configure_logging, log
@@ -24,7 +25,8 @@ async def school_cleanup(app):
 
 
 async def run(service):
-    app = create_app(service, business=service != "school_adapter")
+    require_standalone()
+    app = create_app(service, business=service != "school_adapter", background=False)
     stop, heartbeat = asyncio.Event(), Heartbeat(service, "business")
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)

@@ -1,0 +1,17 @@
+# 优化第一步的Monitoring试点；其余领域保留独立角色，尚非13容器轻量部署。
+x-disabled: &disabled
+  profiles: [monitoring-standalone]
+  environment:
+    # 即使手工指定旧服务，也拒绝再启动独立角色。
+    ELECT_PROCESS_MODE: combined
+services:
+  monitoring:
+    environment:
+      ELECT_PROCESS_MODE: combined
+      ELECT_BACKGROUND_ENABLED: ${ELECT_BACKGROUND_ENABLED:-true}
+    stop_grace_period: 110s
+  monitoring-relay: *disabled
+  monitor-scheduler: *disabled
+  monitor-worker: *disabled
+  monitor-recovery: *disabled
+  monitor-alerts: *disabled

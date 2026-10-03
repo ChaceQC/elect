@@ -4,9 +4,11 @@ import argparse
 import asyncio
 import signal
 import sys
+from types import SimpleNamespace
 
 from sqlalchemy import text
 
+from .background import require_standalone
 from .broker import Broker, verified_event
 from .database import create_database, database_ready, migration_head
 from .heartbeat import Heartbeat
@@ -59,6 +61,7 @@ async def audit_tick(engine, runtime, queue):
 
 
 async def run_job(service, role):
+    require_standalone()
     runtime = load_runtime(service)
     validate_keys(runtime)
     side_effect_policy()
@@ -69,14 +72,28 @@ async def run_job(service, role):
     loop = asyncio.get_running_loop()
     for signum in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(signum, stop.set)
+    app = SimpleNamespace(state=SimpleNamespace(
+        runtime=runtime, database=engine, migration_head=migration_head(service)
+    ))
+    try:
+        await transport_loop(app, stop, heartbeat)
+    finally:
+        await engine.dispose()
+
+
+async def transport_loop(app, stop, heartbeat, hub=None):
+    engine, runtime = app.state.database, app.state.runtime
     delay = 1
+    broker = None
     try:
         while not stop.is_set():
-            broker = Broker(runtime)
+            broker = Broker(runtime, hub=hub)
             try:
-                await database_ready(engine, migration_head(service))
+                await database_ready(engine, app.state.migration_head)
                 await broker.open()
-                queue = await broker.audit_queue() if role == "audit" else None
+                queue = (
+                    await broker.audit_queue() if heartbeat.document["role"] == "audit" else None
+                )
                 delay = 1
                 while not stop.is_set():
                     async with asyncio.timeout(15):
@@ -90,13 +107,15 @@ async def run_job(service, role):
                     await pause(stop, 0.1 if activity else 1)
             except Exception:
                 heartbeat.write(healthy=False)
-                log("job_retry", service=service, error_code="DEPENDENCY_UNAVAILABLE")
+                log("job_retry", service=runtime.service, error_code="DEPENDENCY_UNAVAILABLE")
             finally:
                 await broker.close()
+                broker = None
             await pause(stop, delay)
             delay = min(30, delay * 2)
     finally:
-        await engine.dispose()
+        if broker:
+            await broker.close()
 
 
 async def pause(stop, seconds):

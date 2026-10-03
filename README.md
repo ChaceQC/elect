@@ -2,7 +2,7 @@
 
 通过学校账号查询和管理寝室电费的 Web 应用，提供寝室绑定、余额查询、消费明细、定时监控和低余额邮件提醒，支持桌面与手机使用。
 
-当前版本：`0.13.2`（开发版）。
+当前版本：`0.14.0`（开发版）。
 
 ## 功能
 
@@ -92,7 +92,7 @@ PROJECT_PROGRESS.md    # 开发进度与验证记录
 - [学校接口](docs/学校对接API文档.md)
 - [备份恢复](docs/runbooks/备份恢复与隔离对账.md)
 - [运行状态与容量](docs/runbooks/运行状态与容量.md)
-- [Docker 低资源部署优化方案](docs/Docker低资源部署优化方案.md)（50 人、2 核 2GB，待实施与验收）
+- [Docker 低资源部署优化方案](docs/Docker低资源部署优化方案.md)（Monitoring合并试点；2核2GB容量待验收）
 - [开发规范](AGENTS.md) · [GitHub 协作流程](docs/GitHub协作与合并流程.md)
 - [项目进度与验证记录](PROJECT_PROGRESS.md)
 

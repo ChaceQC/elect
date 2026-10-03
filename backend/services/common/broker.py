@@ -1,5 +1,6 @@
 """RabbitMQ 持久投递、confirm 与事件签名。"""
 
+import asyncio
 import base64
 
 import aio_pika
@@ -37,23 +38,48 @@ def verified_event(runtime, message):
     return event
 
 
-class Broker:
+class BrokerHub:
+    """一个领域进程复用连接，发布与不同消费者仍使用独立channel。"""
+
     def __init__(self, runtime):
-        self.runtime = runtime
-        self.connection = None
+        self.runtime, self.connection = runtime, None
+        self.lock = asyncio.Lock()
 
     async def open(self):
-        self.connection = await aio_pika.connect_robust(
-            self.runtime.amqp_url.get_secret_value(),
-            timeout=3,
-        )
-        self.channel = await self.connection.channel(publisher_confirms=True, on_return_raises=True)
-        await self.channel.set_qos(prefetch_count=8)
-        self.exchange = await self.channel.declare_exchange(
-            "elect.events",
-            aio_pika.ExchangeType.TOPIC,
-            durable=True,
-        )
+        async with self.lock:
+            if self.connection is None or self.connection.is_closed:
+                self.connection = await aio_pika.connect_robust(
+                    self.runtime.amqp_url.get_secret_value(), timeout=3
+                )
+            return self.connection
+
+    async def close(self):
+        if self.connection:
+            await self.connection.close()
+
+
+class Broker:
+    def __init__(self, runtime, *, hub=None):
+        self.runtime = runtime
+        self.connection = None
+        self.hub = hub
+
+    async def open(self):
+        # Robust连接断线时channel.ready也会等待；必须有整体预算才能继续持久扫描。
+        async with asyncio.timeout(5):
+            self.connection = await self.hub.open() if self.hub else await aio_pika.connect_robust(
+                self.runtime.amqp_url.get_secret_value(),
+                timeout=3,
+            )
+            self.channel = await self.connection.channel(
+                publisher_confirms=True, on_return_raises=True
+            )
+            await self.channel.set_qos(prefetch_count=8)
+            self.exchange = await self.channel.declare_exchange(
+                "elect.events",
+                aio_pika.ExchangeType.TOPIC,
+                durable=True,
+            )
 
     async def audit_queue(self):
         dead = await self.channel.declare_exchange("elect.dead", durable=True)
@@ -78,5 +104,8 @@ class Broker:
             raise RuntimeError("未收到 publisher confirm")
 
     async def close(self):
-        if self.connection:
+        if self.hub:
+            if getattr(self, "channel", None):
+                await self.channel.close()
+        elif self.connection:
             await self.connection.close()

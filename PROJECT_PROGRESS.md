@@ -1,3 +1,43 @@
+## 2026-10-03 · Docker低资源优化第一步（0.14.0）
+
+### 已完成
+
+- 按用户要求开始优化方案，完成第一步公共后台生命周期和Monitoring试点：API/Relay/Scheduler/Worker/恢复/提醒回报共用本域engine、ServiceClient与一条AMQP连接，发布和两个消费者使用独立channel，保留confirm/ACK、持久租约及原代次屏障。
+- 抽取可监督的异步角色，保留独立入口；心跳改为角色独立文件并在启动清零。API健康返回各角色状态，意外结束/异常/取消/停滞可见；Uvicorn统一信号先停止领取，再按100秒总预算等待或取消在途任务，最后释放资源。新增重复启动拒绝。
+- 新增Monitoring试点覆盖，五个旧角色默认禁用且即使手动指定也拒绝独立启动，基础长期容器30→25、Python进程26→21。后台开关接入公开模板和基础编排；恢复覆盖强制false，API和所有独立入口均禁止自动后台。
+- 新增生命周期单位用例、实际MySQL/Redis/MQ合成验收脚本及CI阶段。修正T4旧夹具的默认寝室假设：通过正式默认接口显式选择合成001并等待终态，生产0.13.1的学校顺序规则保留。
+- 同步0.14.0版本/锁文件/公开契约元数据、根及前后端/deploy README、AGENTS、架构/实施/部署/运维说明、方案第一步完成状态与验收。无AGENT.md；业务接口字段、数据库迁移、真实副作用授权不变。
+- 测试完成后仅down本轮新建的两个隔离项目，保留测试卷和受限证据；原elect-local及历史业务/测试环境保持停机，其他五个运行容器保留。
+
+### 进行中
+
+- 第一批实现与验证已完成；低资源方案第二至六步待推进，尚未交付13容器正式轻量组合。
+
+### 阻塞与风险
+
+- 第一批无阻塞。2核2GB/50人/24小时、OCR/冷启动/备份峰值尚未验收，不把进程数变化或本机合成RPO/RTO称为目标容量或生产灾备通过。
+- 首次测试因宿主机默认Docker地址池耗尽失败，仅为新测试项目创建显式未占用网段后继续；没有删除历史网络或改动Docker全局配置。T4夹具首次失败已修正并复验。
+- 真实D02终态映射、生产异机/PITR与T8仍未完成；未读取auth.txt/email_auth.txt或访问真实学校/SMTP/支付。
+
+### 下一步
+
+- 按方案第二步先将Identity/Room/School Adapter推广到共享生命周期，再合并Notification API/Relay/恢复、Payment和Audit；保持邮件发送Worker独立，形成13个长期容器的正式轻量组合，并统一升级/状态/备份/恢复配置与角色启停。完成共享池后再进入第三步重算连接数和基础服务参数。
+
+### 主要文件或模块
+
+- backend/services/common/background.py、app.py、broker.py、heartbeat.py、job.py、server.py及独立入口；services/monitoring/job.py、worker.py、alert_recovery.py。
+- backend/tests/unit/test_background_lifecycle.py、scripts/monitoring_combined_smoke.py、room_test_setup.py、t4_monitor_smoke.py；deploy/compose.monitoring-combined.yaml、compose.yaml/compose.restore.yaml、test-monitoring-combined.sh、公开env与CI。
+- docs/Docker低资源部署优化方案.md、decisions/Docker低资源后台生命周期.md、acceptance/Docker低资源第一步验收.md及受影响导航/架构/部署/运维文档；版本元数据与锁文件。
+
+### 验证
+
+- sh deploy/check.sh通过：后端ruff、176 passed / 1 skipped、公开/内部契约、数据库目录与七域离线迁移；前端规则/类型/契约、49项单元组件、32项浏览器及构建通过。最后重复启动保护后后端176项再验通过，源码最终镜像实际构建通过。
+- 独立test-stack空库/权限/事件和T2–T6各阶段复验通过；T4首次夹具失败后修正复验并继续其余阶段，实际Redis/MySQL/MQ中断、未知SMTP/支付边界、取消/切换/凭据与消息去重均通过。最新镜像在原测试卷重建独立模式，30个长期服务全部healthy，迁移与内部TLS预检正常。
+- sh deploy/test-monitoring-combined.sh最终通过：真实容器API/五角色健康、共享MQ断线后四角色继续数据库扫描/API degraded、恢复组合API可运行但无后台；合成学校验证调度单样本、在途取消、角色故障可见、恢复接管/旧epoch拒绝、停止领取后在途提交、统一退出与连接释放。
+- sh deploy/test-t7-recovery.sh通过：加密快照/封存binlog、隔离空库导入、62张表计数和密文保留、快照后模拟写/邮件保持unknown、旧Outbox不自动重放；本机合成RPO 4.577秒、RTO 65秒，不能外推生产频率/异机/PITR。
+- 公开基础/试点/恢复Compose解析通过：默认30个、试点25个长期服务，五个旧Monitoring角色不在默认profile；统一后台false传入26个API/独立角色，恢复组合八个API保持false。
+- 15份受影响文档210个本地链接、末尾换行、版本/锁文件、脚本语法、真实凭据忽略及git diff --check通过。最终Docker仅原有五个非elect容器运行，原业务部署未启动；未进行2GB容量验收。
+
 ## 2026-10-03 · 记录50人、2核2GB的Docker优化方案
 
 ### 已完成

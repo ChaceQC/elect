@@ -15,7 +15,7 @@ from .runtime import load_runtime, public_origin, side_effect_policy
 from .security import Principal, require_principal, validate_keys
 
 
-def create_app(service: str, *, business=False):
+def create_app(service: str, *, business=False, background=True):
     @asynccontextmanager
     async def lifespan(app):
         configure_logging()
@@ -27,19 +27,30 @@ def create_app(service: str, *, business=False):
         engine = create_database(runtime.db_url.get_secret_value()) if runtime.db_url else None
         app.state.database = engine
         app.state.migration_head = migration_head(service) if engine else None
+        app.state.background = None
         try:
             if business:
                 from .business import initialize
 
                 await initialize(app, service)
+                if background:
+                    from .background import start_background
+
+                    await start_background(app, service)
             yield
         finally:
-            if business:
-                from .business import close
+            try:
+                if app.state.background:
+                    await app.state.background.close()
+            finally:
+                try:
+                    if business:
+                        from .business import close
 
-                await close(app)
-            if engine:
-                await engine.dispose()
+                        await close(app)
+                finally:
+                    if engine:
+                        await engine.dispose()
 
     app = FastAPI(
         title=f"elect-{service}", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
@@ -68,11 +79,22 @@ def create_app(service: str, *, business=False):
                 async with asyncio.timeout(3):
                     await database_ready(app.state.database, app.state.migration_head)
             components = await transport_status(app.state.runtime)
+            supervisor = app.state.background
+            roles = supervisor.snapshot() if supervisor else {}
+            if supervisor and not supervisor.available():
+                return JSONResponse(status_code=503, content={
+                    "service": service, "status": "not_ready", "background_roles": roles,
+                })
+            if supervisor:
+                components["background"] = all(
+                    value["status"] == "ready" for value in roles.values()
+                )
             return {
                 "service": service,
                 "status": "ready" if all(components.values()) else "degraded",
                 "components": components,
                 "business_enabled": business,
+                "background_roles": roles,
             }
         except Exception:
             return JSONResponse(

@@ -17,6 +17,8 @@ jobs:
         run: sh deploy/check.sh
       - name: 空库与可靠事件容器集成
         run: sh deploy/test-stack.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
+      - name: Monitoring合并角色与退出恢复
+        run: sh deploy/test-monitoring-combined.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 加密备份与隔离恢复
         run: sh deploy/test-t7-recovery.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 模拟容量与生产前端容器联调

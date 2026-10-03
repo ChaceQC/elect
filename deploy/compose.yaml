@@ -16,6 +16,7 @@ x-python: &python
   networks: [app, data]
   environment: &runtime-env
     ELECT_RUNTIME_FILE: /run/secrets/runtime
+    ELECT_BACKGROUND_ENABLED: ${ELECT_BACKGROUND_ENABLED:-true}
     ELECT_PUBLIC_ORIGIN: ${ELECT_PUBLIC_ORIGIN:-https://${ELECT_DOMAIN:-}}
     ELECT_ALLOW_LOCAL_HTTP: ${ELECT_ALLOW_LOCAL_HTTP:-false}
     ELECT_HTTP_BIND: ${ELECT_HTTP_BIND:-}

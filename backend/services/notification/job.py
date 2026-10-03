@@ -6,6 +6,7 @@ import signal
 import time
 
 from services.common.app import create_app
+from services.common.background import require_standalone
 from services.common.broker import Broker
 from services.common.business_worker import checked_tick
 from services.common.heartbeat import Heartbeat
@@ -18,7 +19,8 @@ from .worker import worker_tick
 
 
 async def run(role):
-    app = create_app("notification", business=True)
+    require_standalone()
+    app = create_app("notification", business=True, background=False)
     stop, heartbeat = asyncio.Event(), Heartbeat("notification", role)
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)

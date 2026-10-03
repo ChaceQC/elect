@@ -76,5 +76,7 @@ async def worker_tick(app, run_id=None, heartbeat=None):
     execution = await claim_run(app.state.database, run_id)
     if not execution:
         return False
+    if heartbeat:
+        heartbeat.write(healthy=True)
     await execute_run(app, execution, heartbeat)
     return True
