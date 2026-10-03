@@ -5,6 +5,7 @@ import random
 
 from sqlalchemy import text
 
+from .database import OUTBOX_PENDING
 from .ids import new_id
 from .internal_dto import EventEnvelope
 
@@ -26,6 +27,7 @@ async def append_event(connection, event: EventEnvelope):
             "payload": event.model_dump_json(),
         },
     )
+    connection.info[OUTBOX_PENDING] = True
 
 
 async def claim_event(engine, lease_seconds=30):

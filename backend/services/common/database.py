@@ -1,9 +1,36 @@
 """有上限的本域数据库连接池；数据库会话固定 UTC。"""
 
 import os
+from contextlib import asynccontextmanager
 
 from sqlalchemy import event, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+
+from .scheduling import Wakeup
+
+OUTBOX_PENDING = "elect_outbox_pending"
+
+
+class DomainEngine(AsyncEngine):
+    """保持AsyncEngine接口，仅在完整事务成功提交后发本进程提示。"""
+
+    def __init__(self, sync_engine):
+        super().__init__(sync_engine)
+        self.outbox_wakeup = Wakeup()
+
+    @asynccontextmanager
+    async def begin(self):
+        pending = False
+        async with super().begin() as connection:
+            info = connection.info
+            info.pop(OUTBOX_PENDING, None)
+            try:
+                yield connection
+            finally:
+                # 池归还前清除连接局部标记；回滚/取消/提交失败不进入下面的提示。
+                pending = info.pop(OUTBOX_PENDING, False)
+        if pending:
+            self.outbox_wakeup.set()
 
 
 def migration_head(domain):
@@ -43,7 +70,7 @@ def create_database(url):
         cursor.execute("SET time_zone = '+00:00'")
         cursor.close()
 
-    return engine
+    return DomainEngine(engine.sync_engine)
 
 
 async def database_ready(engine, expected_revision):

@@ -16,6 +16,7 @@ from .internal_dto import EventEnvelope
 from .logging import configure_logging, log
 from .outbox import claim_event, consume_once, finish_event
 from .runtime import load_runtime, side_effect_policy
+from .scheduling import IdleBackoff, retry_delay
 from .security import validate_keys
 
 
@@ -83,7 +84,7 @@ async def run_job(service, role):
 
 async def transport_loop(app, stop, heartbeat, hub=None):
     engine, runtime = app.state.database, app.state.runtime
-    delay = 1
+    failures = 0
     broker = None
     try:
         while not stop.is_set():
@@ -96,25 +97,38 @@ async def transport_loop(app, stop, heartbeat, hub=None):
                         await broker.audit_queue()
                         if heartbeat.document["role"] == "audit" else None
                     )
-                delay = 1
+                idle = IdleBackoff()
                 while not stop.is_set():
-                    async with asyncio.timeout(15):
-                        activity = (
-                            await audit_tick(engine, runtime, queue)
-                            if queue
-                            else await relay_tick(engine, broker)
+                    activity = False
+                    # 有积压时最多连续16条，随后让出执行；每条仍独立领取/confirm/提交。
+                    for _ in range(16):
+                        if stop.is_set():
+                            break
+                        async with asyncio.timeout(15):
+                            changed = (
+                                await audit_tick(engine, runtime, queue)
+                                if queue else await relay_tick(engine, broker)
+                            )
+                        activity = changed or activity
+                        heartbeat.write(
+                            healthy=broker.connection.connected.is_set(), activity=changed,
                         )
-                    connected = broker.connection.connected.is_set()
-                    heartbeat.write(healthy=connected, activity=activity)
-                    await pause(stop, 0.1 if activity else 1)
+                        if not changed:
+                            break
+                    failures = 0
+                    delay = idle.next(activity)
+                    if queue:
+                        await pause(stop, delay)
+                    elif await engine.outbox_wakeup.wait(stop, delay):
+                        idle.reset()
             except Exception:
                 heartbeat.write(healthy=False)
                 log("job_retry", service=runtime.service, error_code="DEPENDENCY_UNAVAILABLE")
             finally:
                 await broker.close()
                 broker = None
-            await pause(stop, delay)
-            delay = min(30, delay * 2)
+            await pause(stop, retry_delay(failures))
+            failures += 1
     finally:
         if broker:
             await broker.close()
