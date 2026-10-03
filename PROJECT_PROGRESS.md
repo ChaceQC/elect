@@ -9,6 +9,7 @@
 - 新增20项必要单位用例和实际容器/七域合成验收、CI第二步入口；修正前端恢复脚本的0.13.2过时标题定位器，保留原安全/退出断言，生产页面不改。
 - 同步0.15.0版本/锁文件/契约元数据、根/前后端/deploy README、AGENTS、总/后端计划/架构/部署/恢复/容量及本机手册。方案第二步勾选，新增验收和两次CLI资源汇总；无AGENT.md。
 - 第一小步源码提交3c64651已推送origin/dev；第二步交付在当前dev提交/推送，不创建或合并main PR。
+- 交付提交737f406已推送；跟进GitHub Actions确认两个旧head均在Monitoring采集入口超时，定位到旧/重复MQ提示使本轮跳过SQL扫描。修正为处理提示后仍扫描、停止信号后不再领取；追加两项先失败后通过的回归，以及真实基础设施50条旧/重复签名消息的合并采集/取消/接管/重启/退出验收。
 - 验证结束只down本轮新建的两个隔离项目，保留六个命名数据卷与受限证据；Docker中无elect项目运行，原业务/历史项目保持停机，其余五个容器仍运行。
 
 ### 进行中
@@ -33,7 +34,7 @@
 
 ### 验证
 
-- sh deploy/check.sh通过：前端49项单元组件、32项浏览器、规则/类型/契约和构建；后端单位/契约/目录/离线迁移通过。MQ修正后本机及实际测试容器ruff、196 passed / 1 skipped、公开/内部契约/数据库目录再次通过；前端验收脚本node语法通过。
+- sh deploy/check.sh通过：前端49项单元组件、32项浏览器、规则/类型/契约和构建；后端单位/契约/目录/离线迁移通过。最后MQ积压修正后本机及实际测试容器ruff、198 passed / 1 skipped、公开/内部契约/数据库目录再次通过；前端验收脚本node语法通过。
 - test-stack combined空库/七域权限/并发迁移、实际签名Relay/Audit去重及T2–T6合成回归通过，真实Redis/MySQL/MQ故障通过；13长期容器全部healthy，内部TLS预检通过。
 - test-low-resource最终通过：实际七域健康/8条AMQP连接、MQ断线持续扫描/API degraded；restore组合八API无后台、独立入口拒绝；合成监控取消/租约接管/旧epoch/重启/在途退出、Room自动同步/默认Saga、Adapter清理、Notification DATA后unknown及Payment重复受理/未知回查仍一次D01；原卷13→30→13双向upgrade全部healthy，17旧角色全部exited。
 - test-t7-recovery通过：MySQL加密快照/封存binlog、隔离恢复、62张表计数和密文保留，快照后合成邮件/订单保持unknown、旧Outbox不重放；本机合成RPO4.631秒/RTO77秒，不外推生产灾备。

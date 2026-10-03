@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+from datetime import UTC, datetime
 from uuid import UUID
 
 import httpx
@@ -11,8 +12,11 @@ from scripts.t2_smoke import browser, fixture_apps, login, prepare
 from scripts.t4_monitor_smoke import cleanup, due, enable, reject_old, run_request
 from scripts.t4_query_smoke import QuerySchool
 from services.common.background import require_standalone, start_background
+from services.common.broker import Broker
 from services.common.database import migration_head
+from services.common.events import RunReadyPayload
 from services.common.ids import new_id
+from services.common.internal_dto import EventEnvelope
 from services.common.sql import execute, first
 from services.monitoring.execution import claim_run
 from services.room.worker import sync_tick
@@ -36,6 +40,33 @@ async def sample_count(engine, run):
             conn, "SELECT COUNT(*) AS n FROM monitor_samples WHERE run_id=:id", id=run.bytes
         )
     return row["n"]
+
+
+async def stale_hints(app, client):
+    cancelled = await run_request(client)
+    value = (await client.get(f"/api/v1/monitor/runs/{cancelled}")).json()["data"]
+    response = await client.post(
+        f"/api/v1/monitor/runs/{cancelled}/cancel", json={"expected_version": value["version"]},
+    )
+    assert response.status_code == 200
+    async with app.state.database.connect() as conn:
+        row = await first(conn, "SELECT * FROM monitor_runs WHERE id=:id", id=cancelled.bytes)
+    assert row["state"] == "cancelled"
+    event = EventEnvelope(
+        event_id=new_id(), type="monitor.run_ready", schema_version=1, producer="monitoring",
+        aggregate_id=UUID(bytes=row["monitor_id"]), aggregate_version=row["generation"],
+        occurred_at=datetime.now(UTC), request_id=new_id(),
+        payload=RunReadyPayload(run_id=cancelled, generation=row["generation"]),
+        dedupe_key=str(new_id()),
+    )
+    broker = Broker(app.state.runtime)
+    try:
+        await broker.open()
+        for _ in range(50):
+            await broker.publish(event)
+    finally:
+        await broker.close()
+    print("预置50条签名的已终结/重复唤醒，验证积压不能阻断新持久任务")
 
 
 class ControlledCollection:
@@ -177,6 +208,7 @@ async def verify(apps, school):
         assert await sync_tick(apps["room"])
         await select_default(client, apps["room"], "001")
         await enable(client)
+        await stale_hints(app, client)
         await verify_cycle(app, client, collection, UUID(user["id"]))
         await verify_cancel(app, client, collection)
         await verify_recovery(app, client)

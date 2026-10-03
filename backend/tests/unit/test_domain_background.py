@@ -104,6 +104,27 @@ def test_notification_keeps_sending_independent_and_gateway_has_no_background():
     assert shutdown_timeout("monitoring") >= 90
 
 
+@pytest.mark.parametrize("stopped", [False, True])
+def test_old_queue_hints_do_not_starve_sql_but_shutdown_prevents_claims(monkeypatch, stopped):
+    from services.monitoring import job, worker
+
+    async def verify():
+        stop = asyncio.Event()
+
+        async def hint(*args):
+            if stopped:
+                stop.set()
+            return True  # 已终结或重复提示仍会被ACK，但不代表领取了有效运行。
+
+        tick = AsyncMock(return_value=False)
+        monkeypatch.setattr(job, "message_tick", hint)
+        monkeypatch.setattr(worker, "worker_tick", tick)
+        assert await job.consumer_tick("worker", object(), object(), Mock(), stop)
+        assert tick.await_count == (0 if stopped else 1)
+
+    asyncio.run(verify())
+
+
 def test_room_stop_during_control_does_not_claim_sync_or_history(monkeypatch):
     from services.room import query_worker, wakeups, worker
 

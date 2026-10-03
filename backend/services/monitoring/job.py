@@ -101,10 +101,11 @@ async def consumer_tick(role, app, queue, heartbeat, stop):
         activity = await report_tick(app, queue) if queue else False
         return await wake_tick(app.state.database) or activity
     activity = await message_tick(app, queue, heartbeat, stop) if queue else False
-    if not activity and not stop.is_set():
+    # 已终结/重复的MQ提示也算已处理，不能因此跳过本轮的持久领取。
+    if not stop.is_set():
         from .worker import worker_tick
 
-        activity = await worker_tick(app, heartbeat=heartbeat)
+        activity = await worker_tick(app, heartbeat=heartbeat) or activity
     return activity
 
 
