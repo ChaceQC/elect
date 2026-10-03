@@ -57,7 +57,7 @@ it('短协议可确认；重复提交只发一次，密码原样提交且成功�
   fireEvent.submit(form); fireEvent.submit(form)
   await waitFor(() => expect(count).toBe(1))
   if (finish) /** @type {()=>void} */ (finish)()
-  await screen.findByRole('heading', { name: '用电总览' })
+  await screen.findByRole('heading', { name: '先找到你的寝室' })
   expect(screen.queryByLabelText('学校密码')).not.toBeInTheDocument()
   expect(JSON.stringify(sessionStorage)).not.toContain('password')
 })

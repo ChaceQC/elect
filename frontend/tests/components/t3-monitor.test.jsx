@@ -5,11 +5,12 @@ import { setupServer } from 'msw/node'
 import { AppProviders } from '../../src/app/providers.jsx'
 import { MonitorPage } from '../../src/features/monitoring/MonitorPage.jsx'
 import { apiClient } from '../../src/api/client.js'
-import { envelope, me } from '../fixtures/t2.js'
+import { bindings, envelope, me } from '../fixtures/t2.js'
 
 import { monitor } from '../fixtures/t3.js'
 
-const server = setupServer(http.get('/api/v1/auth/me', () => HttpResponse.json(envelope(me))))
+const server = setupServer(http.get('/api/v1/auth/me', () => HttpResponse.json(envelope(me))),
+  http.get('/api/v1/room-bindings', () => HttpResponse.json(envelope(bindings))))
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => { cleanup(); server.resetHandlers(); apiClient.reset() })
 afterAll(() => server.close())

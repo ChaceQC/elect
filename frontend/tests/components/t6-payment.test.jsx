@@ -27,7 +27,7 @@ it('能力关闭或分币不满足整数步长时禁止建单', async () => {
   result.unmount()
   server.use(http.get('/api/v1/payments/capabilities', () => HttpResponse.json(envelope(capability))))
   render(<AppProviders><PaymentDialog bindingId={bindingId} displayName="合成寝室" onClose={vi.fn()} /></AppProviders>)
-  await screen.findByText(/应用充值规则/)
+  await screen.findByText(/每次递增/)
   fireEvent.change(screen.getByLabelText('充值金额（元）'), { target: { value: '1.01' } })
   expect(screen.getByRole('button', { name: '确认创建充值订单' })).toBeDisabled()
   expect(writes).not.toHaveBeenCalled()
@@ -42,7 +42,7 @@ it('受理响应丢失后关闭重开使用原金额和原键，重复点击不�
       state: 'created', poll_url: `/api/v1/payment-orders/${orderId}` }), { status: 202 })
   }))
   const first = render(<AppProviders><PaymentDialog bindingId={bindingId} displayName="合成寝室" onClose={vi.fn()} /></AppProviders>)
-  await screen.findByText(/应用充值规则/)
+  await screen.findByText(/每次递增/)
   fireEvent.change(screen.getByLabelText('充值金额（元）'), { target: { value: '30' } })
   const submit = screen.getByRole('button', { name: '确认创建充值订单' })
   fireEvent.click(submit); fireEvent.click(submit)
@@ -67,7 +67,7 @@ it('服务器未解决订单在能力关闭和浏览器记录丢失后仍可恢�
   render(<AppProviders><PaymentDialog bindingId={bindingId} displayName="合成寝室" onClose={vi.fn()} /></AppProviders>)
   await screen.findByText('支付状态尚未确认')
   expect(screen.queryByRole('button', { name: '确认创建充值订单' })).not.toBeInTheDocument()
-  expect(screen.getByText(/关闭弹窗会保留订单/)).toBeInTheDocument()
+  expect(screen.getByText(/关闭窗口不会取消订单/)).toBeInTheDocument()
 })
 
 it('二维码202不创建图片URL；图片更新和关闭释放旧URL，200 HTML被拒绝', async () => {

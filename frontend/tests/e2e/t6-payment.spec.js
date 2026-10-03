@@ -34,7 +34,7 @@ for (const width of [1440, 375]) {
     })
     await page.goto('/rooms')
     await page.getByRole('button', { name: '充值电费' }).click()
-    await expect(page.getByText(/应用充值规则/)).toBeVisible()
+    await expect(page.getByText(/每次递增/)).toBeVisible()
     await page.getByLabel('充值金额（元）').fill('1.01')
     await expect(page.getByRole('button', { name: '确认创建充值订单' })).toBeDisabled()
     await page.getByLabel('充值金额（元）').fill('30')

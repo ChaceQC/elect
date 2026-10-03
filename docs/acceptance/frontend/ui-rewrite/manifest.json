@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-03",
+  "synthetic": true,
+  "source": "example/nature.html",
+  "implementation": "frontend production build/preview",
+  "captures": [
+    {
+      "file": "1440-binding.png",
+      "width": 1440,
+      "height": 1000,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "1440-calendar.png",
+      "width": 1440,
+      "height": 2255,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "1440-details.png",
+      "width": 1440,
+      "height": 1824,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "1440-login.png",
+      "width": 1440,
+      "height": 1000,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "1440-monitor.png",
+      "width": 1440,
+      "height": 1000,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "1440-overview.png",
+      "width": 1440,
+      "height": 1083,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "1440-payment.png",
+      "width": 1440,
+      "height": 1824,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "1440-rooms.png",
+      "width": 1440,
+      "height": 1000,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-binding.png",
+      "width": 375,
+      "height": 1149,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-calendar.png",
+      "width": 375,
+      "height": 2472,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-details.png",
+      "width": 375,
+      "height": 2029,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-login.png",
+      "width": 375,
+      "height": 1000,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-monitor.png",
+      "width": 375,
+      "height": 1149,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-overview.png",
+      "width": 375,
+      "height": 1427,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-payment.png",
+      "width": 375,
+      "height": 2029,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    },
+    {
+      "file": "375-rooms.png",
+      "width": 375,
+      "height": 1149,
+      "viewport_height": 1000,
+      "device_scale_factor": 1
+    }
+  ]
+}

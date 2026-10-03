@@ -10,10 +10,10 @@ import { abortableDelay } from '../../lib/abortableDelay.js'
 /** @typedef {import('../../api/generated').components['schemas']['Candidate']} Candidate */
 /** @typedef {import('../../api/generated').components['schemas']['FilterChoice']} Choice */
 /** @typedef {import('../../api/generated').components['schemas']['FilterChoices']} Choices */
-/** @param {{onBind?: (candidate: Candidate)=>void}} props */
-export function CandidateSearch({ onBind } = {}) {
+/** @param {{onBind?: (candidate: Candidate)=>void, initiallyOpen?: boolean}} props */
+export function CandidateSearch({ onBind, initiallyOpen = false } = {}) {
   const { user } = useSession()
-  const [opened, setOpened] = useState(false)
+  const [opened, setOpened] = useState(initiallyOpen)
   const [building, setBuilding] = useState(/** @type {Choice|null} */ (null))
   const [floor, setFloor] = useState(/** @type {Choice|null} */ (null))
   const [room, setRoom] = useState(/** @type {Choice|null} */ (null))
@@ -47,8 +47,7 @@ export function CandidateSearch({ onBind } = {}) {
     else setRoom(item)
   }
   const selected = candidate.data?.items.find(item => item.room_id === room?.id)
-  return <section className="room-section" aria-labelledby="candidate-title"><h2 id="candidate-title">新增学校绑定</h2>
-    <p className="muted">先选择楼栋、楼层和房间；搜索只在当前列表中查找。</p>
+  return <section className="room-section" aria-label="新增学校绑定">
     {!opened ? <button onClick={() => setOpened(true)}>选择寝室</button> : <>
       <div className="filter-steps" aria-label="寝室筛选">
         <button className="quiet" onClick={() => { setBuilding(null); setFloor(null); setRoom(null); setInput('') }}>1. {building?.label ?? '选择楼栋'}</button>
@@ -61,7 +60,6 @@ export function CandidateSearch({ onBind } = {}) {
       {choices.isFetching && <p role="status">正在读取{labels[level]}列表…</p>}
       {choices.error && <StatusBlock title={choices.error.message} error action={{ label: '重试列表', onClick: () => { void choices.refetch() } }} />}
       {choices.data && !choices.isFetching && <>
-        <p className="muted">当前列表 {choices.data.items.length} 项，匹配 {items.length} 项。</p>
         {items.length === 0 && <StatusBlock title={choices.data.items.length ? '当前列表没有匹配项' : '学校返回的当前列表为空'} />}
         <ul className="filter-list">{items.map(item => <li key={item.id}><button className="quiet" onClick={() => choose(item)}>{item.label}</button></li>)}</ul>
       </>}
@@ -70,7 +68,7 @@ export function CandidateSearch({ onBind } = {}) {
       {room && candidate.data && !candidate.isFetching && (Date.parse(candidate.data.expires_at) <= now
         ? <StatusBlock title="候选已过期，请重新核对" action={{ label: '重新核对', onClick: () => { void candidate.refetch() } }} />
         : selected ? <div className="selected-candidate"><strong>{selected.display_name}</strong>
-          <p className="muted">{selected.already_bound ? '该寝室已在本人绑定列表中。' : '请核对楼栋与房号，确认后提交学校绑定。'}</p>
+          {selected.already_bound && <p className="muted">该寝室已绑定。</p>}
           <button disabled={selected.already_bound || !onBind} onClick={() => onBind?.(Object.freeze({ ...selected }))}>绑定该寝室</button></div>
           : <StatusBlock title="学校没有确认所选房间，请重新筛选" error />)}
     </>}

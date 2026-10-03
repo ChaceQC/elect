@@ -1,0 +1,28 @@
+.monitor-room { display: flex; align-items: center; gap: 17px; border: 1px solid #d6e8f6; background: #e8f4fd; border-radius: 10px; padding: 20px; margin-bottom: 23px; }
+.monitor-room h3 { margin-top: 6px; }
+.monitor-room .pill { margin-left: auto; }
+.monitor-form { margin: 0 0 30px; }
+.monitor-grid, .monitor-runtime { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.monitor-grid label:not(.switch) { margin-top: 23px; }
+.monitor-grid .card { padding-bottom: 26px; }
+.switch { margin: 0; position: relative; width: 39px; height: 23px; }
+.switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; width: 39px; height: 23px; }
+.switch span { display: block; width: 39px; height: 23px; background: #dbe8f2; border-radius: 20px; pointer-events: none; }
+.switch span::after { content: ''; display: block; width: 17px; height: 17px; background: white; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: transform .2s; }
+.switch input:checked + span { background: #87bce5; }
+.switch input:checked + span::after { transform: translateX(16px); }
+.switch input:focus-visible + span { outline: 3px solid #579ed6; outline-offset: 3px; }
+.save-row { display: flex; align-items: center; gap: 20px; }
+.draft-notice, .save-notice { font-size: 12px; padding: 12px 16px; margin-bottom: 18px; border-radius: 8px; background: #eaf5fd; }
+.monitor-summary p, .monitor-runtime .data-card p { margin: 8px 0; font-size: 12px; }
+.monitor-summary .actions { margin-top: 16px; }
+.monitor-runtime .data-card > button { margin: 16px 8px 8px 0; }
+.monitor-room .muted { font-size: 13px; }
+@media (max-width: 760px) { .monitor-grid, .monitor-runtime { grid-template-columns: 1fr; gap: 0; } .monitor-room { padding: 16px; gap: 10px; } .monitor-room .pill { font-size: 9px; } .monitor-room .muted { font-size: 11px; } .save-row { align-items: flex-start; flex-wrap: wrap; gap: 12px; } }
+.monitor-details { margin-top: 24px; font-size: 12px; color: var(--muted); }
+.monitor-details > summary { cursor: pointer; padding: 12px 0; width: fit-content; }
+.monitor-details > summary > span { margin-left: 12px; color: #5685a8; }
+.monitor-details[open] > summary { margin-bottom: 12px; }
+.monitor-details .card, .monitor-details .data-card { color: var(--ink); }
+.monitor-alerts { font-size: 12px; color: #87483f; }
+.monitor-alerts p { margin: 10px 0; }

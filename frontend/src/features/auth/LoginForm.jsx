@@ -57,11 +57,11 @@ export function LoginForm({ reauthenticate = false, onSuccess }) {
     } finally { submitting.current = false; setBusy(false) }
   }
   return <form onSubmit={submit} className="login-form" aria-label={reauthenticate ? '学校重新认证' : '学校账号登录'}>
-    <label>学校账号<input autoComplete="username" value={student} onChange={event => setStudent(event.target.value)}
+    <label>学号<input aria-label="学校账号" placeholder="请输入学号" autoComplete="username" value={student} onChange={event => setStudent(event.target.value)}
       maxLength={128} readOnly={reauthenticate} required /></label>
-    <label>学校密码<input type="password" autoComplete="current-password" value={password}
+    <label>密码<input aria-label="学校密码" placeholder="请输入统一认证密码" type="password" autoComplete="current-password" value={password}
       onChange={event => setPassword(event.target.value)} maxLength={1024} required /></label>
-    <div className="captcha-field"><label>验证码答案<input value={answer} onChange={event => setAnswer(event.target.value)}
+    <div className="captcha-field"><label>验证码<input aria-label="验证码答案" value={answer} onChange={event => setAnswer(event.target.value)}
       autoComplete="off" maxLength={32} required placeholder="输入图片算式的结果" /></label>
       <div className="captcha-image">{captcha.data ? <img src={captcha.data.image_data_url} alt="学校算式验证码" /> :
         <span>{captcha.busy ? '取图中…' : '验证码未加载'}</span>}
@@ -70,12 +70,13 @@ export function LoginForm({ reauthenticate = false, onSuccess }) {
     {captcha.expired && <p role="alert" className="form-error">验证码已过期，请换一张。</p>}
     {captcha.error && <StatusBlock title={captcha.error.message} error />}
     {policy.isError && <StatusBlock title="无法加载使用协议" error action={{ label: '重试', onClick: () => { void policy.refetch() } }} />}
-    <label className="checkbox-row"><input type="checkbox" checked={accepted} disabled={readVersion !== currentVersion || !currentVersion}
+    <div className="agreement-check"><label className="checkbox-row"><input type="checkbox" checked={accepted} disabled={readVersion !== currentVersion || !currentVersion}
       onChange={event => setAccepted(event.target.checked)} />我同意应用使用协议</label>
-    <button type="button" className="text-button" disabled={!policy.data} onClick={() => setAgreementOpen(true)}>阅读应用协议</button>
-    <label className="checkbox-row"><input type="checkbox" checked={allowed} onChange={event => setAllowed(event.target.checked)} />
-      允许后台使用加密凭据恢复学校认证</label>
-    <p className="authorization-note">用于已启用的监控与查询，退出应用后仍可继续。未授权时，学校会话过期需要手动认证。授权不会自动开启监控。</p>
+      <button type="button" className="text-button" disabled={!policy.data} onClick={() => setAgreementOpen(true)}>阅读应用协议</button></div>
+    {readVersion !== currentVersion && <p className="field-hint">请打开协议并阅读到底部，之后即可勾选。</p>}
+    <label className="checkbox-row"><input aria-label="允许后台使用加密凭据恢复学校认证" type="checkbox" checked={allowed} onChange={event => setAllowed(event.target.checked)} />
+      允许后台恢复学校登录</label>
+    <p className="authorization-note">用于后台查询与已开启的监控，可在账户中撤回。</p>
     {error && <StatusBlock title={error.message} error><p>{error.retryAfterSeconds ? `请至少等待 ${error.retryAfterSeconds} 秒后重试。` :
       '请检查输入或重新获取验证码后重试。'}</p>{error.requestId && <small>请求编号：{error.requestId}</small>}</StatusBlock>}
     <button className="primary-action" type="submit" disabled={!valid || busy}>{busy ? '正在学校认证…' : reauthenticate ? '重新认证' : '登录'}</button>

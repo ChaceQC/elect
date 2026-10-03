@@ -1,0 +1,31 @@
+.segments { background: #edf4fa; padding: 4px; border-radius: 7px; display: flex; gap: 3px; flex-shrink: 0; }
+.segments button { border: 0; background: none; padding: 7px 17px; color: #64829b; font-size: 12px; border-radius: 4px; min-height: 32px; font-weight: 400; }
+.segments button.selected { color: #4584b2; background: white; box-shadow: 0 1px 4px #264d3310; }
+.history-range .segments button { padding: 7px 10px; white-space: nowrap; }
+.range-form { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+.range-form > .primary { min-height: 65px; border-radius: 10px; }
+.history-range .field-hint { margin: 14px 0 0; font-size: 10px; }
+.history-summary { color: var(--muted); font-size: 11px; }
+.consumption-chart { width: 100%; height: 280px; }
+.chart-data { margin: 10px 0; font-size: 11px; color: var(--muted); }
+.chart-data summary { cursor: pointer; width: fit-content; padding: 6px 0; }
+.chart-data ul { padding-left: 20px; }
+.chart-data li { margin: 6px 0; }
+.query-action { font-size: 12px; }
+.query-action p { margin: 8px 0; }
+.overview-trend > .query-action, .card > .query-action { margin-top: 10px; }
+.overview-trend > .query-action > button, .card > .query-action > button { font-size: 11px; padding: 6px 12px; min-height: 34px; }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.samples-table { border-collapse: collapse; width: 100%; min-width: 760px; text-align: left; font-size: 12px; }
+.samples-table caption { text-align: left; color: var(--muted); padding: 12px 0; font-size: 11px; }
+.samples-table td, .samples-table th { padding: 17px 13px; border-bottom: 1px solid #e5edf5; }
+.samples-table th { color: #7592a9; font-weight: 500; background: #f2f7fc; white-space: nowrap; }
+.samples-table td { color: #597b94; }
+.samples-table small { display: block; margin-top: 6px; font-size: 10px; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 20px; font-size: 12px; color: var(--muted); }
+@media (max-width: 760px) { .history-range .card-heading { align-items: flex-start; flex-direction: column; gap: 14px; } .range-form { gap: 10px; } .range-form > .primary { width: 100%; min-height: 42px; } .segments button { padding: 7px 12px; } .pagination { flex-wrap: wrap; gap: 8px; } }
+.samples-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.samples-footer .pagination { margin: 0; }
+.card-heading .query-action > button { padding: 6px; min-height: 28px; border: 0; background: transparent; }
+.samples-table caption.sr-only { padding: 0; }
+.samples-table abbr { text-decoration: none; cursor: help; }

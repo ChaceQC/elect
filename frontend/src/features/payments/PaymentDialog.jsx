@@ -9,6 +9,7 @@ import { useRequestIntent } from '../../hooks/useRequestIntent.js'
 import { validateAmount } from '../../lib/money.js'
 import { useSession } from '../auth/SessionProvider.jsx'
 import { OrderStatus } from './OrderStatus.jsx'
+import { Building2 } from 'lucide-react'
 
 /** @param {{bindingId: string, displayName: string, onClose: ()=>void}} props */
 export function PaymentDialog({ bindingId, displayName, onClose }) {
@@ -48,25 +49,25 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
     } finally { submitting.current = false }
   }
   return <Modal open title="充值电费" onClose={onClose}>
-    <p>充值寝室：<strong>{displayName}</strong></p>
+    <div className="payment-room"><Building2 size={23} /><span>充值寝室：<strong>{displayName}</strong></span></div>
     {capability.isPending && <StatusBlock title="正在读取支付规则与原订单…" />}
     {capability.error && <StatusBlock title={capability.error.message} error action={{ label: '重新读取支付规则', onClick: () => { void capability.refetch() } }} />}
     {rules && !rules.enabled && <StatusBlock title={rules.unavailable_reason ?? '支付暂未开放'} />}
     {id ? <OrderStatus key={id} id={id} onStartNew={() => {
       void capability.refetch().then(() => { setOrderId(null); setFrozen(null); setAmount('1') })
     }} /> : <>
-      {rules && <p className="muted">{rules.currency} · {rules.min_amount}–{rules.max_amount}元，步长{rules.amount_step}元 · 应用充值规则</p>}
+      {rules && <p className="muted">{rules.min_amount}–{rules.max_amount} 元 · 每次递增 {rules.amount_step} 元</p>}
       <label className="payment-amount">充值金额（元）<input inputMode="decimal" maxLength={16}
         value={intent ? String(intent.body.amount) : amount} disabled={busy || !!intent || !rules?.enabled}
         onChange={event => setAmount(event.target.value)} /></label>
       {rules?.enabled && !intent && <div className="payment-presets">{['1.00', '10.00', '20.00', '50.00', '100.00'].filter(value => limits && validateAmount(value, limits))
-        .map(value => <button className="quiet" key={value} onClick={() => setAmount(value)}>{new Decimal(value).toFixed(0)}元</button>)}</div>}
+        .map(value => <button className={normalized === value ? 'quiet selected' : 'quiet'} aria-pressed={normalized === value} key={value} onClick={() => setAmount(value)}>{new Decimal(value).toFixed(0)}元</button>)}</div>}
       {rules?.enabled && !intent && !valid && <p role="alert">请按当前金额范围和步长输入充值金额。</p>}
       {intent && <p role="status">原订单受理结果待确认，寝室和金额已固定；再次提交会保留原请求。</p>}
       {error && <StatusBlock title={error} error />}
       <button disabled={busy || capability.isPending || !intent && (!rules?.enabled || !valid)} onClick={() => { void create() }}>
         {busy ? '正在受理…' : intent ? '重试原订单请求' : '确认创建充值订单'}</button>
     </>}
-    <p className="muted">关闭弹窗会保留订单。建单和二维码生成不代表已付款，到账余额以学校最新查询为准。</p>
+    {id && <p className="muted">关闭窗口不会取消订单。</p>}
   </Modal>
 }

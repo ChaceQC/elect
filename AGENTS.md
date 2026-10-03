@@ -144,6 +144,7 @@
 ## 技术与业务约定
 
 - 正式前端采用 React、Vite、JavaScript/JSX 和 npm，提交独立的 `frontend/package-lock.json`。
+- 前端视觉与文案以 `example/nature.html` 的浅蓝主题为基准：保留页面结构、导航位置、卡片比例、间距、图标与精简文案；接入业务时不得另起一套布局。装饰文案和重复说明直接删去，详细运行信息按需展开，错误、未知/过期数据、操作结果与必要授权仍须可见。视觉改动须与同视口参考截图并排核对，不能只凭构建通过宣称还原。
 - 正式后端采用 Python 3.12.10、uv、FastAPI、Pydantic v2、SQLAlchemy 和 Alembic，提交 `backend/uv.lock`。
 - 目标基础服务为 MySQL 8.4、Redis、RabbitMQ；全栈由 Docker Compose 编排，Nginx 提供静态文件和 API 反代。
 - 浏览器通过同源 `/api/v1` 访问后端；学校认证与学校 API 访问由后端 School Adapter 处理。

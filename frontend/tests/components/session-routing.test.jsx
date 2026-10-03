@@ -33,8 +33,8 @@ it('初始化完成后保留直达路由，支持导航与服务不可用提示'
   render(<MemoryRouter initialEntries={['/details?start=2026-10-01']}><AppProviders><App /></AppProviders></MemoryRouter>)
   expect(screen.getByText('正在恢复会话…')).toBeInTheDocument()
   expect(await screen.findByRole('heading', { name: '电费明细' })).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('link', { name: '我的寝室' }))
-  expect(screen.getByRole('heading', { name: '我的寝室' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('link', { name: '选择与绑定' }))
+  expect(screen.getByRole('heading', { name: '选择与绑定' })).toBeInTheDocument()
 })
 
 it('应用过期进入登录页，学校异常或不可用不显示登录成功', async () => {

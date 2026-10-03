@@ -63,7 +63,7 @@ for (const width of [1440, 375]) {
     await page.getByLabel('我同意应用使用协议').check()
     await page.getByLabel('允许后台使用加密凭据恢复学校认证').check()
     await page.getByRole('button', { name: '登录', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '我的寝室', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '选择与绑定', exact: true })).toBeVisible()
     await expect(page.getByText('合成楼栋 001', { exact: true })).toBeVisible()
     expect(loginCount).toBe(1)
     await page.reload()

@@ -44,7 +44,7 @@ for (const width of [375, 390, 768, 1280, 1440]) {
   test(`${width}px：四页、长错误、账户与支付弹窗可达`, async ({ page, context }) => {
     await fixture(context)
     await page.setViewportSize({ width, height: 900 })
-    for (const [path, title] of [['overview', '用电总览'], ['details', '电费明细'], ['rooms', '我的寝室'], ['monitor', '监控提醒']]) {
+    for (const [path, title] of [['overview', '总览'], ['details', '电费明细'], ['rooms', '选择与绑定'], ['monitor', '监控与预警']]) {
       await page.goto(`/${path}`)
       await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
       await noOverflow(page)
@@ -64,9 +64,9 @@ for (const width of [375, 390, 768, 1280, 1440]) {
     await page.keyboard.press('Escape')
     await expect(page.getByRole('button', { name: '充值电费' })).toBeFocused()
     await page.goto('/details')
-    await page.getByLabel('开始日期').fill('2027-01-01')
-    await expect(page.getByLabel('开始日期')).toHaveAttribute('aria-invalid', 'true')
-    const description = await page.getByLabel('开始日期').getAttribute('aria-describedby')
+    await page.getByLabel('开始日期', { exact: true }).fill('2027-01-01')
+    await expect(page.getByLabel('开始日期', { exact: true })).toHaveAttribute('aria-invalid', 'true')
+    const description = await page.getByLabel('开始日期', { exact: true }).getAttribute('aria-describedby')
     await expect(page.locator(`[id="${description}"]`)).toBeVisible()
     await noOverflow(page)
     if (process.env.ELECT_T7_SCREENSHOT_DIR) {
@@ -103,7 +103,7 @@ test('双标签页退出与再次登录清理会话、房间和草稿', async ({
   await page.getByLabel('我同意应用使用协议').check()
   await page.getByRole('button', { name: '登录', exact: true }).click()
   await other.goto('/rooms')
-  await expect(other.getByText('第二账号的寝室', { exact: true })).toBeVisible()
+  await expect(other.getByRole('heading', { name: '第二账号的寝室', exact: true })).toBeVisible()
   await expect(other.getByText('合成乙楼 202', { exact: true })).toHaveCount(0)
   await other.goto('/monitor')
   await expect(other.getByLabel('采集间隔（整数分钟）')).toHaveValue('60')
@@ -126,7 +126,7 @@ test('图表切页释放观察器，缩放等效视口与减少动效可用', as
   await expect(page.locator('.consumption-chart canvas')).toBeVisible()
   const count = await page.evaluate(() => Reflect.get(window, 't7Observers'))
   for (let i = 0; i < 5; i++) {
-    await page.getByRole('link', { name: '我的寝室', exact: true }).click()
+    await page.getByRole('link', { name: '选择与绑定', exact: true }).click()
     await expect.poll(() => page.evaluate(() => Reflect.get(window, 't7Observers'))).toBe(0)
     await page.getByRole('link', { name: '电费明细', exact: true }).click()
     await expect(page.locator('.consumption-chart canvas')).toBeVisible()
