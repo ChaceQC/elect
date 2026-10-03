@@ -92,6 +92,7 @@ PROJECT_PROGRESS.md    # 开发进度与验证记录
 - [学校接口](docs/学校对接API文档.md)
 - [备份恢复](docs/runbooks/备份恢复与隔离对账.md)
 - [运行状态与容量](docs/runbooks/运行状态与容量.md)
+- [Docker 低资源部署优化方案](docs/Docker低资源部署优化方案.md)（50 人、2 核 2GB，待实施与验收）
 - [开发规范](AGENTS.md) · [GitHub 协作流程](docs/GitHub协作与合并流程.md)
 - [项目进度与验证记录](PROJECT_PROGRESS.md)
 
