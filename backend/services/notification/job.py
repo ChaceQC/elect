@@ -40,11 +40,12 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
                     if queue is None and time.monotonic() >= reconnect_at:
                         try:
                             broker = Broker(app.state.runtime, hub=hub)
-                            await broker.open()
-                            await broker.channel.set_qos(prefetch_count=1)
-                            queue = await broker.channel.declare_queue(
-                                "elect.notification.alerts", durable=True
-                            )
+                            async with asyncio.timeout(8):
+                                await broker.open()
+                                await broker.channel.set_qos(prefetch_count=1)
+                                queue = await broker.channel.declare_queue(
+                                    "elect.notification.alerts", durable=True
+                                )
                         except Exception:
                             if broker:
                                 await broker.close()

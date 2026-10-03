@@ -2,7 +2,7 @@
 
 通过学校账号查询和管理寝室电费的 Web 应用，提供寝室绑定、余额查询、消费明细、定时监控和低余额邮件提醒，支持桌面与手机使用。
 
-当前版本：`0.14.0`（开发版）。
+当前版本：`0.15.0`（开发版）。
 
 ## 功能
 
@@ -32,12 +32,14 @@
 默认采用 HTTPS。首次部署请按 [Docker 部署说明](docs/Docker部署配置说明.md) 准备 `deploy/.env`、服务 Secret、域名和证书，并完成 Secret 初始化；之后在仓库根目录执行：
 
 ```sh
-docker compose --env-file deploy/.env -f deploy/compose.yaml config --quiet
-docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build
-docker compose --env-file deploy/.env -f deploy/compose.yaml ps -a
+sh deploy/compose.sh "$PWD/deploy/.env" elect config --quiet
+sh deploy/compose.sh "$PWD/deploy/.env" elect up -d --build
+sh deploy/compose.sh "$PWD/deploy/.env" elect ps -a
 ```
 
 私网 HTTP 模式使用独立配置，见 [私网部署说明](docs/runbooks/本机私网部署.md)。数据使用 Docker 命名卷持久化；启停、升级和备份恢复按对应运行手册执行。
+
+在公开配置中设置 `ELECT_DEPLOYMENT_MODE=combined` 可选择 13 个长期容器的轻量组合；默认 `standalone` 保留独立角色。切换已有部署使用 `deploy/upgrade.sh` 停止旧角色后迁移、启动，目标机使用已构建镜像。2核2GB/50人容量仍需按优化方案验收。
 
 ## 本地开发
 
@@ -92,7 +94,7 @@ PROJECT_PROGRESS.md    # 开发进度与验证记录
 - [学校接口](docs/学校对接API文档.md)
 - [备份恢复](docs/runbooks/备份恢复与隔离对账.md)
 - [运行状态与容量](docs/runbooks/运行状态与容量.md)
-- [Docker 低资源部署优化方案](docs/Docker低资源部署优化方案.md)（Monitoring合并试点；2核2GB容量待验收）
+- [Docker 低资源部署优化方案](docs/Docker低资源部署优化方案.md)（13容器组合；2核2GB容量待验收）
 - [开发规范](AGENTS.md) · [GitHub 协作流程](docs/GitHub协作与合并流程.md)
 - [项目进度与验证记录](PROJECT_PROGRESS.md)
 

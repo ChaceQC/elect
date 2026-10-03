@@ -1,6 +1,6 @@
 # 学生端工程
 
-当前版本 `0.14.0`。React / Vite / JavaScript 学生端，提供学校登录、总览、电费明细、寝室绑定、监控预警与按服务端能力开放的缴费弹窗。
+当前版本 `0.15.0`。React / Vite / JavaScript 学生端，提供学校登录、总览、电费明细、寝室绑定、监控预警与按服务端能力开放的缴费弹窗。
 
 界面和文案以 `example/nature.html` 的浅蓝主题为基准。正式源码、依赖及镜像构建独立于 `example/`；所有业务数据来自同源 `/api/v1`，不会用演示数据填补错误或空状态。
 
@@ -43,7 +43,7 @@ ELECT_UI_SCREENSHOT_DIR="$PWD/../docs/acceptance/frontend/ui-rewrite" \
 在仓库根目录构建：
 
 ```sh
-docker build -t elect-frontend:v0.14.0 frontend
+docker build -t elect-frontend:v0.15.0 frontend
 ```
 
 Node 阶段编译，Nginx 阶段提供静态文件；域名和反代由部署配置提供。完整检查入口是根目录的 `sh deploy/check.sh`。部署、公开配置和真实验收边界见 [前端开发与部署](../docs/前端开发与部署.md) 和 [开发说明](../docs/开发说明.md)。

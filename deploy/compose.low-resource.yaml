@@ -1,0 +1,52 @@
+# 第二步：同域API与后台共用一个Python进程；发送Worker保持独立。
+x-combined: &combined
+  environment:
+    ELECT_PROCESS_MODE: combined
+    ELECT_BACKGROUND_ENABLED: ${ELECT_BACKGROUND_ENABLED:-true}
+x-disabled: &disabled
+  profiles: [standalone-roles]
+  environment:
+    # 手工指定旧服务也不能在合并API外重复启动角色。
+    ELECT_PROCESS_MODE: combined
+services:
+  identity:
+    <<: *combined
+    stop_grace_period: 135s
+  school-adapter:
+    <<: *combined
+    stop_grace_period: 40s
+  room:
+    <<: *combined
+    stop_grace_period: 135s
+  monitoring:
+    <<: *combined
+    stop_grace_period: 110s
+  notification:
+    <<: *combined
+    stop_grace_period: 40s
+  payment:
+    <<: *combined
+    stop_grace_period: 190s
+  audit:
+    <<: *combined
+    stop_grace_period: 40s
+  notification-worker:
+    environment:
+      ELECT_PROCESS_MODE: standalone
+  identity-relay: *disabled
+  identity-recovery: *disabled
+  school-relay: *disabled
+  school-maintenance: *disabled
+  room-relay: *disabled
+  room-sync-worker: *disabled
+  monitoring-relay: *disabled
+  monitor-scheduler: *disabled
+  monitor-worker: *disabled
+  monitor-recovery: *disabled
+  monitor-alerts: *disabled
+  notification-relay: *disabled
+  notification-recovery: *disabled
+  payment-relay: *disabled
+  payment-worker: *disabled
+  payment-recovery: *disabled
+  audit-worker: *disabled

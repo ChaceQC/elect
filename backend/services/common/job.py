@@ -90,10 +90,12 @@ async def transport_loop(app, stop, heartbeat, hub=None):
             broker = Broker(runtime, hub=hub)
             try:
                 await database_ready(engine, app.state.migration_head)
-                await broker.open()
-                queue = (
-                    await broker.audit_queue() if heartbeat.document["role"] == "audit" else None
-                )
+                async with asyncio.timeout(8):
+                    await broker.open()
+                    queue = (
+                        await broker.audit_queue()
+                        if heartbeat.document["role"] == "audit" else None
+                    )
                 delay = 1
                 while not stop.is_set():
                     async with asyncio.timeout(15):

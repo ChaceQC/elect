@@ -15,13 +15,10 @@ docker build -t elect-backend:ops backend
 docker build --target test -t elect-backend-smoke:ops backend
 export ELECT_IMAGE=elect-backend:ops ELECT_TEST_IMAGE=elect-backend-smoke:ops
 source_compose() {
-  docker compose --env-file "$task_dir/stack.env" -f deploy/compose.yaml \
-    -f deploy/compose.test.yaml -f deploy/compose.ops.yaml -p "$task_project" "$@"
+  sh deploy/compose.sh "$task_dir/stack.env" "$task_project" --test "$@"
 }
 target_compose() {
-  docker compose --env-file "$task_recovery/restore.env" -f deploy/compose.yaml \
-    -f deploy/compose.test.yaml -f deploy/compose.ops.yaml -f deploy/compose.restore.yaml \
-    -p "$task_restore_project" "$@"
+  sh deploy/compose.sh "$task_recovery/restore.env" "$task_restore_project" --test --restore "$@"
 }
 probe() {
   task_target=$1 task_mode=$2

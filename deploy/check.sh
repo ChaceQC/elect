@@ -4,6 +4,7 @@ set -eu
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 docker build --target test -t elect-backend-check "$task_root/backend"
 docker run --rm --network none -v "$task_root/docs:/docs:ro" \
+  -v "$task_root/deploy:/deploy:ro" \
   -v "$task_root/frontend/src/mocks/scenarios.json:/frontend/src/mocks/scenarios.json:ro" \
   elect-backend-check sh -c '
   uv run ruff check . && uv run pytest -q &&

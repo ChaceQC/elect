@@ -12,7 +12,8 @@ services:
   nginx:
     profiles: [reconciled]
     ports: !reset []
-    networks: !override [app]
+    networks: !override
+      app: {aliases: ["${ELECT_DOMAIN:-elect-recovery.invalid}"]}
   gateway:
     environment: *recovery-env
   identity:

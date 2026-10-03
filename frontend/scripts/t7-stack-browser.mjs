@@ -24,7 +24,7 @@ try {
   assert(wrongCsrf.status() === 403)
   const foreign = await api.get(`/api/v1/room-bindings/${session.foreign_binding}`)
   assert(foreign.status() === 404)
-  const pages = [['overview', '用电总览'], ['details', '电费明细'], ['rooms', '我的寝室'], ['monitor', '监控提醒']]
+  const pages = [['overview', '总览'], ['details', '电费明细'], ['rooms', '选择与绑定'], ['monitor', '监控与预警']]
   for (const width of [1440, 375]) {
     await page.setViewportSize({ width, height: 900 })
     for (const [path, title] of pages) {

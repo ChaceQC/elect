@@ -5,8 +5,7 @@ task_env=$1 task_project=$2
 case "$task_env" in /*) ;; *) exit 2;; esac
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 compose() {
-  docker compose --env-file "$task_env" -f "$task_root/deploy/compose.yaml" \
-    -f "$task_root/deploy/compose.ops.yaml" -p "$task_project" "$@"
+  sh "$task_root/deploy/compose.sh" "$task_env" "$task_project" "$@"
 }
 compose ps --format json
 compose run -T --rm --no-deps operations-status

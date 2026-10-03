@@ -12,11 +12,10 @@ for task_path in "$task_env" "$task_key" "$task_backup"; do
 done
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 compose() {
-  docker compose --env-file "$task_env" -f "$task_root/deploy/compose.yaml" \
-    -f "$task_root/deploy/compose.ops.yaml" -f "$task_root/deploy/compose.restore.yaml" \
-    -p "$task_project" "$@"
+  sh "$task_root/deploy/compose.sh" "$task_env" "$task_project" --restore "$@"
 }
-task_running=$(compose ps --status running --services)
+# 检查所有profile，避免轻量模式隐藏的旧独立进程绕过恢复停机门禁。
+task_running=$(compose --profile '*' ps --status running --services)
 for task_service in $task_running; do
   case "$task_service" in mysql|redis|rabbitmq) ;; *)
     echo '恢复目标有应用或后台进程运行，拒绝导入' >&2; exit 2;; esac

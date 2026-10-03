@@ -1,8 +1,6 @@
 # 后端工程
 
-0.14.0新增低资源部署第一步的后台生命周期和Monitoring合并试点，保留独立入口。API及五个后台角色共用本域连接池/ServiceClient，健康检查列出各角色状态；恢复开关可同时禁止合并和独立后台。默认部署行为不变，13容器与2GB容量尚未交付，详见[生命周期决策](../docs/decisions/Docker低资源后台生命周期.md)。
-
-第二步源码已推广到其余六域：Identity恢复、Room任务、Adapter清理、Notification恢复、Payment执行/恢复和Audit消费都接入同域生命周期；Notification发送仍使用独立入口。Room/Identity逐项检查停止信号，退出预算按领域保留。13容器编排、统一运维入口与容器回归正在实施，尚未宣称轻量部署或目标容量验收。
+0.15.0将低资源生命周期推广到七域，提供13个长期容器组合；同域API/后台共享连接池、客户端及AMQP连接，角色心跳独立、统一退出，邮件发送Worker保持独立。默认仍为standalone；combined配置、升级与恢复方式见[生命周期决策](../docs/decisions/Docker低资源后台生命周期.md)。资源参数和2核2GB/50人容量留待后续验收。
 
 T0 工程/DTO/状态模型与七域初始 Alembic 迁移已完成。T1 已建立非 root Docker 镜像、八个 API 骨架、Secret 加载、UTC 连接池、脱敏日志、统一错误、live/ready、Ed25519 服务认证与 TLS 预检、Outbox/Inbox、Relay 与 Audit Worker；业务 API 在后续阶段实现。Python 固定为 3.12.10，使用 uv 管理独立依赖。
 
@@ -23,7 +21,7 @@ uv run python -m scripts.schema_catalog --check
 uv run python -m scripts.migrations --domain all --sql --output-dir /tmp/elect-ddl
 ```
 
-配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。`docker build -t elect-backend:v0.14.0 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。T2 认证/读取及 T3 监控配置/撤回路由已接通；后续阶段入口返回 FEATURE_DISABLED。
+配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。`docker build -t elect-backend:v0.15.0 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。T2 认证/读取及 T3 监控配置/撤回路由已接通；后续阶段入口返回 FEATURE_DISABLED。
 
 容器检查在仓库根执行 `sh deploy/check.sh`，全新一次性集成使用 `sh deploy/test-stack.sh /absolute/new-directory elect-test-name`，包含 T2 合成上游、T3 控制及凭据/发送许可竞态检查，不调用真实学校或 SMTP。显式真实学校烟测独立执行，不进入 CI。Room 默认受理/恢复/补偿与首次同步默认初始化已接通；scripts.t3_default_smoke 验证响应丢失、迟到租约、目标失效和切换中关闭。绑定已实现幂等台账/一次 dispatch/B02 回查及默认子操作，三级筛选与本人 Binding 读取已接通；指定目标真实新增已通过 [绑定验收](../docs/acceptance/T3绑定与界面验收记录.md)。删除已接通单次 POST 方法覆盖/两次缺席/默认清空屏障与租约证明，指定同一目标真实删除通过 [删除验收](../docs/acceptance/T3删除绑定验收记录.md)。M1 已完成；真实采集/邮件/支付进入 T4/T5/T6。
 

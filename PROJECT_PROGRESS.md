@@ -1,33 +1,44 @@
-## 2026-10-03 · Docker低资源优化第二步（实施中）
+## 2026-10-03 · Docker低资源优化第二步（0.15.0）
 
 ### 已完成
 
-- 核对优化方案、生命周期试点、各域任务入口和恢复编排；当前dev工作区干净，原业务部署没有运行。
-- 其他六域源码接入公共角色工厂，所有必需任务共用本域上下文；Room/Payment消费者借用共享AMQP连接并在退出前释放channel。保持Notification发送独立、Gateway无库。
-- 保留120/90/170秒在途处理预算，统一退出分别为125/100/180秒；Room/Identity多项处理及Payment唤醒后加入停止领取检查。新增七域API复用/恢复禁用、邮件隔离及实际循环停止边界测试。
+- 将Monitoring试点推广到七域，共用本域engine、按需复用ServiceClient和一条AMQP连接；独立channel/角色心跳，统一退出。Gateway无库，Notification发送Worker独立，领域权限/TLS/持久屏障与副作用开关不变。
+- 交付compose.low-resource.yaml：基础长期容器30→13，Python进程26→9；17个旧后台放入非默认profile并拒绝独立combined入口。Room/Identity逐项停止新领取，Payment唤醒后再次检查；保留120/90/170秒在途窗口，统一退出125/100/180秒及对应容器宽限。
+- 新增严格解析公开字段的compose.sh，统一HTTP/SMTP/模式/test/ops/restore选择；status/backup/restore/upgrade与集成/前端恢复共用组合。已有卷升级先停止全部旧角色，恢复最后覆盖且不加载host SMTP通道，停机门禁检查全部profile。
+- 修正实际MQ断线时Room/Payment的Robust channel.ready无限等待，完整唤醒8秒总预算；Notification取消息/建队列和Audit初始化有界。持久扫描、签名/提交后ACK/租约/幂等/unknown语义保留，新增挂起channel回归。
+- 新增20项必要单位用例和实际容器/七域合成验收、CI第二步入口；修正前端恢复脚本的0.13.2过时标题定位器，保留原安全/退出断言，生产页面不改。
+- 同步0.15.0版本/锁文件/契约元数据、根/前后端/deploy README、AGENTS、总/后端计划/架构/部署/恢复/容量及本机手册。方案第二步勾选，新增验收和两次CLI资源汇总；无AGENT.md。
+- 第一小步源码提交3c64651已推送origin/dev；第二步交付在当前dev提交/推送，不创建或合并main PR。
+- 验证结束只down本轮新建的两个隔离项目，保留六个命名数据卷与受限证据；Docker中无elect项目运行，原业务/历史项目保持停机，其余五个容器仍运行。
 
 ### 进行中
 
-- 将Identity/Room/School Adapter、Notification恢复、Payment和Audit推广到共享生命周期，形成13容器轻量组合；邮件发送Worker保持独立。
-- 重构原因：原角色各自创建连接池/客户端并注册信号，不能直接并行运行；Room/Identity一个tick中还有多次领取，须在统一停止信号后逐项停止新领取。影响公共角色工厂、各域循环/唤醒连接、编排与运维入口，保持领域库、外部协议和持久屏障语义。
+- 第二步实现与验证已完成；第三至六步待推进，2核2GB/50人/24小时尚未验收。原业务部署保持停机。
 
 ### 阻塞与风险
 
-- 暂无第二步源码实施阻塞；2核2GB/50人/24小时和OCR/备份峰值尚未验收，原业务部署保持停机。真实D02、生产异机/PITR和T8未完成边界不变。
+- 第二步无阻塞。真实D02、生产异机/PITR和T8未完成边界保持；未读取auth.txt/email_auth.txt或访问真实学校/SMTP/支付。
+- 首次MQ中断检查因Payment唤醒阻塞失败，健康正确503；修正后重跑通过。前端恢复首次因过时标题失败，更新定位器后通过。本机默认Docker地址池耗尽，仅为新测试项目创建显式未占用小网段，没有改全局配置/清理历史网络。
+- 同一隔离项目两次启动后CLI快照：30容器2623.91MiB、13容器1376.16MiB，约减少47.6%；未加载OCR、无持续业务/备份/冷启动峰值、未含宿主机开销，不能作为2GB容量结论。
 
 ### 下一步
 
-- 加入13容器覆盖与统一升级/状态/备份/恢复入口，验证模式切换先停止旧角色，再执行隔离真实MySQL/Redis/MQ和合成学校/SMTP/支付回归。
+- 按方案第三步，以8个共享池为基础将2+3验证为2+1（理论40→24条应用连接），先验证控制/API/续租连接等待和峰值，再调整MySQL max_connections/Buffer Pool、Redis/AOF、RabbitMQ定义导入/线程、探针和OCR参数，逐项记录前后与冷启动峰值。
 
 ### 主要文件或模块
 
-- backend/services/common、identity/recovery.py、room/worker.py/query_worker.py/wakeups.py、notification/job.py、payment/process.py/worker.py/wakeups.py、audit/app.py。
-- deploy编排/运维与集成脚本、backend/tests及scripts，低资源方案/生命周期决策/验收和受影响README。
+- backend/services/common/background_roles.py/background.py/business_worker.py/server.py/job.py、identity/recovery.py、room/worker.py/query_worker.py/wakeups.py、notification/job.py/consumer.py、payment/process.py/worker.py/wakeups.py、audit/app.py。
+- backend/tests/unit/test_domain_background.py/test_compose_entry.py、scripts/combined_status.py/domain_combined_smoke.py；deploy/compose.low-resource.yaml/compose.sh/upgrade.sh及status/backup/restore/集成、CI和frontend/scripts/t7-stack-browser.mjs。
+- docs/acceptance/Docker低资源第二步验收.md/资源.json、低资源方案/生命周期决策及受影响README/计划/运维；版本元数据及两端锁文件。
 
 ### 验证
 
-- 后端ruff通过，pytest 187 passed / 1 skipped；新增11项测试通过，原生命周期和业务回归保持通过。git diff --check通过。
-- 已检查README/AGENTS/AGENT.md及子目录说明影响：无AGENT.md；同步后端README与生命周期决策，根README/规范暂保留原已验收编排边界，最终组合验收后更新。未启动原业务环境或读取真实凭据、调用学校/SMTP/支付。
+- sh deploy/check.sh通过：前端49项单元组件、32项浏览器、规则/类型/契约和构建；后端单位/契约/目录/离线迁移通过。MQ修正后本机及实际测试容器ruff、196 passed / 1 skipped、公开/内部契约/数据库目录再次通过；前端验收脚本node语法通过。
+- test-stack combined空库/七域权限/并发迁移、实际签名Relay/Audit去重及T2–T6合成回归通过，真实Redis/MySQL/MQ故障通过；13长期容器全部healthy，内部TLS预检通过。
+- test-low-resource最终通过：实际七域健康/8条AMQP连接、MQ断线持续扫描/API degraded；restore组合八API无后台、独立入口拒绝；合成监控取消/租约接管/旧epoch/重启/在途退出、Room自动同步/默认Saga、Adapter清理、Notification DATA后unknown及Payment重复受理/未知回查仍一次D01；原卷13→30→13双向upgrade全部healthy，17旧角色全部exited。
+- test-t7-recovery通过：MySQL加密快照/封存binlog、隔离恢复、62张表计数和密文保留，快照后合成邮件/订单保持unknown、旧Outbox不重放；本机合成RPO4.631秒/RTO77秒，不外推生产灾备。
+- 统一前端恢复入口最终通过：1440/375px四页8次实际生产API读取、账户弹窗、同源/CSRF/对象归属/双标签退出，零浏览器错误，无mock路由，合成学校预置会话。
+- 公开standalone/combined/完整restore配置、逐文件Shell语法、版本/锁文件、真实凭据忽略、244个受影响Markdown本地链接及git diff --check通过；实际前端脚本额外lint通过。测试清理已完成，六个数据卷保留，所有elect运行容器为0，其余五个容器状态保持。
 
 ## 2026-10-03 · Docker低资源优化第一步（0.14.0）
 

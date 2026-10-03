@@ -4,7 +4,21 @@
 
 本文统一[后端架构](后端架构详细设计.md)、[后端实施计划](后端实施计划.md)和[前端实施计划](前端实施计划.md)中的部署方式。T0 已建立 [公开变量模板](../deploy/.env.example)、[Secret/账号清单](../deploy/secrets.example.yaml)与七域迁移；T1 已建立两端镜像、Compose、Secret 生成、空卷 provisioning、持锁迁移、TLS 预检和公共运行设施，并通过独立容器基础验收。前端公共数据层及 Docker CI 也已实现；学校业务不在本阶段开放。
 
-面向50人、2核2GB的改造见[Docker低资源部署优化方案](Docker低资源部署优化方案.md)。0.14.0首先提供Monitoring合并角色试点，使用方式与恢复禁用见[生命周期决策](decisions/Docker低资源后台生命周期.md)。最终13容器编排及2GB容量仍未交付；以下启动命令默认保留原独立角色模式。
+面向50人、2核2GB的改造见[Docker低资源部署优化方案](Docker低资源部署优化方案.md)。0.15.0提供七域合并的13容器轻量组合，使用方式与恢复禁用见[生命周期决策](decisions/Docker低资源后台生命周期.md)。默认仍保留独立角色模式，资源参数及2GB容量尚未验收。
+
+## 轻量组合与统一入口
+
+在公开env中设置`ELECT_DEPLOYMENT_MODE=combined`后，`deploy/compose.sh`自动加入`compose.low-resource.yaml`；默认standalone为原30个长期容器。七域API与后台各共用一个Python进程，邮件发送独立；Gateway无数据库。可选SMTP定向通道另加1个，须先配置Secret并显式设`ELECT_SMTP_DIRECT_ENABLED=true`，不能自动照搬本机网络。
+
+```sh
+sh deploy/compose.sh /absolute/stack.env elect config --quiet
+sh deploy/upgrade.sh /absolute/stack.env elect
+sh deploy/status.sh /absolute/stack.env elect
+```
+
+升级入口要求镜像已构建，使用`--no-build`。已有卷切换先停止全部旧API/后台（包括非默认profile），再启动基础服务、迁移、TLS预检与应用；不重建Secret或删除卷。失败时应用保持停止，修正后重入。首次本地构建仍可使用`compose.sh ... up -d --build`，固定镜像发布流程留待方案第五步；2GB目标机不承担现场构建/测试。
+
+统一入口按`ELECT_ALLOW_LOCAL_HTTP`选择本机覆盖，按显式SMTP开关选择通道，随后选择轻量和ops覆盖；restore最后应用并完全排除host网络SMTP通道。status/backup/restore采用同一配置，恢复同时禁止合并和独立后台且检查全部profile。原本机业务env/部署本轮未切换、未启动；第一次采用统一入口时，原三文件SMTP部署须明确补入通道选择字段。普通up不代替已有卷模式切换流程。
 
 ## 本机私网 HTTP 部署
 

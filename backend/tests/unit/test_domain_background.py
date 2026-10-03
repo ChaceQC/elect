@@ -68,6 +68,33 @@ def test_every_domain_api_uses_one_context_and_recovery_disables_all_roles(
     asyncio.run(verify())
 
 
+@pytest.mark.parametrize("service,prefix", [("room", "history"), ("payment", "payment")])
+def test_disconnected_amqp_channel_cannot_block_persistent_scans(service, prefix, monkeypatch):
+    wakeups = import_module(f"services.{service}.wakeups")
+    # channel.ready可能无限等待；将整体预算缩短，保留真实取消语义复现该故障。
+    monkeypatch.setattr(
+        wakeups, "asyncio", SimpleNamespace(timeout=lambda _: asyncio.timeout(0.05)),
+    )
+
+    async def verify():
+        waiting = asyncio.Event()
+
+        async def get(**kwargs):
+            await waiting.wait()
+
+        broker = SimpleNamespace(close=AsyncMock())
+        state = SimpleNamespace(**{
+            f"{prefix}_broker": broker, f"{prefix}_queue": SimpleNamespace(get=get),
+        })
+        async with asyncio.timeout(0.5):
+            await wakeups.drain(SimpleNamespace(state=state))
+        broker.close.assert_awaited_once()
+        assert getattr(state, f"{prefix}_broker") is None
+        assert getattr(state, f"{prefix}_reconnect_at") > 0
+
+    asyncio.run(verify())
+
+
 def test_notification_keeps_sending_independent_and_gateway_has_no_background():
     roles = background_roles.roles("notification")
     assert "worker" not in {role.name for role in roles}

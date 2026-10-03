@@ -1,12 +1,14 @@
 #!/bin/sh
 # 仅用于新的、明确命名的一次性环境；失败保留该项目便于查看脱敏日志。
 set -eu
-if [ "$#" -ne 2 ]; then
-  echo '用法：sh deploy/test-stack.sh /absolute/new-test-directory elect-test-project' >&2
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+  echo '用法：sh deploy/test-stack.sh /absolute/new-test-directory elect-test-project [standalone|combined]' >&2
   exit 2
 fi
 task_dir=$1
 task_project=$2
+task_mode=${3:-standalone}
+case "$task_mode" in standalone|combined) ;; *) exit 2;; esac
 case "$task_dir" in /*) ;; *) echo '测试目录必须是绝对路径' >&2; exit 2 ;; esac
 case "$task_project" in elect-test-*) ;; *) echo '项目名称须以 elect-test- 开头' >&2; exit 2 ;; esac
 if [ -e "$task_dir" ]; then echo '测试目录已存在，拒绝覆盖' >&2; exit 2; fi
@@ -23,16 +25,21 @@ docker run --rm --network none --user 0:0 -v "$task_dir/secrets:/run/provision" 
 sed -e 's/elect.example.edu/elect.test.local/' \
   -e "s|/opt/elect/secrets|$task_dir/secrets|g" \
   -e 's/elect-backend:v[0-9.]*/elect-backend:test/' \
-  -e 's/elect-frontend:v[0-9.]*/elect-frontend:test/' deploy/.env.example > "$task_dir/stack.env"
+  -e 's/elect-frontend:v[0-9.]*/elect-frontend:test/' \
+  -e "s/^ELECT_DEPLOYMENT_MODE=.*/ELECT_DEPLOYMENT_MODE=$task_mode/" \
+  deploy/.env.example > "$task_dir/stack.env"
 compose() {
-  docker compose --env-file "$task_dir/stack.env" -f deploy/compose.yaml \
-    -f deploy/compose.test.yaml -p "$task_project" "$@"
+  sh deploy/compose.sh "$task_dir/stack.env" "$task_project" --test "$@"
 }
 compose config --quiet
 compose up -d --no-build --wait --wait-timeout 180
 compose run --rm --no-deps smoke
 # 合成学校的事务/恢复验收由同进程驱动；真实 Worker 不得消费合成任务并访问学校。
-compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay payment-worker payment-recovery payment-relay
+if [ "$task_mode" = combined ]; then
+  compose stop identity school-adapter room monitoring notification payment audit notification-worker
+else
+  compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay payment-worker payment-recovery payment-relay
+fi
 compose run --rm --no-deps smoke python -m scripts.t2_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_control_smoke
 compose run --rm --no-deps smoke python -m scripts.t3_credential_smoke
@@ -46,7 +53,11 @@ compose run --rm --no-deps smoke python -m scripts.t5_alert_smoke
 compose run --rm --no-deps smoke python -m scripts.t5_delivery_smoke
 compose run --rm --no-deps smoke python -m scripts.t6_smoke
 sh deploy/test-t4-dependencies.sh "$task_dir" "$task_project"
-compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay payment-worker payment-recovery payment-relay
+if [ "$task_mode" = combined ]; then
+  compose up -d --no-build --no-deps --wait --wait-timeout 90 identity school-adapter room monitoring notification payment audit notification-worker
+else
+  compose up -d --no-build --no-deps --wait --wait-timeout 60 identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay payment-worker payment-recovery payment-relay
+fi
 compose exec -T nginx nginx -t
 compose run --rm --no-deps tls-check
 compose ps -a

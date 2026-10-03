@@ -1,49 +1,56 @@
 # Docker低资源后台生命周期
 
-日期：2026-10-03（Asia/Shanghai）；版本：0.14.0。
+日期：2026-10-03（Asia/Shanghai）；版本：0.15.0。
 
-本批实现[优化方案](../Docker低资源部署优化方案.md)第一步，先以Monitoring验证同一Python进程内的API、Relay、Scheduler、Worker、恢复器和提醒回报处理。其他领域尚未合并，MySQL/Redis/RabbitMQ参数与连接池上限不变。本批不是13容器或2核2GB容量交付。
+0.14.0以Monitoring验证[优化方案](../Docker低资源部署优化方案.md)第一步；0.15.0推广到七域，形成第二步13个长期容器的轻量组合。MySQL/Redis/RabbitMQ参数、连接池和扫描周期不变，2核2GB容量尚未验收。
 
-## 运行模式
+## 运行模式与角色
 
-- `ELECT_PROCESS_MODE=standalone`为默认模式：API不启动后台，原独立角色入口继续可用。
-- `ELECT_PROCESS_MODE=combined`目前仅支持Monitoring API，启动全部五个必需后台角色。无Supervisor子进程，每角色是一个受监督的asyncio任务，使用API已有的本域engine、ServiceClient和运行Secret。
-- `ELECT_BACKGROUND_ENABLED=false`优先禁止合并角色和全部独立后台入口。该开关已加入恢复覆盖文件；应用可只读对账，但不会因为API启动而自动运行后台。两项变量严格校验，不接受其他拼写。
-- 独立入口在combined模式直接拒绝启动；试点Compose同时将五个旧角色放入非默认profile。误指定旧服务不能在合并容器之外重复启动进程。跨容器的旧版本误启仍由原数据库租约、幂等和epoch保护，不能把进程开关视为新的业务权威。
+- `ELECT_PROCESS_MODE=standalone`是默认模式，API不启动后台，原独立入口继续可用。
+- `ELECT_PROCESS_MODE=combined`在七域API中启动受监督的asyncio任务，使用API已有的本域engine、按需复用ServiceClient及运行Secret。没有额外Python子进程；Gateway仍无业务库和后台。
+- `ELECT_BACKGROUND_ENABLED=false`优先禁止合并角色和全部独立后台。恢复覆盖强制false，应用启动不会自动领取任务；模式和开关严格校验。
+- 轻量覆盖将17个旧后台放入非默认profile并设置combined，使手工指定旧服务也拒绝独立启动。Notification发送Worker保持独立，显式使用standalone；只给它SMTP出口。
 
-## 共享和监督
+| 领域 | 合并角色 | 统一退出预算 | 容器宽限 |
+| --- | --- | --- | --- |
+| Identity | Relay、恢复 | 125秒 | 135秒 |
+| School Adapter | Relay、过期暂存清理 | 30秒 | 40秒 |
+| Room | Relay、同步/默认/绑定/余额/历史任务 | 125秒 | 135秒 |
+| Monitoring | Relay、Scheduler、Worker、恢复、提醒回报 | 100秒 | 110秒 |
+| Notification | Relay、恢复；发送另设独立Worker | 30秒 | 40秒（发送仍45秒） |
+| Payment | Relay、Worker、恢复 | 180秒 | 190秒 |
+| Audit | 消费 | 30秒 | 40秒 |
 
-`BackgroundSupervisor`复用业务初始化后的上下文，不重新加载Secret或创建连接池。`BrokerHub`按领域共享一条AMQP连接；Relay、运行提示消费者和投递回报消费者各自使用独立channel，保留confirm、手动ACK和消费者prefetch=1。角色关闭只释放自己的channel，全部任务退出后才释放共享连接。
+跨容器旧版本误启仍由原数据库租约、幂等和epoch保护；进程选择不是业务权威。七域独立库/账号、Secret、事件签名、内部TLS和学校/支付/邮件开关不改变。
 
-每个角色写入独立的`/tmp/elect-job-health/<service>-<role>.json`，启动时清空旧成功状态，成功扫描/领取/提交或真实续租才更新成功心跳。API健康返回`background_roles`，包含各角色状态、最近推进时间、处理与失败计数。角色意外返回、异常退出、被取消或心跳过期返回503；进程仍可响应`/health/live`不能掩盖后台故障。数据库/迁移失败仍返回503；持续推进但MQ等依赖暂不可用时显示degraded，API继续受理已持久控制。
+## 共享、监督与退出
 
-Scheduler/Worker/alerts心跳有效窗口20秒；15秒扫描的恢复器和最长30秒重连退避的Relay使用45秒。业务循环继续使用原扫描周期，本批不提前降低探针或扫描频率。未知状态、采集重试、代次屏障、SMTP DATA许可和支付发送边界不改变。
+`BackgroundSupervisor`复用业务初始化后的上下文，不重新加载Secret或创建连接池。`BrokerHub`按领域共享一条AMQP连接；Relay、采集/回报、Room历史及Payment唤醒使用独立channel，保留confirm、手动ACK及消费者prefetch=1。角色退出先释放channel，最后关闭共享连接。独立发送Worker有自己的运行上下文和连接。
 
-## 退出边界
+每个角色写独立`/tmp/elect-job-health/<service>-<role>.json`，启动清空旧成功状态；成功扫描/提交或真实数据库/租约检查才更新心跳。API健康返回`background_roles`，包含状态、最近推进、处理和失败计数。意外返回、异常、取消或心跳过期返回503，live可响应不能掩盖后台故障；MQ等暂不可用但持久扫描仍推进时显示degraded。20秒窗口用于活跃角色，Relay/Audit及15秒扫描恢复器使用45秒窗口；健康探针降频留待第三步。
 
-Uvicorn入口统一处理SIGTERM/SIGINT，先设置后台停止事件，再进入HTTP退出。角色不再开始下一次领取，已领取任务保留原续租/取消/提交规则；Monitoring最多等待100秒，再取消剩余异步任务。退出预算从收到停止信号开始计时，覆盖API退出与后台等待，不叠加两个100秒窗口。数据库、HTTP客户端和共享AMQP连接在角色退出后关闭；强制取消留下的租约由原恢复器接管，不清空台账或自动重发。
+Uvicorn统一处理SIGTERM/SIGINT，先设置停止事件，再退出HTTP。角色不开始下一次领取；Identity逐登录检查停止事件，Room在控制、同步、余额、历史各项之间检查，Payment在唤醒后再次检查。已领取任务保持原120/90/170秒处理、续租/取消/提交规则，退出预算从收到停止信号开始计时，不叠加HTTP和后台两套等待。预算耗尽才取消余留任务，租约与未知结果由原恢复器接管，不删除台账或自动重发。
 
-Monitoring试点容器宽限110秒，给90秒采集预算和资源关闭留出余量。其他领域仍保留原独立Worker预算，邮件和支付没有合并进Monitoring，也没有缩短其发送边界。
+## 编排与运维
 
-## 编排与验证入口
+`deploy/compose.low-resource.yaml`将基础长期容器30→13，Python进程26→9；可选SMTP通道另加1个。第一步`compose.monitoring-combined.yaml`保留作单域试点对照（25个长期容器），不要同时加载两份合并覆盖。
 
-`deploy/compose.monitoring-combined.yaml`是第一步试点覆盖，顺序为base → test/local覆盖（若有）→ monitoring-combined → ops → restore（若恢复）。当前基础长期容器从30降至25；Python进程从26降至21。其余领域推广、正式轻量编排和统一运维配置组合属于第二步，不默认切换现有部署。
+`deploy/compose.sh`按公开`ELECT_DEPLOYMENT_MODE=standalone|combined`选择模式。顺序为base → local（若HTTP）→ smtp-direct（若显式启用且非恢复）→ test（仅隔离测试）→ browser（仅前端隔离检查）→ low-resource（若combined）→ ops → restore（若恢复）。status/backup/restore/upgrade共用此入口，不source或执行dotenv内容。私网模式由`ELECT_ALLOW_LOCAL_HTTP=true`选择；通道须另设`ELECT_SMTP_DIRECT_ENABLED=true`，不由邮件文件存在推断。
 
-恢复时必须最后应用`compose.restore.yaml`，其`ELECT_BACKGROUND_ENABLED=false`覆盖试点默认值。旧Worker/Relay还保留恢复profile，入口级禁用保证即使显式指定profile也无法自动启动。恢复入口原有无出口、空库、停止业务进程和旧Outbox隔离不变。
+已有卷切换使用`sh deploy/upgrade.sh /absolute/stack.env 项目名`：配置检查后停止API、发送Worker和全部旧profile角色，再启动基础服务、迁移、TLS预检与应用。镜像须已构建，使用`--no-build`；不重新provision、不删除卷。直接对已有独立部署执行普通up不能保证旧角色已停止。原业务项目本轮保持停机。
 
-仅在新的隔离测试项目运行：
+恢复最后应用`compose.restore.yaml`，同时禁止七域合并任务与所有独立入口。`restore.sh`检查全部profile的运行进程，避免旧Worker因profile隐藏绕过停机门禁；恢复完全不加载host网络SMTP通道。无出口、空库检查、会话/凭据与监控屏障、未知写入和旧Outbox隔离保持原规则，见[恢复手册](../runbooks/备份恢复与隔离对账.md)。
+
+## 隔离验证入口
+
+仅在新的测试项目运行，不读取auth.txt/email_auth.txt或调用真实学校/SMTP/支付：
 
 ```sh
-sh deploy/test-stack.sh /absolute/new-test-dir elect-test-name
-sh deploy/test-monitoring-combined.sh /absolute/new-test-dir elect-test-name
+sh deploy/test-stack.sh /absolute/new-test-dir elect-test-name combined
+sh deploy/test-low-resource.sh /absolute/new-test-dir elect-test-name
+sh deploy/test-t7-recovery.sh /absolute/new-test-dir elect-test-name
 ```
 
-第二条先验证真实Monitoring容器内API和五角色健康，再暂停测试项目的后台，以同进程合成学校验证调度/采集、取消、角色退出可见、租约接管、重启和在途退出。脚本不读取auth.txt/email_auth.txt，不调用学校/SMTP/支付；不会恢复原业务项目。
+test-stack同时支持省略第三参数的standalone；合成阶段停止合并API，避免生产SchoolSessions领取假账号。第二条验证实际七域健康、MQ断线持久扫描、恢复只启动API而无后台、合成同进程任务，以及原卷从13→30→13的双向升级。恢复验证保留unknown和Outbox隔离。证据见[第一步验收](../acceptance/Docker低资源第一步验收.md)和[第二步验收](../acceptance/Docker低资源第二步验收.md)。
 
-本批验收记录见[第一步验收](../acceptance/Docker低资源第一步验收.md)。2核2GB冷启动、50人/24小时、OCR和备份峰值仍按优化方案后续验收，不能根据进程数下降提前宣称资源达标。
-
-## 第二步源码推广（2026-10-03，编排验收中）
-
-公共角色工厂已覆盖七域；Gateway不增加业务库或角色。Identity为Relay/恢复，Adapter为Relay/清理，Room为Relay/任务，Notification为Relay/恢复（发送独立），Payment为Relay/执行/恢复，Audit为消费。Room历史及Payment唤醒消费者使用本域共享连接、独立channel，角色退出先释放channel再关闭共享连接。
-
-Identity/Room收到停止信号后不继续处理下一项登录、同步、余额或历史任务；Payment消费唤醒后再次检查停止事件再领取订单。统一退出预算为Identity/Room125秒、Monitoring100秒、Payment180秒、其余30秒；保持原120/90/170秒在途处理预算。本批尚未交付正式轻量覆盖，基础服务参数、扫描周期和连接池上限不变。
+轻量模式仍有8个持库进程（七域API及独立发送Worker），池保持2+3，理论40条应用连接；MySQL上限仍200。连接池/基础服务调参、执行效率、固定镜像发布和目标机验收按方案第三至六步推进。进程数、短时内存快照和本机合成恢复均不能替代2核2GB/50人/24小时容量或生产灾备验收。

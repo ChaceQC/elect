@@ -26,8 +26,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' INT TERM
 compose() {
-  docker compose --env-file "$task_env" -f "$task_root/deploy/compose.yaml" \
-    -f "$task_root/deploy/compose.ops.yaml" -p "$task_project" "$@"
+  sh "$task_root/deploy/compose.sh" "$task_env" "$task_project" "$@"
 }
 mkfifo -m 600 "$task_temp/stream"
 compose run -T --rm --no-deps --user "$(id -u):$(id -g)" \

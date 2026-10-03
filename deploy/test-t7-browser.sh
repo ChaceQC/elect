@@ -10,9 +10,7 @@ task_session="$task_dir/t7-browser"
 mkdir -m 700 "$task_session"
 cd "$task_root"
 compose() {
-  docker compose --env-file "$task_dir/stack.env" -f deploy/compose.yaml \
-    -f deploy/compose.test.yaml -f deploy/compose.ops.yaml -f deploy/compose.restore.yaml \
-    -f deploy/compose.t7.yaml -p "$task_project" "$@"
+  sh deploy/compose.sh "$task_dir/stack.env" "$task_project" --test --browser --restore "$@"
 }
 compose run -T --rm --no-deps --user 0:0 --cap-add DAC_OVERRIDE --cap-add CHOWN \
   -e "ELECT_RESULT_UID=$(id -u)" -e "ELECT_RESULT_GID=$(id -g)" \

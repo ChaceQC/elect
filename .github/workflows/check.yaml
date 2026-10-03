@@ -16,9 +16,9 @@ jobs:
       - name: 单元契约构建与浏览器
         run: sh deploy/check.sh
       - name: 空库与可靠事件容器集成
-        run: sh deploy/test-stack.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
-      - name: Monitoring合并角色与退出恢复
-        run: sh deploy/test-monitoring-combined.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
+        run: sh deploy/test-stack.sh "$RUNNER_TEMP/elect-t1" elect-test-ci combined
+      - name: 七域轻量组合与退出恢复升级
+        run: sh deploy/test-low-resource.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 加密备份与隔离恢复
         run: sh deploy/test-t7-recovery.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 模拟容量与生产前端容器联调
@@ -29,8 +29,8 @@ jobs:
         if: always()
         run: |
           if [ -f "$RUNNER_TEMP/elect-t1/stack.env" ]; then
-            docker compose --env-file "$RUNNER_TEMP/elect-t1/stack.env" -f deploy/compose.yaml -f deploy/compose.test.yaml -f deploy/compose.ops.yaml -f deploy/compose.restore.yaml -f deploy/compose.t7.yaml -p elect-test-ci down
+            sh deploy/compose.sh "$RUNNER_TEMP/elect-t1/stack.env" elect-test-ci --test --browser --restore --profile '*' down
           fi
           if [ -f "$RUNNER_TEMP/elect-t1/recovery/restore.env" ]; then
-            docker compose --env-file "$RUNNER_TEMP/elect-t1/recovery/restore.env" -f deploy/compose.yaml -f deploy/compose.ops.yaml -f deploy/compose.restore.yaml -p elect-restore-elect-test-ci down
+            sh deploy/compose.sh "$RUNNER_TEMP/elect-t1/recovery/restore.env" elect-restore-elect-test-ci --restore --profile '*' down
           fi
