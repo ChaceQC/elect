@@ -3,9 +3,11 @@
 import argparse
 import asyncio
 import signal
+from functools import partial
 
 from .app import create_app
 from .background import require_standalone
+from .background_roles import BUSINESS_ROLES
 from .heartbeat import Heartbeat
 from .job import pause
 from .logging import configure_logging, log
@@ -27,16 +29,25 @@ async def school_cleanup(app):
 async def run(service):
     require_standalone()
     app = create_app(service, business=service != "school_adapter", background=False)
-    stop, heartbeat = asyncio.Event(), Heartbeat(service, "business")
+    stop, heartbeat = asyncio.Event(), Heartbeat(service, BUSINESS_ROLES[service])
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
+    async with app.router.lifespan_context(app):
+        await business_loop(service, app, stop, heartbeat)
+
+
+async def business_loop(service, app, stop, heartbeat, hub=None):
     if service == "identity":
         from services.identity.recovery import recover_tick as tick
+
+        tick = partial(tick, stop=stop)
     elif service == "room":
         from services.room.worker import room_tick as tick
+
+        tick = partial(tick, stop=stop, hub=hub)
     else:
         tick = school_cleanup
-    async with app.router.lifespan_context(app):
+    try:
         while not stop.is_set():
             try:
                 activity = await checked_tick(app, tick, heartbeat)
@@ -45,6 +56,11 @@ async def run(service):
                 heartbeat.write(healthy=False)
                 log("business_recovery_retry", service=service, error_code="DEPENDENCY_UNAVAILABLE")
             await pause(stop, 1)
+    finally:
+        broker = getattr(app.state, "history_broker", None)
+        if broker:
+            await broker.close()
+            app.state.history_broker = None
 
 
 async def checked_tick(app, tick, heartbeat):

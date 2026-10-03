@@ -21,22 +21,34 @@ async def run(role):
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
     async with app.router.lifespan_context(app):
+        await role_loop(role, app, stop, heartbeat)
+
+
+async def role_loop(role, app, stop, heartbeat, hub=None):
+    try:
         while not stop.is_set():
             try:
                 if role == "worker":
                     from .wakeups import drain
 
-                    await drain(app)
+                    await drain(app, hub=hub)
+                    if stop.is_set():
+                        break
                 activity = (
                     await recover(app.state.database)
                     if role == "recovery"
-                    else await worker_tick(app, heartbeat)
+                    else await worker_tick(app, heartbeat, stop=stop)
                 )
                 heartbeat.write(healthy=True, activity=activity)
             except Exception:
                 heartbeat.write(healthy=False)
                 log("payment_retry", service="payment", error_code="DEPENDENCY_UNAVAILABLE")
             await pause(stop, 1)
+    finally:
+        broker = getattr(app.state, "payment_broker", None)
+        if broker:
+            await broker.close()
+            app.state.payment_broker = None
 
 
 def main():

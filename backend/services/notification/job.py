@@ -21,50 +21,56 @@ from .worker import worker_tick
 async def run(role):
     require_standalone()
     app = create_app("notification", business=True, background=False)
-    stop, heartbeat = asyncio.Event(), Heartbeat("notification", role)
+    stop = asyncio.Event()
+    heartbeat = Heartbeat("notification", role, max_age=45 if role == "recovery" else 20)
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
-    broker, queue, reconnect_at = None, None, 0
     async with app.router.lifespan_context(app):
-        try:
-            while not stop.is_set():
-                try:
-                    if role == "recovery":
-                        activity = await recovery_tick(app.state.database)
-                    else:
-                        if queue is None and time.monotonic() >= reconnect_at:
-                            try:
-                                broker = Broker(app.state.runtime)
-                                await broker.open()
-                                queue = await broker.channel.declare_queue(
-                                    "elect.notification.alerts", durable=True
-                                )
-                            except Exception:
-                                if broker:
-                                    await broker.close()
-                                broker, queue, reconnect_at = None, None, time.monotonic() + 15
-                        activity = False
-                        if queue:
-                            try:
-                                activity = await checked_tick(
-                                app, lambda app, queue=queue: message_tick(app, queue), heartbeat
-                                )
-                            except Exception:
+        await role_loop(role, app, stop, heartbeat)
+
+
+async def role_loop(role, app, stop, heartbeat, hub=None):
+    broker, queue, reconnect_at = None, None, 0
+    try:
+        while not stop.is_set():
+            try:
+                if role == "recovery":
+                    activity = await recovery_tick(app.state.database)
+                else:
+                    if queue is None and time.monotonic() >= reconnect_at:
+                        try:
+                            broker = Broker(app.state.runtime, hub=hub)
+                            await broker.open()
+                            await broker.channel.set_qos(prefetch_count=1)
+                            queue = await broker.channel.declare_queue(
+                                "elect.notification.alerts", durable=True
+                            )
+                        except Exception:
+                            if broker:
                                 await broker.close()
-                                broker, queue, reconnect_at = None, None, time.monotonic() + 15
+                            broker, queue, reconnect_at = None, None, time.monotonic() + 15
+                    activity = False
+                    if queue:
+                        try:
+                            activity = await checked_tick(
+                                app, lambda app, queue=queue: message_tick(app, queue), heartbeat
+                            )
+                        except Exception:
+                            await broker.close()
+                            broker, queue, reconnect_at = None, None, time.monotonic() + 15
+                    if not stop.is_set():
                         activity = await checked_tick(app, worker_tick, heartbeat) or activity
-                    heartbeat.write(healthy=True, activity=activity)
-                except Exception:
-                    heartbeat.write(healthy=False)
-                    log(
-                        "notification_job_retry",
-                        service="notification",
-                        error_code="DEPENDENCY_UNAVAILABLE",
-                    )
-                await pause(stop, 15 if role == "recovery" else 1)
-        finally:
-            if broker:
-                await broker.close()
+                heartbeat.write(healthy=True, activity=activity)
+            except Exception:
+                heartbeat.write(healthy=False)
+                log(
+                    "notification_job_retry", service="notification",
+                    error_code="DEPENDENCY_UNAVAILABLE",
+                )
+            await pause(stop, 15 if role == "recovery" else 1)
+    finally:
+        if broker:
+            await broker.close()
 
 
 def main():

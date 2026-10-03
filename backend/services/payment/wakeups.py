@@ -17,14 +17,15 @@ async def registered(conn, event):
         raise ValueError("订单唤醒归属不符")
 
 
-async def drain(app):
+async def drain(app, *, hub=None):
     state = app.state
     if time.monotonic() < getattr(state, "payment_reconnect_at", 0):
         return
     try:
         if not getattr(state, "payment_broker", None):
-            state.payment_broker = Broker(state.runtime)
+            state.payment_broker = Broker(state.runtime, hub=hub)
             await state.payment_broker.open()
+            await state.payment_broker.channel.set_qos(prefetch_count=1)
             state.payment_queue = await state.payment_broker.channel.declare_queue(
                 "elect.payment.orders", durable=True
             )

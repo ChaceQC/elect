@@ -2,6 +2,8 @@
 
 0.14.0新增低资源部署第一步的后台生命周期和Monitoring合并试点，保留独立入口。API及五个后台角色共用本域连接池/ServiceClient，健康检查列出各角色状态；恢复开关可同时禁止合并和独立后台。默认部署行为不变，13容器与2GB容量尚未交付，详见[生命周期决策](../docs/decisions/Docker低资源后台生命周期.md)。
 
+第二步源码已推广到其余六域：Identity恢复、Room任务、Adapter清理、Notification恢复、Payment执行/恢复和Audit消费都接入同域生命周期；Notification发送仍使用独立入口。Room/Identity逐项检查停止信号，退出预算按领域保留。13容器编排、统一运维入口与容器回归正在实施，尚未宣称轻量部署或目标容量验收。
+
 T0 工程/DTO/状态模型与七域初始 Alembic 迁移已完成。T1 已建立非 root Docker 镜像、八个 API 骨架、Secret 加载、UTC 连接池、脱敏日志、统一错误、live/ready、Ed25519 服务认证与 TLS 预检、Outbox/Inbox、Relay 与 Audit Worker；业务 API 在后续阶段实现。Python 固定为 3.12.10，使用 uv 管理独立依赖。
 
 T2 后端已实现正式 httpx 学校认证、Redis 原子验证码、密文暂存/激活、持久登录恢复、应用 Cookie/CSRF、本人绑定同步与候选分页。真实学校指定账号认证、1 条本人绑定、候选第一页、退出与后台认证恢复已通过；生产前端/阶段验收见 [T2 记录](../docs/acceptance/T2验收记录.md)。设计与真实证据见 [T2 决策](../docs/decisions/T2认证与读取.md)。

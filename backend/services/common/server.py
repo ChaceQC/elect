@@ -5,6 +5,8 @@ from importlib import import_module
 
 import uvicorn
 
+from .background import shutdown_timeout
+
 
 class ManagedServer(uvicorn.Server):
     def __init__(self, config, app):
@@ -30,7 +32,8 @@ def serve(service):
         ssl_certfile=os.environ.get("ELECT_INTERNAL_TLS_CERT_FILE"),
         ssl_keyfile=os.environ.get("ELECT_INTERNAL_TLS_KEY_FILE"),
         timeout_graceful_shutdown=(
-            100 if os.environ.get("ELECT_PROCESS_MODE") == "combined" else None
+            shutdown_timeout(service)
+            if os.environ.get("ELECT_PROCESS_MODE") == "combined" else None
         ),
     )
     ManagedServer(config, app).run()

@@ -41,3 +41,9 @@ sh deploy/test-monitoring-combined.sh /absolute/new-test-dir elect-test-name
 第二条先验证真实Monitoring容器内API和五角色健康，再暂停测试项目的后台，以同进程合成学校验证调度/采集、取消、角色退出可见、租约接管、重启和在途退出。脚本不读取auth.txt/email_auth.txt，不调用学校/SMTP/支付；不会恢复原业务项目。
 
 本批验收记录见[第一步验收](../acceptance/Docker低资源第一步验收.md)。2核2GB冷启动、50人/24小时、OCR和备份峰值仍按优化方案后续验收，不能根据进程数下降提前宣称资源达标。
+
+## 第二步源码推广（2026-10-03，编排验收中）
+
+公共角色工厂已覆盖七域；Gateway不增加业务库或角色。Identity为Relay/恢复，Adapter为Relay/清理，Room为Relay/任务，Notification为Relay/恢复（发送独立），Payment为Relay/执行/恢复，Audit为消费。Room历史及Payment唤醒消费者使用本域共享连接、独立channel，角色退出先释放channel再关闭共享连接。
+
+Identity/Room收到停止信号后不继续处理下一项登录、同步、余额或历史任务；Payment消费唤醒后再次检查停止事件再领取订单。统一退出预算为Identity/Room125秒、Monitoring100秒、Payment180秒、其余30秒；保持原120/90/170秒在途处理预算。本批尚未交付正式轻量覆盖，基础服务参数、扫描周期和连接池上限不变。

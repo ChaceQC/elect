@@ -37,6 +37,11 @@ def require_standalone():
         raise RuntimeError("当前部署禁止独立后台入口")
 
 
+def shutdown_timeout(service):
+    # 从统一停止信号开始计时，覆盖各领域原有的最长在途预算。
+    return {"identity": 125, "room": 125, "monitoring": 100, "payment": 180}.get(service, 30)
+
+
 class BackgroundSupervisor:
     def __init__(self, app, roles, *, shutdown_timeout=100):
         self.app, self.roles = app, roles
@@ -119,10 +124,11 @@ async def start_background(app, service):
     app.state.background = None
     if not enabled or mode == "standalone":
         return
-    if service != "monitoring":
-        raise RuntimeError("该领域尚未支持合并后台角色")
-    from services.monitoring.job import roles
+    from .background_roles import roles
 
-    supervisor = BackgroundSupervisor(app, roles())
+    configured = roles(service)
+    if not configured:
+        return
+    supervisor = BackgroundSupervisor(app, configured, shutdown_timeout=shutdown_timeout(service))
     app.state.background = supervisor
     await supervisor.start()

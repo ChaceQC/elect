@@ -1,3 +1,34 @@
+## 2026-10-03 · Docker低资源优化第二步（实施中）
+
+### 已完成
+
+- 核对优化方案、生命周期试点、各域任务入口和恢复编排；当前dev工作区干净，原业务部署没有运行。
+- 其他六域源码接入公共角色工厂，所有必需任务共用本域上下文；Room/Payment消费者借用共享AMQP连接并在退出前释放channel。保持Notification发送独立、Gateway无库。
+- 保留120/90/170秒在途处理预算，统一退出分别为125/100/180秒；Room/Identity多项处理及Payment唤醒后加入停止领取检查。新增七域API复用/恢复禁用、邮件隔离及实际循环停止边界测试。
+
+### 进行中
+
+- 将Identity/Room/School Adapter、Notification恢复、Payment和Audit推广到共享生命周期，形成13容器轻量组合；邮件发送Worker保持独立。
+- 重构原因：原角色各自创建连接池/客户端并注册信号，不能直接并行运行；Room/Identity一个tick中还有多次领取，须在统一停止信号后逐项停止新领取。影响公共角色工厂、各域循环/唤醒连接、编排与运维入口，保持领域库、外部协议和持久屏障语义。
+
+### 阻塞与风险
+
+- 暂无第二步源码实施阻塞；2核2GB/50人/24小时和OCR/备份峰值尚未验收，原业务部署保持停机。真实D02、生产异机/PITR和T8未完成边界不变。
+
+### 下一步
+
+- 加入13容器覆盖与统一升级/状态/备份/恢复入口，验证模式切换先停止旧角色，再执行隔离真实MySQL/Redis/MQ和合成学校/SMTP/支付回归。
+
+### 主要文件或模块
+
+- backend/services/common、identity/recovery.py、room/worker.py/query_worker.py/wakeups.py、notification/job.py、payment/process.py/worker.py/wakeups.py、audit/app.py。
+- deploy编排/运维与集成脚本、backend/tests及scripts，低资源方案/生命周期决策/验收和受影响README。
+
+### 验证
+
+- 后端ruff通过，pytest 187 passed / 1 skipped；新增11项测试通过，原生命周期和业务回归保持通过。git diff --check通过。
+- 已检查README/AGENTS/AGENT.md及子目录说明影响：无AGENT.md；同步后端README与生命周期决策，根README/规范暂保留原已验收编排边界，最终组合验收后更新。未启动原业务环境或读取真实凭据、调用学校/SMTP/支付。
+
 ## 2026-10-03 · Docker低资源优化第一步（0.14.0）
 
 ### 已完成

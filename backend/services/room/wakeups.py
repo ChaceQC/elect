@@ -11,14 +11,15 @@ async def registered(conn, event):
     await execute(conn, "SELECT 1")
 
 
-async def drain(app):
+async def drain(app, *, hub=None):
     state = app.state
     if time.monotonic() < getattr(state, "history_reconnect_at", 0):
         return
     try:
         if not getattr(state, "history_broker", None):
-            state.history_broker = Broker(state.runtime)
+            state.history_broker = Broker(state.runtime, hub=hub)
             await state.history_broker.open()
+            await state.history_broker.channel.set_qos(prefetch_count=1)
             state.history_queue = await state.history_broker.channel.declare_queue(
                 "elect.room.history", durable=True
             )

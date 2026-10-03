@@ -117,11 +117,13 @@ async def execute(app, row, heartbeat=None):
         await asyncio.gather(task, return_exceptions=True)
 
 
-async def worker_tick(app, heartbeat=None, order_id=None):
+async def worker_tick(app, heartbeat=None, order_id=None, *, stop=None):
     row = await jobs.claim(app.state.database, order_id)
     if row:
         await execute(app, row, heartbeat)
         return True
     from .reconciliation import check_tick
 
+    if stop and stop.is_set():
+        return False
     return await check_tick(app, heartbeat, order_id)
