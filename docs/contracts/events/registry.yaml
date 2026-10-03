@@ -3,6 +3,8 @@ envelope: ../internal/schemas.json#/$defs/EventEnvelope
 transport:
   authority: MySQL Outbox/Inbox
   delivery: RabbitMQ 持久队列、消息持久化、publisher confirm、手动 ACK；至少一次，消费者幂等。
+  wakeup: 本域成功提交后进程内提示；空闲最多10秒持久扫描，不依赖提示或MQ作为业务权威。
+  consumption: basic.consume、prefetch=1和有界本地缓冲；签名与Inbox提交后ACK，重连未ACK重投。room.binding_confirmed路由到既有Monitoring运行队列，仅登记Inbox，不据提示创建run。
   inbox_key: [consumer_name, event_id]
   business_dedupe: 每个事件列出的 dedupe_key；合法恢复使用新 event_id，不因旧 Inbox 阻止同一 run 恢复。
   forbidden_payload: [password, student_id, token, cookie, email, pay_url, prepay_id, wrapped_dek, ciphertext]

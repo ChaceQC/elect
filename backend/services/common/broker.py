@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import serialization
 from pamqp.commands import Basic
 
 from .internal_dto import EventEnvelope
+from .push_consumer import PushConsumer
 
 
 def signed_message(runtime, event):
@@ -63,6 +64,7 @@ class Broker:
         self.runtime = runtime
         self.connection = None
         self.hub = hub
+        self.consumers = []
 
     async def open(self):
         # Robust连接断线时channel.ready也会等待；必须有整体预算才能继续持久扫描。
@@ -103,7 +105,17 @@ class Broker:
         if not isinstance(confirmed, Basic.Ack):
             raise RuntimeError("未收到 publisher confirm")
 
+    async def consume(self, queue, *, prefetch=1):
+        await self.channel.set_qos(prefetch_count=prefetch)
+        consumer = PushConsumer(self.connection, prefetch=prefetch)
+        await consumer.start(queue)
+        self.consumers.append(consumer)
+        return consumer
+
     async def close(self):
+        for consumer in self.consumers:
+            consumer.close()
+        self.consumers.clear()
         if self.hub:
             if getattr(self, "channel", None):
                 await self.channel.close()

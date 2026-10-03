@@ -21,6 +21,8 @@ jobs:
         run: sh deploy/test-low-resource.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 共享连接池与基础服务资源参数
         run: sh deploy/test-resource-parameters.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
+      - name: 提交后唤醒与推送消费并发取消
+        run: sh deploy/test-execution-efficiency.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 加密备份与隔离恢复
         run: sh deploy/test-t7-recovery.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 模拟容量与生产前端容器联调

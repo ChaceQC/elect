@@ -9,6 +9,7 @@ from services.common.background import require_standalone
 from services.common.heartbeat import Heartbeat
 from services.common.job import pause
 from services.common.logging import log
+from services.common.scheduling import IdleBackoff
 
 from .jobs import recover
 from .worker import worker_tick
@@ -25,6 +26,7 @@ async def run(role):
 
 
 async def role_loop(role, app, stop, heartbeat, hub=None):
+    idle = IdleBackoff((1, 2, 5))
     try:
         while not stop.is_set():
             try:
@@ -43,7 +45,14 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
             except Exception:
                 heartbeat.write(healthy=False)
                 log("payment_retry", service="payment", error_code="DEPENDENCY_UNAVAILABLE")
-            await pause(stop, 1)
+                activity = False
+            delay = 1 if role == "recovery" else idle.next(activity)
+            queue = getattr(app.state, "payment_queue", None)
+            if role == "worker" and getattr(app.state, "payment_broker", None) and queue:
+                if await queue.wait(stop, delay):
+                    idle.reset()
+            else:
+                await pause(stop, delay)
     finally:
         broker = getattr(app.state, "payment_broker", None)
         if broker:

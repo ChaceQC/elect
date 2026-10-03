@@ -131,9 +131,10 @@ async def run(apps, count, workers):
             if message is None:
                 break
             event = verified_event(app.state.runtime, message)
-            await consume_once(engine, "monitor.run_ready", event, registered)
+            assert event.type in {"monitor.run_ready", "room.binding_confirmed"}
+            await consume_once(engine, event.type, event, registered)
             await message.ack()
-            if event.payload.run_id in run_ids:
+            if event.type == "monitor.run_ready" and event.payload.run_id in run_ids:
                 known.add(event.payload.run_id)
         assert known == run_ids
     finally:

@@ -94,7 +94,7 @@ async def transport_loop(app, stop, heartbeat, hub=None):
                 async with asyncio.timeout(8):
                     await broker.open()
                     queue = (
-                        await broker.audit_queue()
+                        await broker.consume(await broker.audit_queue())
                         if heartbeat.document["role"] == "audit" else None
                     )
                 idle = IdleBackoff()
@@ -118,7 +118,8 @@ async def transport_loop(app, stop, heartbeat, hub=None):
                     failures = 0
                     delay = idle.next(activity)
                     if queue:
-                        await pause(stop, delay)
+                        if await queue.wait(stop, delay):
+                            idle.reset()
                     elif await engine.outbox_wakeup.wait(stop, delay):
                         idle.reset()
             except Exception:

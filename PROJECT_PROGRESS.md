@@ -1,31 +1,43 @@
-## 2026-10-03 · Docker低资源优化第四步实施中
+## 2026-10-04 · Docker低资源优化第四步（0.17.0，2026-10-03开始）
 
 ### 已完成
 
-- 核对前三步交付、第四步范围与当前dev状态，原业务环境保持停止。
-- 第一小步实现DomainEngine在完整COMMIT成功后发本域Outbox提示；回滚/取消/提交失败无提示、池归还前清除标记。Relay空闲1→2→5→10秒退避，积压每批最多16条，失败重连加抖动，发布租约/confirm语义保持。
+- 完成DomainEngine成功COMMIT后Outbox提示、连接标记清除及1→2→5→10秒空闲退避/每批16条/故障抖动；发布租约、confirm后条件标记、持久重试和扫描保持。首小步2be809f已提交并推送origin/dev。
+- 接通basic.consume/prefetch=1、有界本地缓冲、重连失效与未ACK重投；Monitoring两个TaskGroup槽共用上下文/独立channel，邮件独立单槽，学校5/4/1共享限制及原续租/取消/退出预算不变。
+- 按角色保留控制/调度/恢复周期，执行/回报空闲退避；Adapter60秒、每批100清理，积压继续小批/10秒实际读库健康。
+- 修复既有room.binding_confirmed缺MQ权限：补最小Topic写/读和既有运行队列路由，消费只记Inbox、不据提示建run；重复离线upgrade_controls保留密码/密钥/原卷。新增13项必要回归、第四步隔离入口及CI步骤，兼容已有容量脚本两类提示。
+- 同步0.17.0版本、锁文件/公开模板/契约元数据、根/子README、AGENTS、架构/计划/部署及方案；新增执行效率决策/第四步验收，第四步已勾选，无AGENT.md。
+- 验证后只down本轮来源/恢复项目，保留6个命名数据卷和加密/受限证据；所有elect运行容器为0，原业务/历史项目停机，原5个其他容器保持运行。
 
 ### 进行中
 
-- 重构原因：Relay空闲每秒扫描，消费者使用basic.get，监控执行串行；在保留持久扫描/租约/幂等/取消的前提下降低空闲开销。
-- 影响范围：公共数据库事务/Outbox、Relay和推送消费接口、Monitoring有限执行、邮件单槽、Room/Payment提示及Adapter分批清理；不修改公共业务API、数据库结构或副作用开关。
+- 第四步实现与隔离验证已完成，在当前dev提交推送交付；第五至六步未交付，原业务部署保持停止。
+- 重构原因及范围：降低Relay空闲扫描/basic.get/串行执行开销，涉及公共事务/消息、各域提示及Monitoring并发/Adapter清理；公共业务API、数据库结构与副作用开关不变。
 
 ### 阻塞与风险
 
-- 无实现阻塞。隔离验证仅使用合成学校/SMTP/支付，原业务环境不启动，不读取真实凭据。2核2GB/50人24小时及第五至六步尚未验收。
+- 第四步无实现阻塞。2核2GB/50人24小时、固定镜像发布/长期运行、真实D02、生产异机/PITR与T8仍未验收；既有证书跳过边界保持。未读取真实凭据或调用真实学校/SMTP/支付。
+- 初始两轮同栈误重叠；顺序复测定位已登记Room事件缺权限，旧首小步Actions也失败于ready。补最小权限/路由和Inbox消费后，最终各轮按顺序通过，没有放宽健康检查。双槽使旧瞬时空闲连接数断言失效，改实际借满池容量及API/续租验证。
+- 资源复测继承umask077，公开测试ACL600使独立Redis无法启动；显式设置该公开ACL644（受限目录/正式Secret规则不变），保留失败证据、新目录重跑通过。默认地址池耗尽仅为本轮使用10.247/10.248小网段，不清历史网络或改全局配置。
 
 ### 下一步
 
-- 先完成成功提交后本域唤醒、空闲1→2→5→10秒退避与提交失败/回滚测试，再接推送消费和监控两个执行槽，运行实际MQ故障及取消/接管回归。
+- 按第五步先为后端/前端镜像增加CI构建/测试/固定版本与摘要发布，提供目标机只拉取、无构建、基础服务→迁移→应用的分阶段启动及限制启动并行度；随后实现稳定页面请求和按既有留存政策的小批清理，再进行第六步2CPU/2GB长期验收。
 
 ### 主要文件或模块
 
-- backend/services/common/database.py/outbox.py/job.py/broker.py，Monitoring/Notification/Room/Payment后台入口与相关测试/隔离脚本。
+- backend/services/common/database.py/outbox.py/scheduling.py/push_consumer.py/broker.py/job.py/business_worker.py；Monitoring/Notification/Room/Payment任务及deployment/query_queues.py/notification_queues.py。
+- backend/scripts/outbox_efficiency_smoke.py/monitoring_parallel_smoke.py/monitoring_combined_smoke.py/domain_combined_smoke.py/t7_capacity.py、相关单位回归；deploy/test-execution-efficiency.sh/test-redis-budget.sh及CI。
+- docs/decisions/Docker低资源执行效率.md、acceptance/Docker低资源第四步验收.md、方案、受影响文档与版本/锁文件。
 
 ### 验证
 
-- 开始时git status显示dev与origin/dev同步、工作区干净；Docker仅有原五个无关容器运行。
-- 第一小步uv run ruff check .与完整pytest通过：213 passed / 1 skipped；6项新增检查覆盖COMMIT异步边界/回滚/提交失败/取消/连接复用与提示等待。真实基础设施验证待后续批次，不提前勾选第四步。
+- 最终sh deploy/check.sh通过：后端ruff、220 passed / 1 skipped、公开/内部契约/表目录/七域离线DDL；前端规则/类型/契约/构建、49项单元组件、32项Playwright通过。
+- 新空库test-stack combined通过七域权限/并发迁移、可靠事件、T2–T6合成学校/SMTP/支付、真实MySQL/Redis/MQ故障及TLS/Nginx。最终旧Secret修复/原卷13→30→13全部healthy、17旧角色退出，restore八API无后台、独立入口拒绝。
+- 最终第四步专项通过：11秒空闲4次Relay扫描，约0.107秒提交到confirm；回滚无提示、另一engine无跨进程提示仍持久发布；实际MQ停机未ACK重投/Inbox回滚重投/提交后ACK、两次重复最终审计与Inbox各一条。
+- 3个合成账号、两个学校请求/Redis后台槽、第三个pending，36个控制请求全200、两租约真实续期；取消/关闭阻断迟到样本，第三个单样本；同场景实际无MQ再次通过。50旧/重复提示、旧epoch拒绝、崩溃接管/重启、在途统一退出及合成SMTP/支付unknown不重发通过。
+- 2+1池实际借满3条、50个同账号读取2.2105秒并真实续租；满池等待0.2013秒/超时3.0004秒/归还0/UTC。32个健康请求0.1226秒全ready，MySQL最高20连接/0上限错误；MQ流控期间已尝试的Outbox未published，解除后唯一完成，Redis写满/noeviction/AOF/重启零OOM通过。
+- T7加密快照/封存binlog、62表计数/密文保留、快照后学校建单/邮件unknown与旧Outbox不重放、重复apply通过；本机合成RPO4.703秒/RTO69秒，不外推生产灾备。已有容量脚本100计划/8脚本执行器/30ms学校、100提示与样本唯一/共享学校峰值5通过，不能当双槽或目标机容量。
 
 ## 2026-10-03 · Docker低资源优化第三步（0.16.0）
 

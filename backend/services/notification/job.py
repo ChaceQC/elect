@@ -12,6 +12,7 @@ from services.common.business_worker import checked_tick
 from services.common.heartbeat import Heartbeat
 from services.common.job import pause
 from services.common.logging import configure_logging, log
+from services.common.scheduling import IdleBackoff, retry_delay
 
 from .consumer import message_tick
 from .recovery import recovery_tick
@@ -31,6 +32,7 @@ async def run(role):
 
 async def role_loop(role, app, stop, heartbeat, hub=None):
     broker, queue, reconnect_at = None, None, 0
+    idle = IdleBackoff((1, 2, 5))
     try:
         while not stop.is_set():
             try:
@@ -42,14 +44,15 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
                             broker = Broker(app.state.runtime, hub=hub)
                             async with asyncio.timeout(8):
                                 await broker.open()
-                                await broker.channel.set_qos(prefetch_count=1)
                                 queue = await broker.channel.declare_queue(
                                     "elect.notification.alerts", durable=True
                                 )
+                                queue = await broker.consume(queue)
                         except Exception:
                             if broker:
                                 await broker.close()
-                            broker, queue, reconnect_at = None, None, time.monotonic() + 15
+                            broker, queue = None, None
+                            reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
                     activity = False
                     if queue:
                         try:
@@ -58,7 +61,8 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
                             )
                         except Exception:
                             await broker.close()
-                            broker, queue, reconnect_at = None, None, time.monotonic() + 15
+                            broker, queue = None, None
+                            reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
                     if not stop.is_set():
                         activity = await checked_tick(app, worker_tick, heartbeat) or activity
                 heartbeat.write(healthy=True, activity=activity)
@@ -68,7 +72,13 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
                     "notification_job_retry", service="notification",
                     error_code="DEPENDENCY_UNAVAILABLE",
                 )
-            await pause(stop, 15 if role == "recovery" else 1)
+                activity = False
+            delay = 15 if role == "recovery" else idle.next(activity)
+            if queue:
+                if await queue.wait(stop, delay):
+                    idle.reset()
+            else:
+                await pause(stop, delay)
     finally:
         if broker:
             await broker.close()

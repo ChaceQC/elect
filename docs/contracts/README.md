@@ -1,6 +1,6 @@
 # API 契约
 
-当前版本：0.14.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.17.0；T0 冻结基线 0.1.0，更新日期：2026-10-04。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
 
 ## 公开 API
 
@@ -36,6 +36,8 @@
 ## 内部协议与场景
 
 [内部命令](internal/commands.yaml)声明服务调用白名单、幂等边界和 DTO 引用；[schemas.json](internal/schemas.json)是后端内部 DTO 导出。[事件登记](events/registry.yaml)声明生产者、消费者、schema_version、聚合版本和去重键；内部事件 DTO 验证载荷与生产者，不含敏感材料。Outbox/Inbox 属于各域，不用消息替代 MySQL 权威状态。
+
+0.17.0仅更新版本及事件传输实现说明，公共字段与事件schema不变：事务成功提交后本进程提示、空闲最多10秒扫描及有界basic.consume/prefetch=1；原签名、Inbox、提交后ACK与持久恢复规则保留。
 
 前端 MSW 场景位于 `frontend/src/mocks/scenarios.json`，覆盖空账户、有绑定、学校失败、部分历史、默认切换中、运行取消、未知订单和快照过期；普通 CI 对响应按 OpenAPI 校验。学校夹具为合成数据，不能作为真实支付状态映射证据。生产入口不导入 mocks，也不注册 service worker。
 

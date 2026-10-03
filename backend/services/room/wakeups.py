@@ -5,6 +5,7 @@ import time
 
 from services.common.broker import Broker, verified_event
 from services.common.outbox import consume_once
+from services.common.scheduling import retry_delay
 from services.common.sql import execute
 
 
@@ -23,7 +24,7 @@ async def drain(app, *, hub=None):
         if getattr(state, "history_broker", None):
             await state.history_broker.close()
         state.history_broker = None
-        state.history_reconnect_at = time.monotonic() + 15
+        state.history_reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
 
 
 async def receive(app, hub):
@@ -31,10 +32,10 @@ async def receive(app, hub):
     if not getattr(state, "history_broker", None):
         state.history_broker = Broker(state.runtime, hub=hub)
         await state.history_broker.open()
-        await state.history_broker.channel.set_qos(prefetch_count=1)
-        state.history_queue = await state.history_broker.channel.declare_queue(
+        queue = await state.history_broker.channel.declare_queue(
             "elect.room.history", durable=True
         )
+        state.history_queue = await state.history_broker.consume(queue)
     message = await state.history_queue.get(fail=False, timeout=1)
     if message is None:
         return

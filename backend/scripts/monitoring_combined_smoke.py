@@ -3,6 +3,7 @@
 import asyncio
 import os
 import time
+from contextlib import AsyncExitStack
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -137,7 +138,10 @@ async def verify_cycle(app, client, collection, owner):
     await until(lambda: healthy(app))
     # 学校等待不占持久事务；同一池内的控制/健康请求仍可继续。
     assert (await client.get("/api/v1/monitor")).status_code == 200
-    assert engine.pool.checkedout() < engine.pool.size()
+    # 双槽与其他角色会短时借连接；实际取得完整池容量确认学校等待不持有连接。
+    async with AsyncExitStack() as connections:
+        for _ in range(engine.pool.size() + engine.pool._max_overflow):
+            await connections.enter_async_context(engine.connect())
     async with engine.connect() as conn:
         row = await first(
             conn,

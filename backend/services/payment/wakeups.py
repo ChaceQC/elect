@@ -5,6 +5,7 @@ import time
 
 from services.common.broker import Broker, verified_event
 from services.common.outbox import consume_once
+from services.common.scheduling import retry_delay
 from services.common.sql import first
 
 
@@ -29,7 +30,7 @@ async def drain(app, *, hub=None):
         if getattr(state, "payment_broker", None):
             await state.payment_broker.close()
         state.payment_broker = None
-        state.payment_reconnect_at = time.monotonic() + 15
+        state.payment_reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
 
 
 async def receive(app, hub):
@@ -37,10 +38,10 @@ async def receive(app, hub):
     if not getattr(state, "payment_broker", None):
         state.payment_broker = Broker(state.runtime, hub=hub)
         await state.payment_broker.open()
-        await state.payment_broker.channel.set_qos(prefetch_count=1)
-        state.payment_queue = await state.payment_broker.channel.declare_queue(
+        queue = await state.payment_broker.channel.declare_queue(
             "elect.payment.orders", durable=True
         )
+        state.payment_queue = await state.payment_broker.consume(queue)
     message = await state.payment_queue.get(fail=False, timeout=1)
     if message is None:
         return

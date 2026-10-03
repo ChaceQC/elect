@@ -20,6 +20,10 @@ def configure(definitions):
             _, event = queues[service]
             permission["write"] = "^(audit\\.recorded|" + event.replace(".", "\\.") + ")$"
             permission["read"] = "^" + event.replace(".", "\\.") + "$"
+            if service == "room":
+                permission["write"] = (
+                    "^(audit\\.recorded|room\\.(history_sync_requested|binding_confirmed))$"
+                )
     for queue, event in queues.values():
         if not any(row["name"] == queue for row in definitions["queues"]):
             definitions["queues"].append(

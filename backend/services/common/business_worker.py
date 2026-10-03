@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import signal
+import time
 from functools import partial
 
 from .app import create_app
@@ -21,7 +22,8 @@ async def school_cleanup(app):
             "UPDATE credential_staging SET "
             "state=IF(state='activated','activated','expired'),"
             "encrypted_payload='',wrapped_dek='',updated_at=UTC_TIMESTAMP(6) "
-            "WHERE expires_at <= UTC_TIMESTAMP(6) AND LENGTH(encrypted_payload)>0",
+            "WHERE expires_at <= UTC_TIMESTAMP(6) AND LENGTH(encrypted_payload)>0 "
+            "ORDER BY state,expires_at,attempt_id LIMIT 100",
         )
     return result.rowcount > 0
 
@@ -47,15 +49,26 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
         tick = partial(tick, stop=stop, hub=hub)
     else:
         tick = school_cleanup
+    next_cleanup = 0
     try:
         while not stop.is_set():
             try:
-                activity = await checked_tick(app, tick, heartbeat)
+                if service == "school_adapter" and time.monotonic() < next_cleanup:
+                    async with app.state.database.connect() as conn:
+                        await execute(conn, "SELECT 1")
+                    activity = False
+                else:
+                    activity = await checked_tick(app, tick, heartbeat)
+                    if service == "school_adapter":
+                        next_cleanup = time.monotonic() + (0 if activity else 60)
                 heartbeat.write(healthy=True, activity=activity)
             except Exception:
                 heartbeat.write(healthy=False)
                 log("business_recovery_retry", service=service, error_code="DEPENDENCY_UNAVAILABLE")
-            await pause(stop, 1)
+                activity = False
+            # 清理每分钟最多100行一批，积压继续小批；真实读库每10秒保留健康。
+            delay = (0 if activity else 10) if service == "school_adapter" else 1
+            await pause(stop, delay)
     finally:
         broker = getattr(app.state, "history_broker", None)
         if broker:

@@ -13,6 +13,7 @@ if docker inspect "$task_name" >/dev/null 2>&1; then exit 2; fi
 mkdir -m 700 "$task_data"
 # 仅此无网络测试实例使用公开无密码账号，正式ACL从不修改。
 printf '%s\n' 'user default on nopass ~* +@all' > "$task_data/test.acl"
+chmod 644 "$task_data/test.acl"
 cleanup() { docker rm -f "$task_name" >/dev/null 2>&1 || true; }
 trap cleanup EXIT HUP INT TERM
 docker run -d --name "$task_name" --network none --memory 96m --cpus 0.5 --pids-limit 128 \

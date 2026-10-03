@@ -133,7 +133,7 @@ async def verify(apps, school):
                                   "WHERE expires_at<=UTC_TIMESTAMP(6) AND encrypted_payload<>''")
             return row["n"] == 0
 
-        await until(cleaned)
+        await until(cleaned, seconds=75)
         for app in apps.values():
             if app.state.background:
                 await until(lambda app=app: available(app))
