@@ -46,6 +46,11 @@ async def refresh(engine, owner, order, key):
     await get_order(engine, owner, order)
     digest = hashlib.sha256(f"qr:{order}".encode()).digest()
     async with engine.begin() as conn:
+        # 与回查/Worker一致先锁操作，避免持订单锁后引用被回查锁住的操作。
+        await execute(
+            conn, "SELECT id FROM payment_operations WHERE order_id=:id FOR UPDATE",
+            id=order.bytes,
+        )
         row = await first(
             conn,
             "SELECT * FROM payment_orders WHERE id=:id AND owner_user_id=:owner FOR UPDATE",

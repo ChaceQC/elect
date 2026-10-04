@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 
 export const POLLING_WINDOW_MS = 120_000
 
-/** @param {string} key */
-export function usePollingWindow(key) {
+/** @param {string} key @param {number} [windowMs] */
+export function usePollingWindow(key, windowMs = POLLING_WINDOW_MS) {
   const started = useRef({ key, time: Date.now() })
   if (started.current.key !== key) started.current = { key, time: Date.now() }
   const [revision, setRevision] = useState(0)
@@ -14,12 +14,12 @@ export function usePollingWindow(key) {
     return () => document.removeEventListener('visibilitychange', change)
   }, [])
   useEffect(() => {
-    const remaining = POLLING_WINDOW_MS - (Date.now() - started.current.time)
-    if (remaining <= 0) return
+    const remaining = windowMs - (Date.now() - started.current.time)
+    if (!Number.isFinite(remaining) || remaining <= 0) return
     const timer = setTimeout(() => setRevision(value => value + 1), remaining)
     return () => clearTimeout(timer)
-  }, [key, revision])
+  }, [key, revision, windowMs])
   function restart() { started.current.time = Date.now(); setRevision(value => value + 1) }
-  return { visible, paused: Date.now() - started.current.time >= POLLING_WINDOW_MS,
+  return { visible, paused: Date.now() - started.current.time >= windowMs,
     elapsed: () => Date.now() - started.current.time, restart }
 }

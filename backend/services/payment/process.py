@@ -12,6 +12,7 @@ from services.common.logging import log
 from services.common.scheduling import IdleBackoff
 
 from .jobs import recover
+from .reconciliation import check_tick
 from .worker import worker_tick
 
 
@@ -22,11 +23,18 @@ async def run(role):
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
     async with app.router.lifespan_context(app):
-        await role_loop(role, app, stop, heartbeat)
+        if role == "worker":
+            async with asyncio.TaskGroup() as tasks:
+                tasks.create_task(role_loop(role, app, stop, heartbeat))
+                tasks.create_task(role_loop(
+                    "reconciliation", app, stop, Heartbeat("payment", "reconciliation"),
+                ))
+        else:
+            await role_loop(role, app, stop, heartbeat)
 
 
 async def role_loop(role, app, stop, heartbeat, hub=None):
-    idle = IdleBackoff((1, 2, 5))
+    idle = IdleBackoff((1,) if role == "reconciliation" else (1, 2, 5))
     try:
         while not stop.is_set():
             try:
@@ -39,6 +47,8 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
                 activity = (
                     await recover(app.state.database)
                     if role == "recovery"
+                    else await check_tick(app, heartbeat)
+                    if role == "reconciliation"
                     else await worker_tick(app, heartbeat, stop=stop)
                 )
                 heartbeat.write(healthy=True, activity=activity)
@@ -54,7 +64,7 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
             else:
                 await pause(stop, delay)
     finally:
-        broker = getattr(app.state, "payment_broker", None)
+        broker = getattr(app.state, "payment_broker", None) if role == "worker" else None
         if broker:
             await broker.close()
             app.state.payment_broker = None

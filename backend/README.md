@@ -1,6 +1,8 @@
 # 后端工程
 
-当前开发版本0.18.2：采集保存C02起止读数、日期与质量；支付按D04和原票据已支付提示确认，移除误用的水费回查。见[电表与支付规则](../docs/decisions/电表读数与缴费结果确认.md)。协议2026-10-04.1的登录统一后台授权、绑定能力字段与既有安全栅栏保持，见[界面规则](../docs/decisions/界面状态与登录授权.md)。
+后台自动认证每轮最多获取5张验证码、提交2次登录，仅在明确拒绝后换新图重试；保持总deadline、账号限流与人工修复，见[认证规则](../docs/decisions/后台认证与刷新反馈.md)。
+
+当前开发版本0.18.3：支付确认与建单/取码独立调度，Room控制与历史查询分开运行；正常支付/解绑每2秒安排回查，失败退避30秒，沿用原租约且不增加容器，见[自动更新规则](../docs/decisions/支付与解绑自动更新.md)。采集保存C02日读数；支付仍按[D04与原票据规则](../docs/decisions/电表读数与缴费结果确认.md)确认，协议2026-10-04.1与既有安全栅栏保持。
 
 0.18.0增加已受测runtime镜像的CI固定版本/摘要发布及只依赖Docker的串行启动。镜像带版本/源提交标签，目标机发布配置无构建入口；见[运行手册](../docs/runbooks/固定镜像发布与启动.md)。第五步页面请求/数据清理和目标机容量尚未完成。
 
@@ -25,7 +27,7 @@ uv run python -m scripts.schema_catalog --check
 uv run python -m scripts.migrations --domain all --sql --output-dir /tmp/elect-ddl
 ```
 
-配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。Docker构建使用BuildKit缓存复用锁定依赖，两段uv sync均保留--locked；缓存仅在构建阶段使用，不复制到生产镜像。`docker build -t elect-backend:v0.18.2 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。页面能力以当前服务端开关与状态为准。
+配置/真实烟测/临时 MySQL 验证见 [开发说明](../docs/开发说明.md)，表结构见 [数据结构](../docs/database/README.md)。普通 pytest 不执行真实学校检查。Docker构建使用BuildKit缓存复用锁定依赖，两段uv sync均保留--locked；缓存仅在构建阶段使用，不复制到生产镜像。`docker build -t elect-backend:v0.18.3 backend` 在仓库根构建；服务使用 `python -m services.gateway` 等入口，须挂载对应运行 Secret 并配置 ELECT_PUBLIC_ORIGIN，正式编排已在 deploy/compose.yaml 交付。页面能力以当前服务端开关与状态为准。
 
 容器检查在仓库根执行 `sh deploy/check.sh`，全新一次性集成使用 `sh deploy/test-stack.sh /absolute/new-directory elect-test-name`，包含 T2 合成上游、T3 控制及凭据/发送许可竞态检查，不调用真实学校或 SMTP。显式真实学校烟测独立执行，不进入 CI。Room 默认受理/恢复/补偿与首次同步默认初始化已接通；scripts.t3_default_smoke 验证响应丢失、迟到租约、目标失效和切换中关闭。绑定已实现幂等台账/一次 dispatch/B02 回查及默认子操作，三级筛选与本人 Binding 读取已接通；指定目标真实新增已通过 [绑定验收](../docs/acceptance/T3绑定与界面验收记录.md)。删除已接通单次 POST 方法覆盖/两次缺席/默认清空屏障与租约证明，指定同一目标真实删除通过 [删除验收](../docs/acceptance/T3删除绑定验收记录.md)。M1 已完成；真实采集/邮件/支付进入 T4/T5/T6。
 

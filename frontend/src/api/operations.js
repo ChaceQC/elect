@@ -6,7 +6,7 @@ const terminal = {
   order: new Set(['paid_confirmed', 'rejected', 'expired_confirmed', 'closed_confirmed']),
 }
 /** @typedef {import('./intents.js').ResourceKind} ResourceKind */
-/** @typedef {{id: string, state: string}} OperationResource */
+/** @typedef {{id: string, state: string, type?: string}} OperationResource */
 /** @param {ResourceKind} kind @param {string|undefined} state */
 export const isTerminal = (kind, state) => state !== undefined && terminal[kind].has(state)
 
@@ -17,8 +17,10 @@ export async function readOperation(kind, id, signal) {
   return /** @type {OperationResource} */ (result.data)
 }
 
-/** @param {ResourceKind} kind @param {string|undefined} state @param {number} elapsedMs @param {boolean} visible */
-export function pollInterval(kind, state, elapsedMs, visible) {
-  if (!visible || isTerminal(kind, state) || elapsedMs >= 120_000) return false
+/** @param {ResourceKind} kind @param {string|undefined} state @param {number} elapsedMs @param {boolean} visible @param {string} [operationType] */
+export function pollInterval(kind, state, elapsedMs, visible, operationType) {
+  if (!visible || isTerminal(kind, state)) return false
+  if (kind === 'order' || operationType === 'unbind_room') return 2000
+  if (elapsedMs >= 120_000) return false
   return elapsedMs < 20_000 ? 2000 : elapsedMs < 60_000 ? 5000 : 10_000
 }

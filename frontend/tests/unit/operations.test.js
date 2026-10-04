@@ -69,11 +69,19 @@ it('恢复信息拒绝凭据/嵌套字段，服务端摘要只用于查询既有
   expect(sessionStorage.getItem(`elect.intent.${user}.${recovered[0].key}`)).not.toContain('csrf')
 })
 
-it('隐藏暂停轮询，unknown 保持未解决，两分钟后手动查，二维码不当成付款', () => {
+it('支付和解绑持续每两秒更新，其他操作两分钟暂停，二维码不当成付款', () => {
   expect(pollInterval('operation', 'unknown', 10_000, true)).toBe(2000)
   expect(pollInterval('run', 'running', 30_000, true)).toBe(5000)
-  expect(pollInterval('order', 'awaiting_payment', 90_000, true)).toBe(10_000)
-  expect(pollInterval('order', 'submit_unknown', 120_000, true)).toBe(false)
+  expect(pollInterval('order', 'awaiting_payment', 90_000, true)).toBe(2000)
+  expect(pollInterval('order', 'submit_unknown', 120_000, true)).toBe(2000)
+  expect(pollInterval('order', 'status_unknown', 600_000, true)).toBe(2000)
+  expect(pollInterval('order', 'status_unknown', 3600_000, true)).toBe(2000)
+  expect(pollInterval('order', 'status_unknown', 0, false)).toBe(false)
+  expect(pollInterval('order', 'paid_confirmed', 0, true)).toBe(false)
+  expect(pollInterval('operation', 'unknown', 120_000, true)).toBe(false)
+  expect(pollInterval('operation', 'unknown', 120_000, true, 'unbind_room')).toBe(2000)
+  expect(pollInterval('operation', 'reconciling', 600_000, true, 'unbind_room')).toBe(2000)
+  expect(pollInterval('operation', 'succeeded', 120_000, true, 'unbind_room')).toBe(false)
   expect(pollInterval('run', 'running', 0, false)).toBe(false)
   expect(isTerminal('order', 'awaiting_payment')).toBe(false)
   expect(isTerminal('order', 'paid_confirmed')).toBe(true)

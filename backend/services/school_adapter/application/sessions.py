@@ -24,40 +24,9 @@ class SchoolSessions:
         self.ocr_lock = asyncio.Lock()
 
     async def background_auth(self, payload, deadline):
-        # 两次取图、最多一次 A03；模型延迟加载并限制同进程推理并发。
-        async with asyncio.timeout(deadline.remaining()):
-            challenge = await self.protocol.challenge(deadline=deadline, pool="background")
-            answer = None
-            for attempt in range(2):
-                async with self.ocr_lock:
-                    try:
-                        answer = await asyncio.to_thread(self.solver, challenge.image)
-                    except Exception:
-                        raise ApiError(
-                            409,
-                            ErrorCode.SCHOOL_REAUTH_REQUIRED,
-                            "自动验证码识别不可用，请人工认证",
-                        ) from None
-                if answer is not None:
-                    break
-                if attempt == 0:
-                    async with self.protocol.transport.client() as client:
-                        from ..infrastructure.protocol import restore_cookies
+        from .background_auth import authenticate
 
-                        restore_cookies(client, challenge.cookies)
-                        challenge = await self.protocol.next_challenge(
-                            client, challenge.uid, deadline, pool="background"
-                        )
-            if answer is None:
-                raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校验证码需要人工认证")
-            return await self.protocol.authenticate(
-                payload["student_id"],
-                payload["password"],
-                {"uid": challenge.uid, "cookies": challenge.cookies},
-                str(answer),
-                deadline=deadline,
-                pool="background",
-            )
+        return await authenticate(self.protocol, self.solver, self.ocr_lock, payload, deadline)
 
     async def token(self, owner, request_id, deadline, *, invalid_token=None, locked=False):
         row = await self.repository.current(owner)

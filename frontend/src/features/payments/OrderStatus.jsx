@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client.js'
 import { isTerminal, pollInterval } from '../../api/operations.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
-import { PollingNotice } from '../../components/feedback/PollingNotice.jsx'
 import { usePollingWindow } from '../../hooks/usePollingWindow.js'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
 import { moneyLabel } from '../../lib/money.js'
@@ -20,8 +19,9 @@ export function OrderStatus({ id, onStartNew }) {
   const { user } = useSession()
   const cache = useQueryClient()
   const { controller } = useRequestIntent()
-  const polling = usePollingWindow(`${user?.id}:order:${id}`)
-  const query = useQuery({ queryKey: ['payment-order', user?.id, id], retry: false,
+  const polling = usePollingWindow(`${user?.id}:order:${id}`, Infinity)
+  const query = useQuery({ queryKey: ['payment-order', user?.id, id], retry: false, staleTime: 0,
+    enabled: Boolean(user && id && polling.visible),
     queryFn: async ({ signal }) => /** @type {import('../../api/generated').components['schemas']['Order']} */ (
       (await apiClient.request(`/payment-orders/${id}`, { signal })).data),
     refetchInterval: query => query.state.data?.cancelled_at && !query.state.data.paid_confirmed ? false : pollInterval('order', query.state.data?.state === 'paid_confirmed' && query.state.data.balance_refresh_state === 'pending'
@@ -29,7 +29,6 @@ export function OrderStatus({ id, onStartNew }) {
     refetchIntervalInBackground: false })
   const order = query.data
   const refresh = () => { polling.restart(); return query.refetch() }
-  const stillProcessing = !order || !order.cancelled_at && (!isTerminal('order', order.state) || order.balance_refresh_state === 'pending')
   useEffect(() => {
     if (!order || !order.cancelled_at && !isTerminal('order', order.state)) return
     for (const intent of controller?.restore() ?? []) if (intent.kind === 'order' && intent.id === id) controller?.forget(intent.key)
@@ -59,6 +58,5 @@ export function OrderStatus({ id, onStartNew }) {
       {order.cancelled_at && !order.paid_confirmed && onStartNew && <button onClick={onStartNew}>重新选择充值金额</button>}
       {order.last_checked_at && <p className="muted">学校结果最近查询：{new Date(order.last_checked_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>}
     </>}
-    <PollingNotice paused={stillProcessing && polling.paused} busy={query.isFetching} onResume={() => { void refresh() }} />
   </section>
 }

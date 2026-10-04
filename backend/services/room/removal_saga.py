@@ -101,7 +101,7 @@ class RemovalSaga:
                     state="unknown" if unknown else "reconciling",
                     error=value["error_code"],
                     release=True,
-                    delay=300 if unknown else 30,
+                    delay=30 if value["error_code"] else 2,
                     binding_status="unknown" if unknown else "pending",
                 )
                 return

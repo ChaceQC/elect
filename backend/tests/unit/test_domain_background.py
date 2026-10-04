@@ -125,7 +125,7 @@ def test_old_queue_hints_do_not_starve_sql_but_shutdown_prevents_claims(monkeypa
     asyncio.run(verify())
 
 
-def test_room_stop_during_control_does_not_claim_sync_or_history(monkeypatch):
+def test_room_stop_during_sync_does_not_claim_history(monkeypatch):
     from services.room import query_worker, wakeups, worker
 
     async def verify():
@@ -135,13 +135,11 @@ def test_room_stop_during_control_does_not_claim_sync_or_history(monkeypatch):
             stop.set()
             return True
 
-        monkeypatch.setattr(worker, "control_tick", controlled)
-        sync, query, drain = AsyncMock(), AsyncMock(), AsyncMock()
-        monkeypatch.setattr(worker, "sync_tick", sync)
+        monkeypatch.setattr(worker, "sync_tick", controlled)
+        query, drain = AsyncMock(), AsyncMock()
         monkeypatch.setattr(query_worker, "query_tick", query)
         monkeypatch.setattr(wakeups, "drain", drain)
         assert await worker.room_tick(object(), stop=stop)
-        sync.assert_not_awaited()
         query.assert_not_awaited()
         drain.assert_not_awaited()
 

@@ -7,6 +7,7 @@ const room = { id, room_id: id, display_name: '枫苑5号-402', building: '枫�
 
 for (const width of [1440, 375]) {
   test(`${width}px：删除确认、unknown刷新、终态更新与失效独立查看`, async ({ page }) => {
+    await page.clock.install()
     await page.setViewportSize({ width, height: 900 })
     let state = '', count = 0
     await page.route('**/api/v1/**', async route => {
@@ -36,8 +37,11 @@ for (const width of [1440, 375]) {
     await expect(page.locator('.room-card')).toHaveCount(1)
     await page.reload()
     await expect(page.getByText('学校解绑：结果尚未确认')).toBeVisible()
+    await page.clock.fastForward(121_000)
+    await expect(page.getByRole('button', { name: '恢复自动更新' })).toHaveCount(0)
     expect(count).toBe(1)
     state = 'succeeded'
+    await page.clock.fastForward(2100)
     await expect(page.getByRole('button', { name: '查询最新进度' })).toHaveCount(0)
     await expect(page.locator('.room-card')).toHaveCount(0)
     await page.goto(`/rooms/${id}`)

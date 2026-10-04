@@ -118,12 +118,10 @@ async def execute(app, row, heartbeat=None):
 
 
 async def worker_tick(app, heartbeat=None, order_id=None, *, stop=None):
+    if stop and stop.is_set():
+        return False
     row = await jobs.claim(app.state.database, order_id)
     if row:
         await execute(app, row, heartbeat)
         return True
-    from .reconciliation import check_tick
-
-    if stop and stop.is_set():
-        return False
-    return await check_tick(app, heartbeat, order_id)
+    return False

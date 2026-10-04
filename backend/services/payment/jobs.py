@@ -88,7 +88,9 @@ async def update(
             conn,
             "UPDATE payment_orders SET state=COALESCE(:state,state),"
             "qr_status=COALESCE(:qr,qr_status),error_code=:error,qr_error_code=:qr_error,"
-            "next_check_at=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 SECOND),"
+            "next_check_at=LEAST(COALESCE(next_check_at,"
+            "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :check_delay SECOND)),"
+            "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :check_delay SECOND)),"
             "version=version+1,updated_at=UTC_TIMESTAMP(6) WHERE id=:id "
             "AND state NOT IN ('paid_confirmed','rejected','expired_confirmed','closed_confirmed')",
             id=row["id"],
@@ -96,6 +98,7 @@ async def update(
             qr=qr_status,
             error=error,
             qr_error=qr_error,
+            check_delay=30 if error else 2,
         )
         if operation_state:
             await execute(

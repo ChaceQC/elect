@@ -30,8 +30,7 @@ export function SamplesPanel({ bindingId, range, page, onPageChange }) {
   useEffect(() => { if (samples && page > Math.max(1, Math.ceil(samples.total / samples.page_size))) onPageChange(Math.max(1, Math.ceil(samples.total / samples.page_size))) }, [samples, page, onPageChange])
   function reset() { onPageChange(1); setSnapshot(null); setRevision(randomId()) }
   return <section className="card"><div className="card-heading"><h2>监控采集明细</h2><div className="actions">
-    {samples && <span className="pill">{samples.total} 条</span>}<button className="icon-button" aria-label="读取最新采集记录" title="读取最新采集记录" onClick={reset}><RefreshCw size={16} /></button></div></div>
-    {query.isPending && <p role="status">正在读取采集记录…</p>}
+    {samples && <span className="pill">{samples.total} 条</span>}<button className="icon-button" aria-label="读取最新采集记录" title="读取最新采集记录" aria-busy={query.isFetching} disabled={query.isFetching} onClick={reset}><RefreshCw className={query.isFetching ? 'refresh-spinning' : undefined} size={16} aria-hidden="true" /></button></div></div>
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '从第一页重新读取', onClick: reset }} />}
     {samples && <>
       {!samples.items.length && <div className="empty"><Clock3 size={29} /><p>{samples.has_monitor_history ? '所选范围内暂无成功采集，历史记录会保留。' : '开启监控后开始积累采集记录。'}</p></div>}

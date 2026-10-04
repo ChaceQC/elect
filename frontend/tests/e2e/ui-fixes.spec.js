@@ -37,7 +37,7 @@ test('操作超过两分钟提示暂停，手动恢复会重新自动查询', as
   await expect.poll(() => reads).toBeGreaterThan(refreshed)
 })
 
-test('支付未开放仍可查看原订单，恢复自动更新不创建新单', async ({ page }) => {
+test('支付未开放仍持续更新原订单，超过两分钟无需恢复按钮', async ({ page }) => {
   await page.clock.install()
   await visualFixture(page)
   let reads = 0
@@ -49,11 +49,11 @@ test('支付未开放仍可查看原订单，恢复自动更新不创建新单',
   await expect(page.getByText('支付状态尚未确认')).toBeVisible()
   await expect(page.getByLabel('充值金额（元）')).toHaveCount(0)
   await page.clock.fastForward(121_000)
-  await expect(page.getByText(/已暂停自动刷新/)).toBeVisible()
+  await expect(page.getByText(/已暂停自动刷新/)).toHaveCount(0)
   const previous = reads
   await expect(page.getByRole('button', { name: '查询支付结果' })).toHaveCount(0)
-  await page.getByRole('button', { name: '恢复自动更新' }).click()
-  await expect(page.getByText(/已暂停自动刷新/)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '恢复自动更新' })).toHaveCount(0)
+  await page.clock.fastForward(2100)
   await expect.poll(() => reads).toBeGreaterThan(previous)
 })
 

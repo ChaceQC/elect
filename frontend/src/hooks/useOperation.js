@@ -16,7 +16,7 @@ export function useOperation(kind, id, onTerminal) {
     queryFn: ({ signal }) => readOperation(kind, /** @type {string} */ (id), signal),
     enabled: Boolean(user && id && polling.visible), staleTime: 0,
     refetchInterval: (query) => pollInterval(kind, query.state.data?.state,
-      polling.elapsed(), polling.visible),
+      polling.elapsed(), polling.visible, query.state.data?.type),
     refetchIntervalInBackground: false,
   })
   useEffect(() => {
@@ -26,5 +26,5 @@ export function useOperation(kind, id, onTerminal) {
     }
   }, [user?.id, kind, id, query.data, onTerminal])
   const refresh = () => { polling.restart(); return query.refetch() }
-  return { ...query, refresh, pollingPaused: !!id && !isTerminal(kind, query.data?.state) && polling.paused }
+  return { ...query, refresh, pollingPaused: !!id && query.data?.type !== 'unbind_room' && !isTerminal(kind, query.data?.state) && polling.paused }
 }

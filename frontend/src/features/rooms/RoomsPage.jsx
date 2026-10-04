@@ -93,11 +93,10 @@ export function RoomsPage() {
     {data && data.items.length > 0 && <p className="field-hint">设为默认会同时改变已开启监控的采集与提醒目标。</p>}
     <div className="room-toolbar"><label className="search-box"><Search size={17} aria-hidden="true" /><span className="sr-only">搜索本人寝室</span><input value={q} maxLength={128}
       onChange={event => { setQ(event.target.value); setPage(1) }} placeholder="搜索已绑定的楼栋、寝室号" /></label>
-      <button className="quiet" onClick={() => { void sync() }} disabled={busy || !!pending || !!query.data?.binding_removal_operation_id}><RefreshCw size={14} />{busy || pending ? '正在同步…' : '同步学校绑定'}</button></div>
+      <button className="quiet" onClick={() => { void sync() }} aria-busy={busy || !!pending} disabled={busy || !!pending || !!query.data?.binding_removal_operation_id}><RefreshCw className={busy || pending ? 'refresh-spinning' : undefined} size={14} aria-hidden="true" />同步学校绑定</button></div>
     {data && <>
       {['failed', 'stale'].includes(data.sync_status) && <StatusBlock title={data.sync_status === 'stale' ? '学校数据未完成确认' : '尚未成功读取学校绑定'} error>
         <p>请重试同步；当前状态无法确认是否存在绑定。</p></StatusBlock>}
-      {data.sync_status === 'loading' && <p role="status">正在同步学校绑定，请稍候…</p>}
       {data.sync_status === 'empty' && data.total === 0 && <StatusBlock title="学校已确认当前没有绑定寝室"><p>可以查询学校候选寝室。</p></StatusBlock>}
       {data.sync_status === 'ready' && data.total === 0 && <StatusBlock title="没有匹配的本人寝室" />}
       <ul className="room-list">{data.items.map(binding => <li key={binding.id} className="room-card room-row">

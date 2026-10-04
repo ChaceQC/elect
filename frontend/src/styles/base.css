@@ -25,6 +25,9 @@ p { line-height: 1.8; overflow-wrap: anywhere; }
 small { font-size: 12px; }
 a { color: #428cbd; text-underline-offset: 3px; }
 svg { flex-shrink: 0; }
+.refresh-spinning { animation: refresh-spin .8s linear infinite; }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .refresh-spinning { animation: none; } }
 .muted, .page-description { color: var(--muted); font-size: 12px; line-height: 1.8; }
 .page-description { margin: 14px 0 22px; }
 .quiet, .secondary { border-color: #d9e8f5; background: white; color: #5685a8; }

@@ -21,7 +21,10 @@ def roles(service):
     if service in BUSINESS_ROLES:
         from .business_worker import business_loop
 
-        return [relay, Role(BUSINESS_ROLES[service], partial(business_loop, service))]
+        result = [relay, Role(BUSINESS_ROLES[service], partial(business_loop, service))]
+        if service == "room":
+            result.append(Role("control", partial(business_loop, "room_control")))
+        return result
     if service == "notification":
         from services.notification.job import role_loop
 
@@ -29,5 +32,6 @@ def roles(service):
     if service == "payment":
         from services.payment.process import role_loop
 
-        return [relay, *(Role(role, partial(role_loop, role)) for role in ("worker", "recovery"))]
+        return [relay, *(Role(role, partial(role_loop, role))
+                         for role in ("worker", "reconciliation", "recovery"))]
     raise RuntimeError("未知领域角色组合")

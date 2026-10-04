@@ -15,7 +15,6 @@ from services.common.internal_dto import (
     PaymentProofQuery,
 )
 from services.common.security import Principal, require_user_principal
-from services.common.sql import execute
 
 from .dto import Capabilities, OrderCancelRequest, OrderRequest, QRPending
 from .orders import accepted, create_order, get_order, order_view, reference, replay, unresolved
@@ -99,16 +98,6 @@ async def create(command: CreateCommand, request: Request, principal: Browser):
 @router.post("/browser/order")
 async def read_order(command: OrderQuery, request: Request, principal: Browser):
     row = await get_order(request.app.state.database, principal.user_id, command.order_id)
-    async with request.app.state.database.begin() as conn:
-        await execute(
-            conn,
-            "UPDATE payment_orders SET next_check_at=UTC_TIMESTAMP(6) "
-            "WHERE id=:id AND state IN ('awaiting_payment','status_unknown','submit_unknown') "
-            "AND (last_checked_at IS NULL OR "
-            "last_checked_at<=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 15 SECOND)) "
-            "AND (check_lease_until IS NULL OR check_lease_until<=UTC_TIMESTAMP(6))",
-            id=command.order_id.bytes,
-        )
     return order_view(row)
 
 

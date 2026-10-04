@@ -20,6 +20,7 @@ async def claim(engine, order_id=None):
             "SELECT * FROM payment_orders WHERE next_check_at<=UTC_TIMESTAMP(6) "
             "AND (check_lease_until IS NULL OR check_lease_until<=UTC_TIMESTAMP(6)) "
             "AND (:order IS NULL OR id=:order) "
+            "AND (cancel_requested_at IS NULL OR state='paid_confirmed') "
             "AND (state IN ('awaiting_payment','status_unknown','submit_unknown') OR "
             "(state='paid_confirmed' AND balance_refresh_state IN ('pending','failed'))) "
             "ORDER BY next_check_at,id LIMIT 1 FOR UPDATE SKIP LOCKED",
@@ -93,6 +94,11 @@ async def check_order(app, row):
         if next_state == "paid_confirmed":
             refresh_state = "failed"
     async with state.database.begin() as conn:
+        # 与建单/取码提交及取消统一按操作→订单加锁，避免独立回查角色反向抢锁。
+        await execute(
+            conn, "SELECT id FROM payment_operations WHERE order_id=:id FOR UPDATE",
+            id=row["id"],
+        )
         valid = await first(
             conn,
             "SELECT * FROM payment_orders WHERE id=:id AND "
@@ -109,7 +115,8 @@ async def check_order(app, row):
             conn,
             "UPDATE payment_orders SET state=:state,error_code=:error,"
             "last_checked_at=UTC_TIMESTAMP(6),"
-            "next_check_at=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :delay SECOND),"
+            "next_check_at=IF(cancel_requested_at IS NOT NULL AND :state!='paid_confirmed',"
+            "NULL,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :delay SECOND)),"
             "check_lease_owner=NULL,check_lease_until=NULL,balance_refresh_state=:refresh,"
             "balance_refresh_operation_id=:operation,version=version+1 WHERE id=:id",
             id=row["id"],
@@ -117,7 +124,7 @@ async def check_order(app, row):
             error=error,
             refresh=refresh_state,
             operation=operation,
-            delay=300 if next_state == "submit_unknown" else 30,
+            delay=30 if error else 2,
         )
         if next_state in ORDER.terminal and valid["state"] != next_state:
             await execute(

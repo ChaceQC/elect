@@ -35,7 +35,14 @@ async def run(service):
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
     async with app.router.lifespan_context(app):
-        await business_loop(service, app, stop, heartbeat)
+        if service == "room":
+            async with asyncio.TaskGroup() as tasks:
+                tasks.create_task(business_loop(service, app, stop, heartbeat))
+                tasks.create_task(business_loop(
+                    "room_control", app, stop, Heartbeat("room", "control"),
+                ))
+        else:
+            await business_loop(service, app, stop, heartbeat)
 
 
 async def business_loop(service, app, stop, heartbeat, hub=None):
@@ -43,6 +50,8 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
         from services.identity.recovery import recover_tick as tick
 
         tick = partial(tick, stop=stop)
+    elif service == "room_control":
+        from services.room.worker import control_tick as tick
     elif service == "room":
         from services.room.worker import room_tick as tick
 
@@ -70,7 +79,7 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
             delay = (0 if activity else 10) if service == "school_adapter" else 1
             await pause(stop, delay)
     finally:
-        broker = getattr(app.state, "history_broker", None)
+        broker = getattr(app.state, "history_broker", None) if service == "room" else None
         if broker:
             await broker.close()
             app.state.history_broker = None
