@@ -1,6 +1,8 @@
 # API 契约
 
-当前版本：0.18.0；T0 冻结基线 0.1.0，更新日期：2026-10-04。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.18.1；T0 冻结基线 0.1.0，更新日期：2026-10-04。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+
+当前协议2026-10-04.1已将后台授权并入登录/重新认证同意，LoginRequest.credential_use_allowed须为true（false或缺失返回422）。历史未授权凭据保持原状，需本人阅读新版协议重新认证。Bindings.binding_write_enabled默认为false，由Room根据当前副作用开关返回，供入口提前展示绑定/解绑限制；写接口仍独立校验，旧未知请求可按原键查询。详见[界面规则](../decisions/界面状态与登录授权.md)。
 
 ## 公开 API
 
@@ -45,7 +47,7 @@
 
 ## T2 当前实现
 
-公开认证五接口、本人绑定列表/持久同步/候选和 operation 查询已接通；后续阶段仍返回 FEATURE_DISABLED。LoginRequest 密码 1..1024、challenge 43..128；学号 1..128 且无空白/控制字符，不限制为参考页面的纯数字正则。协议与后台授权独立，未授权不进行后台密码认证。SessionContext 内部增加本人 CSRF；凭据激活内部命令携带显式 credential_use_allowed，凭据失效新增 credential.requires_reauth 持久广播。
+公开认证五接口、本人绑定列表/持久同步/候选和 operation 查询已接通；后续阶段仍返回 FEATURE_DISABLED。LoginRequest 密码 1..1024、challenge 43..128；学号 1..128 且无空白/控制字符，不限制为参考页面的纯数字正则。当前协议已将后台授权并入登录同意（2026-10-04.1），新登录/重认证须传credential_use_allowed=true；历史未授权凭据仍不进行后台密码认证。SessionContext 内部增加本人 CSRF；凭据激活内部命令携带显式 credential_use_allowed，凭据失效新增 credential.requires_reauth 持久广播。
 
 T2 默认 id 始终为已有偏好或 null，不自行初始化。首次成功空列表 sync_status=empty，首次失败 failed；该阶段采用缺席复核；现行0.13.1按用户要求，成功B02列表覆盖当前绑定，缺席记录inactive并保留历史；原默认仍在保留，不在选学校列表第一项，成功空列表清空默认/监控目标。查询失败才保留原列表并标记stale。B03 候选固定 unverified，完整记录仅在服务端加密短期缓存。细节见 [实施决策](../decisions/T2认证与读取.md)。
 

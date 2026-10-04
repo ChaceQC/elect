@@ -40,6 +40,7 @@
           "type": "boolean"
         },
         "credential_use_allowed": {
+          "const": true,
           "title": "Credential Use Allowed",
           "type": "boolean"
         }

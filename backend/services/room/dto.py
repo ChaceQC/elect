@@ -41,6 +41,7 @@ class Binding(DTO):
 
 class Bindings(Page):
     items: list[Binding]
+    binding_write_enabled: bool = False
     default_binding_id: UUID | None
     preference_version: Version
     default_switch_operation_id: UUID | None

@@ -1,28 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { readOperation, isTerminal, pollInterval } from '../api/operations.js'
 import { operationKey } from '../app/queryKeys.js'
 import { useSession } from '../features/auth/SessionProvider.jsx'
+import { usePollingWindow } from './usePollingWindow.js'
 
 /** @param {import('../api/intents.js').ResourceKind} kind @param {string|null} id
  * @param {(data: import('../api/operations.js').OperationResource)=>void} [onTerminal] */
 export function useOperation(kind, id, onTerminal) {
   const { user } = useSession()
-  const [visible, setVisible] = useState(document.visibilityState !== 'hidden')
-  const started = useRef({ id, time: Date.now() })
-  if (started.current.id !== id) started.current = { id, time: Date.now() }
+  const polling = usePollingWindow(`${user?.id}:${kind}:${id}`)
   const notified = useRef(new Set())
-  useEffect(() => {
-    const change = () => setVisible(document.visibilityState !== 'hidden')
-    document.addEventListener('visibilitychange', change)
-    return () => document.removeEventListener('visibilitychange', change)
-  }, [])
   const query = useQuery({
     queryKey: operationKey(user?.id ?? '', kind, id),
     queryFn: ({ signal }) => readOperation(kind, /** @type {string} */ (id), signal),
-    enabled: Boolean(user && id && visible), staleTime: 0,
+    enabled: Boolean(user && id && polling.visible), staleTime: 0,
     refetchInterval: (query) => pollInterval(kind, query.state.data?.state,
-      Date.now() - started.current.time, visible),
+      polling.elapsed(), polling.visible),
     refetchIntervalInBackground: false,
   })
   useEffect(() => {
@@ -31,5 +25,6 @@ export function useOperation(kind, id, onTerminal) {
       notified.current.add(key); onTerminal?.(query.data)
     }
   }, [user?.id, kind, id, query.data, onTerminal])
-  return { ...query, refresh: query.refetch }
+  const refresh = () => { polling.restart(); return query.refetch() }
+  return { ...query, refresh, pollingPaused: !!id && !isTerminal(kind, query.data?.state) && polling.paused }
 }

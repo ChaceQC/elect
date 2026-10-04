@@ -749,8 +749,11 @@ export interface components {
              * @constant
              */
             agreement_accepted: true;
-            /** Credential Use Allowed */
-            credential_use_allowed: boolean;
+            /**
+             * Credential Use Allowed
+             * @constant
+             */
+            credential_use_allowed: true;
         };
         /** Consent */
         Consent: {
@@ -871,6 +874,11 @@ export interface components {
             total: number;
             /** Items */
             items: components["schemas"]["Binding"][];
+            /**
+             * Binding Write Enabled
+             * @default false
+             */
+            binding_write_enabled: boolean;
             /** Default Binding Id */
             default_binding_id: string | null;
             /** Preference Version */

@@ -33,7 +33,7 @@ class LoginRequest(DTO):
     captcha_answer: Annotated[str, Field(min_length=1, max_length=32)]
     agreement_version: str
     agreement_accepted: Literal[True]
-    credential_use_allowed: bool
+    credential_use_allowed: Literal[True]
 
 
 class Consent(DTO):
