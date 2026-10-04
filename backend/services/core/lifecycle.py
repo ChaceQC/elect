@@ -31,7 +31,10 @@ class CoreBackground:
 
     async def close(self):
         self.request_stop()
-        await asyncio.gather(*(supervisor.close() for supervisor in self.supervisors()))
+        results = await asyncio.gather(*(supervisor.close() for supervisor in self.supervisors()),
+                                       return_exceptions=True)
+        if any(isinstance(result, BaseException) for result in results):
+            raise RuntimeError("核心后台退出失败") from None
 
 
 @asynccontextmanager

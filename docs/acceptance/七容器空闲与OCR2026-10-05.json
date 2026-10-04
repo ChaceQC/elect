@@ -1,0 +1,600 @@
+{
+  "date": "2026-10-05",
+  "timezone": "Asia/Shanghai",
+  "scope": "独立空库，原elect-wsl未变；Docker工作集，不包含Docker/WSL/构建；正常后台扫描，无OCR与活跃监控/支付/邮件",
+  "backend_revision": "63112cafaf2fb012be0c0c8bcb7abeb94f366fb1",
+  "deployment_revision": "edf3dcb87fe96d8bf15485ebfcb1c14475e3f952",
+  "project": "elect-test-core-local",
+  "frontend": "沿用0.18.3静态镜像，0.19.0无前端源码改动",
+  "mysql": "8.4.8",
+  "mean_mib": 577.3895714285715,
+  "min_mib": 574.139,
+  "max_mib": 586.619,
+  "ocr_probe": {
+    "scope": "独立无网络进程合成图，不代表完整Adapter峰值",
+    "load_seconds": 0.5328,
+    "inference_p50_ms": 9.526,
+    "inference_max_ms": 13.059,
+    "idle_cpu_seconds_over_2s": 0.0001,
+    "peak_rss_kib": 118632,
+    "threads": 2,
+    "intra_op_threads": 1,
+    "inter_op_threads": 1
+  },
+  "samples": [
+    {
+      "at": "2026-10-04 22:55:31 UTC",
+      "containers": [
+        {
+          "BlockIO": "483kB / 0B",
+          "CPUPerc": "3.42%",
+          "Container": "41dbee71324b",
+          "ID": "41dbee71324b",
+          "MemPerc": "4.98%",
+          "MemUsage": "4.777MiB / 96MiB",
+          "Name": "elect-test-core-local-nginx-1",
+          "NetIO": "8.67kB / 8kB",
+          "PIDs": "2"
+        },
+        {
+          "BlockIO": "4.1kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "8667d3558489",
+          "ID": "8667d3558489",
+          "MemPerc": "41.39%",
+          "MemUsage": "66.23MiB / 160MiB",
+          "Name": "elect-test-core-local-mail-worker-1",
+          "NetIO": "17.2kB / 16.9kB",
+          "PIDs": "3"
+        },
+        {
+          "BlockIO": "77.8kB / 0B",
+          "CPUPerc": "2.70%",
+          "Container": "5839aae3b8ff",
+          "ID": "5839aae3b8ff",
+          "MemPerc": "22.34%",
+          "MemUsage": "85.79MiB / 384MiB",
+          "Name": "elect-test-core-local-core-1",
+          "NetIO": "2.89MB / 1.48MB",
+          "PIDs": "20"
+        },
+        {
+          "BlockIO": "32.8kB / 0B",
+          "CPUPerc": "0.18%",
+          "Container": "542d81561b67",
+          "ID": "542d81561b67",
+          "MemPerc": "20.43%",
+          "MemUsage": "78.45MiB / 384MiB",
+          "Name": "elect-test-core-local-school-adapter-1",
+          "NetIO": "34.4kB / 36.7kB",
+          "PIDs": "4"
+        },
+        {
+          "BlockIO": "3.42MB / 758kB",
+          "CPUPerc": "0.19%",
+          "Container": "53d64555338b",
+          "ID": "53d64555338b",
+          "MemPerc": "31.23%",
+          "MemUsage": "79.96MiB / 256MiB",
+          "Name": "elect-test-core-local-rabbitmq-1",
+          "NetIO": "33kB / 28.7kB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "1.67MB / 8.19kB",
+          "CPUPerc": "0.32%",
+          "Container": "ef6231ea1a77",
+          "ID": "ef6231ea1a77",
+          "MemPerc": "5.55%",
+          "MemUsage": "5.332MiB / 96MiB",
+          "Name": "elect-test-core-local-redis-1",
+          "NetIO": "43.8kB / 31kB",
+          "PIDs": "6"
+        },
+        {
+          "BlockIO": "82.5MB / 496MB",
+          "CPUPerc": "2.02%",
+          "Container": "2c72c9b2e409",
+          "ID": "2c72c9b2e409",
+          "MemPerc": "39.62%",
+          "MemUsage": "253.6MiB / 640MiB",
+          "Name": "elect-test-core-local-mysql-1",
+          "NetIO": "1.54MB / 2.93MB",
+          "PIDs": "54"
+        }
+      ]
+    },
+    {
+      "at": "2026-10-04 22:56:41 UTC",
+      "containers": [
+        {
+          "BlockIO": "483kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "41dbee71324b",
+          "ID": "41dbee71324b",
+          "MemPerc": "4.08%",
+          "MemUsage": "3.914MiB / 96MiB",
+          "Name": "elect-test-core-local-nginx-1",
+          "NetIO": "8.67kB / 8kB",
+          "PIDs": "2"
+        },
+        {
+          "BlockIO": "4.1kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "8667d3558489",
+          "ID": "8667d3558489",
+          "MemPerc": "41.30%",
+          "MemUsage": "66.07MiB / 160MiB",
+          "Name": "elect-test-core-local-mail-worker-1",
+          "NetIO": "21.1kB / 21.8kB",
+          "PIDs": "3"
+        },
+        {
+          "BlockIO": "77.8kB / 0B",
+          "CPUPerc": "1.62%",
+          "Container": "5839aae3b8ff",
+          "ID": "5839aae3b8ff",
+          "MemPerc": "22.40%",
+          "MemUsage": "86.02MiB / 384MiB",
+          "Name": "elect-test-core-local-core-1",
+          "NetIO": "3.92MB / 1.99MB",
+          "PIDs": "22"
+        },
+        {
+          "BlockIO": "32.8kB / 0B",
+          "CPUPerc": "12.29%",
+          "Container": "542d81561b67",
+          "ID": "542d81561b67",
+          "MemPerc": "23.72%",
+          "MemUsage": "91.09MiB / 384MiB",
+          "Name": "elect-test-core-local-school-adapter-1",
+          "NetIO": "42.5kB / 47.4kB",
+          "PIDs": "5"
+        },
+        {
+          "BlockIO": "3.42MB / 758kB",
+          "CPUPerc": "0.20%",
+          "Container": "53d64555338b",
+          "ID": "53d64555338b",
+          "MemPerc": "31.22%",
+          "MemUsage": "79.92MiB / 256MiB",
+          "Name": "elect-test-core-local-rabbitmq-1",
+          "NetIO": "37.7kB / 32.9kB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "1.67MB / 8.19kB",
+          "CPUPerc": "0.37%",
+          "Container": "ef6231ea1a77",
+          "ID": "ef6231ea1a77",
+          "MemPerc": "6.05%",
+          "MemUsage": "5.805MiB / 96MiB",
+          "Name": "elect-test-core-local-redis-1",
+          "NetIO": "56.1kB / 39.9kB",
+          "PIDs": "6"
+        },
+        {
+          "BlockIO": "82.5MB / 498MB",
+          "CPUPerc": "1.92%",
+          "Container": "2c72c9b2e409",
+          "ID": "2c72c9b2e409",
+          "MemPerc": "39.65%",
+          "MemUsage": "253.8MiB / 640MiB",
+          "Name": "elect-test-core-local-mysql-1",
+          "NetIO": "2.05MB / 3.95MB",
+          "PIDs": "54"
+        }
+      ]
+    },
+    {
+      "at": "2026-10-04 22:58:26 UTC",
+      "containers": [
+        {
+          "BlockIO": "483kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "41dbee71324b",
+          "ID": "41dbee71324b",
+          "MemPerc": "3.89%",
+          "MemUsage": "3.738MiB / 96MiB",
+          "Name": "elect-test-core-local-nginx-1",
+          "NetIO": "8.81kB / 8kB",
+          "PIDs": "2"
+        },
+        {
+          "BlockIO": "4.1kB / 0B",
+          "CPUPerc": "0.22%",
+          "Container": "8667d3558489",
+          "ID": "8667d3558489",
+          "MemPerc": "41.38%",
+          "MemUsage": "66.21MiB / 160MiB",
+          "Name": "elect-test-core-local-mail-worker-1",
+          "NetIO": "27.2kB / 29.4kB",
+          "PIDs": "3"
+        },
+        {
+          "BlockIO": "77.8kB / 0B",
+          "CPUPerc": "1.74%",
+          "Container": "5839aae3b8ff",
+          "ID": "5839aae3b8ff",
+          "MemPerc": "22.46%",
+          "MemUsage": "86.25MiB / 384MiB",
+          "Name": "elect-test-core-local-core-1",
+          "NetIO": "5.48MB / 2.78MB",
+          "PIDs": "22"
+        },
+        {
+          "BlockIO": "32.8kB / 0B",
+          "CPUPerc": "0.19%",
+          "Container": "542d81561b67",
+          "ID": "542d81561b67",
+          "MemPerc": "20.50%",
+          "MemUsage": "78.73MiB / 384MiB",
+          "Name": "elect-test-core-local-school-adapter-1",
+          "NetIO": "56.1kB / 64.6kB",
+          "PIDs": "4"
+        },
+        {
+          "BlockIO": "3.42MB / 758kB",
+          "CPUPerc": "0.51%",
+          "Container": "53d64555338b",
+          "ID": "53d64555338b",
+          "MemPerc": "31.09%",
+          "MemUsage": "79.58MiB / 256MiB",
+          "Name": "elect-test-core-local-rabbitmq-1",
+          "NetIO": "45.9kB / 39.6kB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "1.67MB / 8.19kB",
+          "CPUPerc": "2.31%",
+          "Container": "ef6231ea1a77",
+          "ID": "ef6231ea1a77",
+          "MemPerc": "6.91%",
+          "MemUsage": "6.633MiB / 96MiB",
+          "Name": "elect-test-core-local-redis-1",
+          "NetIO": "75.4kB / 54kB",
+          "PIDs": "6"
+        },
+        {
+          "BlockIO": "82.5MB / 499MB",
+          "CPUPerc": "2.40%",
+          "Container": "2c72c9b2e409",
+          "ID": "2c72c9b2e409",
+          "MemPerc": "39.69%",
+          "MemUsage": "254MiB / 640MiB",
+          "Name": "elect-test-core-local-mysql-1",
+          "NetIO": "2.82MB / 5.51MB",
+          "PIDs": "54"
+        }
+      ]
+    },
+    {
+      "at": "2026-10-04 23:00:02 UTC",
+      "containers": [
+        {
+          "BlockIO": "483kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "41dbee71324b",
+          "ID": "41dbee71324b",
+          "MemPerc": "3.89%",
+          "MemUsage": "3.734MiB / 96MiB",
+          "Name": "elect-test-core-local-nginx-1",
+          "NetIO": "8.81kB / 8kB",
+          "PIDs": "2"
+        },
+        {
+          "BlockIO": "4.1kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "8667d3558489",
+          "ID": "8667d3558489",
+          "MemPerc": "41.24%",
+          "MemUsage": "65.98MiB / 160MiB",
+          "Name": "elect-test-core-local-mail-worker-1",
+          "NetIO": "32.3kB / 36kB",
+          "PIDs": "3"
+        },
+        {
+          "BlockIO": "77.8kB / 0B",
+          "CPUPerc": "1.93%",
+          "Container": "5839aae3b8ff",
+          "ID": "5839aae3b8ff",
+          "MemPerc": "22.53%",
+          "MemUsage": "86.52MiB / 384MiB",
+          "Name": "elect-test-core-local-core-1",
+          "NetIO": "6.93MB / 3.5MB",
+          "PIDs": "22"
+        },
+        {
+          "BlockIO": "32.8kB / 0B",
+          "CPUPerc": "0.43%",
+          "Container": "542d81561b67",
+          "ID": "542d81561b67",
+          "MemPerc": "20.69%",
+          "MemUsage": "79.46MiB / 384MiB",
+          "Name": "elect-test-core-local-school-adapter-1",
+          "NetIO": "67.5kB / 79.7kB",
+          "PIDs": "4"
+        },
+        {
+          "BlockIO": "3.42MB / 758kB",
+          "CPUPerc": "0.24%",
+          "Container": "53d64555338b",
+          "ID": "53d64555338b",
+          "MemPerc": "31.00%",
+          "MemUsage": "79.37MiB / 256MiB",
+          "Name": "elect-test-core-local-rabbitmq-1",
+          "NetIO": "53.3kB / 45.3kB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "1.67MB / 8.19kB",
+          "CPUPerc": "0.37%",
+          "Container": "ef6231ea1a77",
+          "ID": "ef6231ea1a77",
+          "MemPerc": "5.83%",
+          "MemUsage": "5.594MiB / 96MiB",
+          "Name": "elect-test-core-local-redis-1",
+          "NetIO": "93.6kB / 67.4kB",
+          "PIDs": "6"
+        },
+        {
+          "BlockIO": "82.5MB / 501MB",
+          "CPUPerc": "2.56%",
+          "Container": "2c72c9b2e409",
+          "ID": "2c72c9b2e409",
+          "MemPerc": "39.80%",
+          "MemUsage": "254.7MiB / 640MiB",
+          "Name": "elect-test-core-local-mysql-1",
+          "NetIO": "3.55MB / 6.94MB",
+          "PIDs": "54"
+        }
+      ]
+    },
+    {
+      "at": "2026-10-04 23:00:55 UTC",
+      "containers": [
+        {
+          "BlockIO": "483kB / 0B",
+          "CPUPerc": "3.77%",
+          "Container": "41dbee71324b",
+          "ID": "41dbee71324b",
+          "MemPerc": "5.79%",
+          "MemUsage": "5.555MiB / 96MiB",
+          "Name": "elect-test-core-local-nginx-1",
+          "NetIO": "8.81kB / 8kB",
+          "PIDs": "2"
+        },
+        {
+          "BlockIO": "4.1kB / 0B",
+          "CPUPerc": "16.77%",
+          "Container": "8667d3558489",
+          "ID": "8667d3558489",
+          "MemPerc": "41.67%",
+          "MemUsage": "66.67MiB / 160MiB",
+          "Name": "elect-test-core-local-mail-worker-1",
+          "NetIO": "35.4kB / 39.8kB",
+          "PIDs": "3"
+        },
+        {
+          "BlockIO": "77.8kB / 0B",
+          "CPUPerc": "1.61%",
+          "Container": "5839aae3b8ff",
+          "ID": "5839aae3b8ff",
+          "MemPerc": "22.70%",
+          "MemUsage": "87.18MiB / 384MiB",
+          "Name": "elect-test-core-local-core-1",
+          "NetIO": "7.7MB / 3.89MB",
+          "PIDs": "22"
+        },
+        {
+          "BlockIO": "32.8kB / 0B",
+          "CPUPerc": "0.23%",
+          "Container": "542d81561b67",
+          "ID": "542d81561b67",
+          "MemPerc": "20.62%",
+          "MemUsage": "79.2MiB / 384MiB",
+          "Name": "elect-test-core-local-school-adapter-1",
+          "NetIO": "72.8kB / 86.4kB",
+          "PIDs": "4"
+        },
+        {
+          "BlockIO": "3.42MB / 758kB",
+          "CPUPerc": "0.49%",
+          "Container": "53d64555338b",
+          "ID": "53d64555338b",
+          "MemPerc": "31.13%",
+          "MemUsage": "79.7MiB / 256MiB",
+          "Name": "elect-test-core-local-rabbitmq-1",
+          "NetIO": "57.2kB / 48.2kB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "1.67MB / 8.19kB",
+          "CPUPerc": "0.40%",
+          "Container": "ef6231ea1a77",
+          "ID": "ef6231ea1a77",
+          "MemPerc": "5.62%",
+          "MemUsage": "5.398MiB / 96MiB",
+          "Name": "elect-test-core-local-redis-1",
+          "NetIO": "105kB / 75.8kB",
+          "PIDs": "6"
+        },
+        {
+          "BlockIO": "82.5MB / 502MB",
+          "CPUPerc": "2.64%",
+          "Container": "2c72c9b2e409",
+          "ID": "2c72c9b2e409",
+          "MemPerc": "39.74%",
+          "MemUsage": "254.4MiB / 640MiB",
+          "Name": "elect-test-core-local-mysql-1",
+          "NetIO": "3.95MB / 7.75MB",
+          "PIDs": "54"
+        }
+      ]
+    },
+    {
+      "at": "2026-10-04 23:03:03 UTC",
+      "containers": [
+        {
+          "BlockIO": "483kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "41dbee71324b",
+          "ID": "41dbee71324b",
+          "MemPerc": "3.90%",
+          "MemUsage": "3.742MiB / 96MiB",
+          "Name": "elect-test-core-local-nginx-1",
+          "NetIO": "8.88kB / 8kB",
+          "PIDs": "2"
+        },
+        {
+          "BlockIO": "4.1kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "8667d3558489",
+          "ID": "8667d3558489",
+          "MemPerc": "41.52%",
+          "MemUsage": "66.43MiB / 160MiB",
+          "Name": "elect-test-core-local-mail-worker-1",
+          "NetIO": "42.8kB / 49kB",
+          "PIDs": "3"
+        },
+        {
+          "BlockIO": "77.8kB / 0B",
+          "CPUPerc": "2.01%",
+          "Container": "5839aae3b8ff",
+          "ID": "5839aae3b8ff",
+          "MemPerc": "22.71%",
+          "MemUsage": "87.22MiB / 384MiB",
+          "Name": "elect-test-core-local-core-1",
+          "NetIO": "9.61MB / 4.84MB",
+          "PIDs": "22"
+        },
+        {
+          "BlockIO": "32.8kB / 0B",
+          "CPUPerc": "0.20%",
+          "Container": "542d81561b67",
+          "ID": "542d81561b67",
+          "MemPerc": "20.57%",
+          "MemUsage": "78.97MiB / 384MiB",
+          "Name": "elect-test-core-local-school-adapter-1",
+          "NetIO": "87.8kB / 106kB",
+          "PIDs": "4"
+        },
+        {
+          "BlockIO": "3.42MB / 758kB",
+          "CPUPerc": "0.22%",
+          "Container": "53d64555338b",
+          "ID": "53d64555338b",
+          "MemPerc": "31.27%",
+          "MemUsage": "80.05MiB / 256MiB",
+          "Name": "elect-test-core-local-rabbitmq-1",
+          "NetIO": "66.9kB / 55.8kB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "1.67MB / 8.19kB",
+          "CPUPerc": "0.37%",
+          "Container": "ef6231ea1a77",
+          "ID": "ef6231ea1a77",
+          "MemPerc": "5.57%",
+          "MemUsage": "5.348MiB / 96MiB",
+          "Name": "elect-test-core-local-redis-1",
+          "NetIO": "129kB / 94.3kB",
+          "PIDs": "6"
+        },
+        {
+          "BlockIO": "82.5MB / 503MB",
+          "CPUPerc": "1.88%",
+          "Container": "2c72c9b2e409",
+          "ID": "2c72c9b2e409",
+          "MemPerc": "39.74%",
+          "MemUsage": "254.3MiB / 640MiB",
+          "Name": "elect-test-core-local-mysql-1",
+          "NetIO": "4.88MB / 9.63MB",
+          "PIDs": "54"
+        }
+      ]
+    },
+    {
+      "at": "2026-10-04 23:04:50 UTC",
+      "containers": [
+        {
+          "BlockIO": "483kB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "41dbee71324b",
+          "ID": "41dbee71324b",
+          "MemPerc": "4.31%",
+          "MemUsage": "4.133MiB / 96MiB",
+          "Name": "elect-test-core-local-nginx-1",
+          "NetIO": "13.9kB / 10.6kB",
+          "PIDs": "2"
+        },
+        {
+          "BlockIO": "4.1kB / 0B",
+          "CPUPerc": "0.27%",
+          "Container": "8667d3558489",
+          "ID": "8667d3558489",
+          "MemPerc": "41.38%",
+          "MemUsage": "66.21MiB / 160MiB",
+          "Name": "elect-test-core-local-mail-worker-1",
+          "NetIO": "48.8kB / 56.5kB",
+          "PIDs": "3"
+        },
+        {
+          "BlockIO": "77.8kB / 0B",
+          "CPUPerc": "2.80%",
+          "Container": "5839aae3b8ff",
+          "ID": "5839aae3b8ff",
+          "MemPerc": "22.79%",
+          "MemUsage": "87.5MiB / 384MiB",
+          "Name": "elect-test-core-local-core-1",
+          "NetIO": "11.2MB / 5.65MB",
+          "PIDs": "22"
+        },
+        {
+          "BlockIO": "32.8kB / 0B",
+          "CPUPerc": "0.22%",
+          "Container": "542d81561b67",
+          "ID": "542d81561b67",
+          "MemPerc": "20.57%",
+          "MemUsage": "78.97MiB / 384MiB",
+          "Name": "elect-test-core-local-school-adapter-1",
+          "NetIO": "100kB / 122kB",
+          "PIDs": "4"
+        },
+        {
+          "BlockIO": "3.42MB / 758kB",
+          "CPUPerc": "0.72%",
+          "Container": "53d64555338b",
+          "ID": "53d64555338b",
+          "MemPerc": "31.00%",
+          "MemUsage": "79.35MiB / 256MiB",
+          "Name": "elect-test-core-local-rabbitmq-1",
+          "NetIO": "75kB / 62.2kB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "1.67MB / 8.19kB",
+          "CPUPerc": "0.40%",
+          "Container": "ef6231ea1a77",
+          "ID": "ef6231ea1a77",
+          "MemPerc": "5.57%",
+          "MemUsage": "5.344MiB / 96MiB",
+          "Name": "elect-test-core-local-redis-1",
+          "NetIO": "148kB / 108kB",
+          "PIDs": "6"
+        },
+        {
+          "BlockIO": "82.5MB / 505MB",
+          "CPUPerc": "3.89%",
+          "Container": "2c72c9b2e409",
+          "ID": "2c72c9b2e409",
+          "MemPerc": "39.82%",
+          "MemUsage": "254.8MiB / 640MiB",
+          "Name": "elect-test-core-local-mysql-1",
+          "NetIO": "5.67MB / 11.2MB",
+          "PIDs": "54"
+        }
+      ]
+    }
+  ]
+}

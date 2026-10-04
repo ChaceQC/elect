@@ -74,6 +74,18 @@ def test_published_mode_has_no_source_build_overlay(docker_stub):
     assert "compose.build.yaml" not in record.read_text()
 
 
+def test_core_published_restore_orders_overlays_without_build_or_smtp(docker_stub):
+    env, record = docker_stub
+    env.write_text("ELECT_IMAGE_MODE=published\nELECT_DEPLOYMENT_MODE=core\n"
+                   "ELECT_SMTP_DIRECT_ENABLED=true\n")
+    assert invoke(env, "--test", "--restore", "--profile", "*", "config").returncode == 0
+    args = record.read_text().splitlines()
+    files = [Path(args[i + 1]).name for i, value in enumerate(args) if value == "-f"]
+    assert files == ["compose.yaml", "compose.test.yaml", "compose.low-resource.yaml",
+                     "compose.core.yaml", "compose.ops.yaml", "compose.restore.yaml",
+                     "compose.core-restore.yaml"]
+
+
 def test_production_start_refuses_unpublished_images_before_docker(docker_stub):
     env, record = docker_stub
     env.write_text("ELECT_IMAGE_MODE=local\n")

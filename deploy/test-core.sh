@@ -18,7 +18,8 @@ status() {
   compose run -T --rm --no-deps -e ELECT_CORE_URL=https://identity:8000 \
     smoke python -m scripts.core_status "$1"
 }
-ELECT_DEPLOYMENT_MODE=core sh "$task_root/deploy/upgrade.sh" "$task_dir/stack.env" "$task_project" --test
+# 无源码发布组合也必须能解析和启动；实际镜像复用本轮受测runtime。
+ELECT_IMAGE_MODE=published ELECT_DEPLOYMENT_MODE=core sh "$task_root/deploy/upgrade.sh" "$task_dir/stack.env" "$task_project" --test
 count_running 7
 status ready
 compose exec -T nginx nginx -t
@@ -35,6 +36,8 @@ compose --restore exec -T core python -c 'from services.common.background import
 compose stop core school-adapter
 compose run -T --rm --no-deps -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1 \
   smoke python -m scripts.core_workload
+compose run -T --rm --no-deps -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1 \
+  smoke python -m scripts.core_capacity
 ELECT_DEPLOYMENT_MODE=combined sh "$task_root/deploy/upgrade.sh" "$task_dir/stack.env" "$task_project" --test
 count_running 13
 compose_combined() {

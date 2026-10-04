@@ -83,3 +83,22 @@ def test_core_health_fails_on_domain_role_failure(monkeypatch):
     app = SimpleNamespace(state=SimpleNamespace(database=object(), migration_head="head",
                                                runtime=object(), background=supervisor))
     assert asyncio.run(domain_health(app))["status"] == "not_ready"
+
+
+def test_one_domain_close_failure_still_drains_other_domains():
+    async def verify():
+        finished = []
+
+        async def close_slow():
+            await asyncio.sleep(0.01)
+            finished.append(True)
+
+        domains = {"first": SimpleNamespace(state=SimpleNamespace(background=SimpleNamespace(
+            request_stop=lambda: None, close=AsyncMock(side_effect=RuntimeError("synthetic"))))),
+            "second": SimpleNamespace(state=SimpleNamespace(background=SimpleNamespace(
+                request_stop=lambda: None, close=close_slow)))}
+        with pytest.raises(RuntimeError, match="核心后台退出失败"):
+            await lifecycle.CoreBackground(domains).close()
+        assert finished == [True]
+
+    asyncio.run(verify())

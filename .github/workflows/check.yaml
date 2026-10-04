@@ -11,7 +11,7 @@ jobs:
   check:
     permissions: {contents: write, packages: write}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: 单元契约构建与浏览器
