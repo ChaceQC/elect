@@ -2,6 +2,7 @@ import asyncio
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -95,6 +96,8 @@ async def check_collect_rooms(reverse):
             }
 
     class Sessions:
+        store = SimpleNamespace(get_secret=AsyncMock(return_value=None), put_secret=AsyncMock())
+
         async def read(self, *args, **kwargs):
             rows = [
                 {"roomId": "school-a", "balance": "12.34"},

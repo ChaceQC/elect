@@ -755,6 +755,8 @@ Content-Type: application/json
 <a id="d02"></a>
 ### D02 查询支付结果
 
+**2026-10-04纠正：此接口属于水费。** 学校移动端成功页`pages-topUpPayment-CN-RechargedSuccessfully.fb39d992.js`对电费调用`/base/order/getRoomInfoByOrderId`，后者返回寝室信息而非已确认支付状态。本系统电费确认改用D04与原支付票据证据，详见[0.18.2规则](decisions/电表读数与缴费结果确认.md)。以下保留早期参考接口记录，不作为电费状态实现依据。
+
 **请求**：`GET https://sdgl.hbue.edu.cn/api/water/order/getPayOrderReturnUrl`
 
 **认证**：SDGL Bearer token，使用下单时同一个学校账号。**超时**：20 秒。
@@ -825,6 +827,8 @@ Authorization: Bearer <SDGL_TOKEN>
 
 <a id="d04"></a>
 ### D04 查询学校电费订单列表
+
+2026-10-04已取得本人真实明细：orderId为19位字符串，userId/buildId/orderAmount/payAmount/createdTime/payTime均为字符串；已支付payStatus="2"、电费orderType="0"、微信payMethod="1"，tradeOrderNo本次为空。D01的64位prePayId不等于此orderId。原票据付款后E01的可见完整提示为“该订单已支付，无法再次交易,请返回系统重新发起交易”；与唯一本人/寝室/金额/建单后D04记录一起确认原单，不能单凭同金额匹配。指定1元及余额增量证据见[分类记录](acceptance/school/2026-10-04-meter-payment.json)。后文空数组为2026-09-30的历史结果。
 
 **请求**：`GET https://sdgl.hbue.edu.cn/api/base/order/page`
 

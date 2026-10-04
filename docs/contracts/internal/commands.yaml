@@ -222,7 +222,7 @@ commands:
     path: /payments/check
     request: schemas.json#/$defs/OrderQuery
     response: schemas.json#/$defs/SchoolOrderResult
-    idempotency: school:payment 权限；D02/D04只读，无精确已验收映射则unknown；空D04不能解锁。
+    idempotency: school:payment 权限；D04精确标识匹配，或唯一同用户/寝室/金额/本次建单后记录加原支付页已支付提示；仅GET，未知/空列表不解锁，不使用水费D02。
   - name: read_payment_image
     receiver: school_adapter
     callers: [payment]
@@ -275,7 +275,7 @@ t4_query_routes:
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/history-sync, request: binding_id/日期范围/idempotency_key, response: '../openapi.yaml#/components/schemas/AcceptedOperation'}
   - {receiver: room, callers: [school_adapter, monitoring], scope: 'room:query', path: /controls/query-target, request: 'schemas.json#/$defs/BindingQuery', response: 本人active绑定的school_room_id，仅内部使用}
   - {receiver: school_adapter, callers: [room], scope: 'school:history', path: /queries/history, request: 'schemas.json#/$defs/HistoryWindowQuery', response: 授权请求C02白名单行/指纹/请求归属}
-  - {receiver: school_adapter, callers: [monitoring], scope: 'school:collect', path: /queries/collect, request: 'schemas.json#/$defs/BindingQuery', response: 逐school_room_id精确匹配的B02余额}
+  - {receiver: school_adapter, callers: [monitoring], scope: 'school:collect', path: /queries/collect, request: 'schemas.json#/$defs/BindingQuery', response: 逐school_room_id匹配B02余额；可选meter含last_reading/reading/delta/record_date/source_record_key/quality，C02失败时省略meter}
 
 t4_run_routes:
   - {receiver: room, callers: [school_adapter], scope: 'room:balance-commit', path: /controls/balance-observed, request: 'schemas.json#/$defs/BalanceObservation', response: 对应本人有效Binding的缓存观察，旧时间不得覆盖新缓存}

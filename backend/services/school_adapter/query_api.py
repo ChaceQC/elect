@@ -1,5 +1,6 @@
 """受内部身份保护的本人学校历史与监控余额读取。"""
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -11,8 +12,10 @@ from services.common.http import ApiError
 from services.common.internal_dto import BindingQuery, HistoryWindowQuery
 from services.common.security import Principal, require_user_principal
 
+from .application.meter_readings import collect_meter
 from .infrastructure.history import records
 from .infrastructure.rooms import bound_rooms
+from .infrastructure.transport import Deadline
 
 router = APIRouter(prefix="/internal/v1/queries")
 
@@ -62,6 +65,7 @@ async def collect(
     request: Request,
     principal: Annotated[Principal, Depends(require_user_principal("school:collect"))],
 ):
+    budget = Deadline(85)
     target = await query_target(request, principal, command.binding_id)
     value = await request.app.state.school_sessions.read(
         principal.user_id,
@@ -69,7 +73,7 @@ async def collect(
         "/base/roomUser/selectRoomListByUserId",
         {},
         include_user=True,
-        budget=85,
+        budget=budget.remaining(),
         read_timeout=15,
     )
     record = next(
@@ -78,19 +82,24 @@ async def collect(
     if not record or record["balance"] is None:
         raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "本人绑定未返回有效余额")
     try:
-        await request.app.state.service_client.call(
-            "room",
-            "/controls/balance-observed",
-            "room:balance-commit",
-            principal.request_id,
-            {
-                "binding_id": str(command.binding_id),
-                "amount": record["balance"],
-                "fetched_at": datetime.now(UTC).isoformat(),
-            },
-            principal=principal,
-        )
-    except ApiError:
+        async with asyncio.timeout(min(3, budget.remaining())):
+            await request.app.state.service_client.call(
+                "room",
+                "/controls/balance-observed",
+                "room:balance-commit",
+                principal.request_id,
+                {
+                    "binding_id": str(command.binding_id),
+                    "amount": record["balance"],
+                    "fetched_at": datetime.now(UTC).isoformat(),
+                },
+                principal=principal,
+            )
+    except (ApiError, TimeoutError):
         # 缓存更新失败不把本次已取得的余额作废；样本仍受monitor栅栏保护。
         pass
-    return {"balance": record["balance"]}
+    meter = await collect_meter(
+        request.app.state.school_sessions, principal.user_id, command.binding_id,
+        target["school_room_id"], principal.request_id, budget,
+    )
+    return {"balance": record["balance"], **({"meter": meter} if meter else {})}

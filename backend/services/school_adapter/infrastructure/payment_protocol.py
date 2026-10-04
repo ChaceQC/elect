@@ -52,6 +52,32 @@ class HiddenFields(HTMLParser):
             self.fields[value["name"]] = value.get("value") or ""
 
 
+class VisiblePaymentText(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.hidden, self.parts = 0, []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in {"script", "style"}:
+            self.hidden += 1
+
+    def handle_endtag(self, tag):
+        if tag in {"script", "style"}:
+            self.hidden = max(0, self.hidden - 1)
+
+    def handle_data(self, data):
+        if not self.hidden:
+            self.parts.append(data)
+
+
+def original_order_paid(text):
+    # 2026-10-04指定1元付款后实测的完整提示；脚本、注释和泛化“成功”不算证据。
+    parser = VisiblePaymentText()
+    parser.feed(text)
+    visible = re.sub(r"\s+", "", "".join(parser.parts)).replace("，", ",")
+    return "该订单已支付,无法再次交易,请返回系统重新发起交易" in visible
+
+
 def hidden_fields(text):
     parser = HiddenFields()
     parser.feed(text)

@@ -72,12 +72,20 @@ async def proof(adapter, owner, order, record):
     record["d01_state"] = row["state"]
     record["d01_dispatch_reserved"] = bool(row["dispatched_at"])
     record["prepay_received"] = bool(payload["prepay_id"])
+    record["prepay_length"] = len(payload["prepay_id"] or "")
     record["school_order_id_known"] = payload["sdgl_order_id"] is not None
     observation = row["observation_ciphertext"]
     if observation:
         from services.school_adapter.infrastructure.payment_ledger import aad
 
         observations = ledger.crypto.open(observation, aad(owner, order, "observation"))
+        from services.school_adapter.application.payment_records import same_order
+
+        record["d04_exact_identity_matches"] = sum(
+            same_order(item, payload)
+            for key, page in observations.items() if key.startswith("D04-")
+            for item in page.get("records", [])
+        )
         data = observations.get("D02", {}).get("data")
         record["d02_data_type"] = type(data).__name__
         record["d02_status_candidates"] = {
@@ -224,7 +232,11 @@ async def main():
     try:
         await verify(args, record)
     except Exception as error:
-        record["error_code"] = str(getattr(error, "code", type(error).__name__))
+        record.setdefault("error_code", str(getattr(error, "code", type(error).__name__)))
+        trace = error.__traceback__
+        while trace and trace.tb_next:
+            trace = trace.tb_next
+        record["failure_function"] = trace.tb_frame.f_code.co_name if trace else None
         code = 1
     print(json.dumps(record, ensure_ascii=False))
     raise SystemExit(code)

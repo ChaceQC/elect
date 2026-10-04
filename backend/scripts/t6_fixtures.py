@@ -90,5 +90,14 @@ class PaymentSchool(BindingSchool):
             assert request.url.params["orderId"] in self.orders
             return httpx.Response(200, json={"code": 200, "data": {"payStatus": self.status}})
         if path == "/api/base/order/page":
-            return httpx.Response(200, json={"code": 200, "data": {"records": [], "total": 0}})
+            rows = [{"orderId": prepay, "tradeOrderNo": "", "buildId": body["buildId"],
+                     "userId": str(body["userId"]), "orderAmount": f"{body['orderAmount']:.2f}",
+                     "payAmount": f"{body['orderAmount']:.2f}", "payStatus": self.status,
+                     "orderType": "0", "payMethod": "1"}
+                    for prepay, body in self.orders.items()
+                    if body["buildId"] == request.url.params["buildId"]]
+            return httpx.Response(200, json={"code": 200, "data": {
+                "records": rows, "total": len(rows), "pages": 1 if rows else 0,
+                "current": int(request.url.params["current"]),
+            }})
         return super().handler(request)

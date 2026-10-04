@@ -11,16 +11,14 @@ from services.room.query_worker import query_tick
 
 
 async def status_checks(apps, school, client, order, binding):
-    from services.school_adapter.application import payment_orders
-
     school.status = "PAID"
     await due(apps["payment"], order)
     await check_tick(apps["payment"], order_id=UUID(order))
     assert (await read(client, order))["state"] == "status_unknown"
     assert (await create(client, binding)).status_code == 409
-    # 注入合成映射只验证后续机制，恢复为空后真实部署不能确认这些值。
-    original = payment_orders.VERIFIED_D02_STATES
-    payment_orders.VERIFIED_D02_STATES = {("payStatus", "str", "PAID"): "paid_confirmed"}
+    # 使用已验收D04的字符串2，合成订单标识必须与原票据精确匹配。
+    original = school.status
+    school.status = "2"
     try:
         await due(apps["payment"], order)
         await check_tick(apps["payment"], order_id=UUID(order))
@@ -35,8 +33,8 @@ async def status_checks(apps, school, client, order, binding):
         assert balance["amount"] == "25.50"  # 不以25.50 + 20.00伪造到账。
         assert (await client.get(f"/api/v1/payment-orders/{order}/qr")).status_code == 409
     finally:
-        payment_orders.VERIFIED_D02_STATES = original
-    print("未经验证的PAID保持未知；合成精确映射可终结并持久刷新学校余额，不做加法：通过")
+        school.status = original
+    print("未经验证的PAID保持未知；D04精确映射终结并持久刷新学校余额，不做加法：通过")
 
 
 async def faults(apps, school):

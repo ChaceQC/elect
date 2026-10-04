@@ -81,6 +81,7 @@ async def check_order(app, row):
                 principal=principal,
             )
             candidate = value.get("order_state", next_state)
+            error = value.get("error_code")
             if candidate != next_state and candidate in ORDER.transitions[next_state]:
                 next_state = candidate
             if next_state == "paid_confirmed":

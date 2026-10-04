@@ -2,29 +2,16 @@
 
 from uuid import UUID
 
-from services.common.dates import today
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.common.sql import aware, execute
+from services.common.sql import execute
 from services.payment.policy import validate_amount
 
 from ..infrastructure.payment_ledger import PaymentLedger, aad, digest
 from ..infrastructure.payment_protocol import check_pay_url
 from ..infrastructure.protocol import API
-from ..infrastructure.transport import parse_json
-
-# 只有取得真实订单样本并验收后才加入精确 (字段, 类型, 值) 映射。
-VERIFIED_D02_STATES = {}
-
-
-def mapped_state(data):
-    if isinstance(data, dict):
-        for field, value in data.items():
-            if type(value) in {str, int}:
-                state = VERIFIED_D02_STATES.get((field, type(value).__name__, str(value)))
-                if state:
-                    return state
-    return "status_unknown"
+from ..infrastructure.transport import Deadline, parse_json
+from .payment_records import confirm_original, paid_order
 
 
 class SchoolOrders:
@@ -140,40 +127,24 @@ class SchoolOrders:
             return self.result(row)
         if row["state"] == "rejected":
             return {**self.result(row), "order_state": "rejected"}
-        observations = {}
-        if payload["prepay_id"]:
-            observations["D02"] = await self.state.school_sessions.read(
-                owner,
-                request_id,
-                "/water/order/getPayOrderReturnUrl",
-                {"orderId": payload["prepay_id"]},
-                read_timeout=20,
+        observations, error = {}, None
+        state = "status_unknown" if payload["prepay_id"] else "submit_unknown"
+        budget = Deadline(75)
+
+        async def confirm(candidates):
+            return await confirm_original(
+                self.state, owner, payload, candidates, observations, budget
             )
-            state = mapped_state(observations["D02"].get("data"))
-        else:
-            # 查询条件的可见性和订单明细结构未验证；包括空列表都保留 submit_unknown。
-            for status in (0, 2):
-                observations[f"D04-{status}"] = await self.state.school_sessions.read(
-                    owner,
-                    request_id,
-                    "/base/order/page",
-                    {
-                        "buildId": payload["school_room_id"],
-                        "startTimeStr": aware(row["created_at"])
-                        .astimezone(today_zone())
-                        .date()
-                        .isoformat(),
-                        "endTimeStr": today().isoformat(),
-                        "current": 1,
-                        "size": 10,
-                        "pageTotal": 100,
-                        "orderType": 0,
-                        "payMethod": 1,
-                        "payStatus": status,
-                    },
-                    read_timeout=20,
-                )
-            state = "submit_unknown"
+
+        try:
+            if await paid_order(
+                self.state.school_sessions, owner, request_id, row, payload, observations, budget,
+                confirm=confirm,
+            ):
+                state = "paid_confirmed"
+        except ApiError as failure:
+            error = failure.code
+            observations["D04-error"] = {"code": str(failure.code)}
         async with self.ledger.engine.begin() as conn:
             await execute(
                 conn,
@@ -182,10 +153,4 @@ class SchoolOrders:
                 id=order.bytes,
                 value=self.ledger.crypto.seal(observations, aad(owner, order, "observation")),
             )
-        return {**self.result(row), "order_state": state}
-
-
-def today_zone():
-    from zoneinfo import ZoneInfo
-
-    return ZoneInfo("Asia/Shanghai")
+        return {**self.result(row), "order_state": state, "error_code": error}

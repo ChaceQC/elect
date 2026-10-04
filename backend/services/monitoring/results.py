@@ -27,7 +27,8 @@ async def finish_attempt(conn, run, outcome, error=None):
     )
 
 
-async def succeed(engine, execution, balance, request_id):
+async def succeed(engine, execution, balance, request_id, *, meter=None):
+    meter = meter or {}
     async with fenced_transaction(engine, execution) as (conn, monitor, run):
         sample_id = new_id()
         previous = (
@@ -46,9 +47,11 @@ async def succeed(engine, execution, balance, request_id):
             conn,
             "INSERT INTO monitor_samples (id,run_id,monitor_id,owner_user_id,binding_id,"
             "captured_at,balance,previous_sample_id,balance_delta,quality,credential_version,"
-            "capture_interval_minutes) "
+            "capture_interval_minutes,meter_last_reading,meter_reading,meter_delta,"
+            "meter_record_date,meter_source_record_key) "
             "VALUES (:id,:run,:monitor,:owner,:binding,UTC_TIMESTAMP(6),:balance,:previous,"
-            ":delta,'balance_only',:credential,:interval)",
+            ":delta,:quality,:credential,:interval,:meter_last,:meter_reading,:meter_delta,"
+            ":meter_date,:meter_key)",
             id=sample_id.bytes,
             run=run["id"],
             monitor=monitor["id"],
@@ -59,6 +62,12 @@ async def succeed(engine, execution, balance, request_id):
             delta=Decimal(balance) - previous["balance"] if previous else None,
             credential=execution.credential_version,
             interval=monitor["interval_minutes"],
+            quality=meter.get("quality", "balance_only"),
+            meter_last=meter.get("last_reading"),
+            meter_reading=meter.get("reading"),
+            meter_delta=meter.get("delta"),
+            meter_date=meter.get("record_date"),
+            meter_key=meter.get("source_record_key"),
         )
         await finish_attempt(conn, run, "succeeded")
         await execute(

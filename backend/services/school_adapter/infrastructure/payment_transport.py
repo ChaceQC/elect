@@ -23,7 +23,7 @@ class PaymentTransport:
             transport=self.transport or PinnedTransport(self.resolver),
             trust_env=False,
             follow_redirects=False,
-            headers={"User-Agent": UA},
+            headers={"User-Agent": UA, "Connection": "close"},
         )
 
     async def request(self, client, method, url, deadline, **kwargs):

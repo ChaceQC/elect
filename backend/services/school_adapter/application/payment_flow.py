@@ -82,7 +82,10 @@ class PaymentFlow:
                         main,
                         deadline,
                         data=form_fields(fields["hidden"], step),
-                        headers={"Referer": fields["referer"]},
+                        headers={
+                            "Referer": fields["referer"],
+                            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                        },
                     )
                     fields = (
                         {"hidden": hidden_fields(response.text), "referer": str(response.url)}

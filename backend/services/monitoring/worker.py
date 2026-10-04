@@ -45,7 +45,10 @@ async def execute_run(app, execution, heartbeat=None):
                 if not done and heartbeat:
                     heartbeat.write(healthy=True)
             value = task.result()
-            await succeed(app.state.database, execution, value["balance"], request_id)
+            await succeed(
+                app.state.database, execution, value["balance"], request_id,
+                meter=value.get("meter"),
+            )
         return True
     except TimeoutError:
         await finish_failure(app, execution, ErrorCode.SCHOOL_TIMEOUT, True, request_id)

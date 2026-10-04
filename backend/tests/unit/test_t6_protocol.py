@@ -4,12 +4,12 @@ import pytest
 from PIL import Image
 
 from services.common.http import ApiError
-from services.school_adapter.application.payment_orders import mapped_state
 from services.school_adapter.infrastructure.payment_protocol import (
     check_pay_url,
     form_fields,
     hidden_fields,
     image_bytes,
+    original_order_paid,
     qr_url,
 )
 
@@ -57,6 +57,15 @@ def test_qr_data_encoding_is_preserved_and_html_header_is_not_image_evidence():
             image_bytes(invalid)
 
 
-@pytest.mark.parametrize("data", [{"payStatus": 2}, {"status": "SUCCESS"}, "paid", None])
-def test_unverified_school_values_do_not_confirm_payment(data):
-    assert mapped_state(data) == "status_unknown"
+@pytest.mark.parametrize("text", [
+    "支付成功", "该订单已失效，请重新发起交易", "该订单未支付",
+    "<script>该订单已支付，无法再次交易,请返回系统重新发起交易</script>",
+    "<!--该订单已支付，无法再次交易,请返回系统重新发起交易-->",
+])
+def test_generic_status_scripts_and_comments_do_not_confirm_original_order(text):
+    assert not original_order_paid(text)
+
+
+def test_verified_original_payment_page_message():
+    assert original_order_paid(
+        '<span>该订单已支付，无法再次交易,请返回系统重新发起交易</span>')
