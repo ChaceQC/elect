@@ -15,9 +15,11 @@ if [ -e "$task_dir" ]; then echo '测试目录已存在，拒绝覆盖' >&2; exi
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 mkdir -m 700 -p "$task_dir/secrets"
 cd "$task_root"
-docker build -t elect-backend:test backend
+task_version="v$(awk -F '"' '/^version = / {print $2; exit}' backend/pyproject.toml)"
+task_revision=$(git rev-parse HEAD)
+docker build --build-arg "ELECT_BUILD_VERSION=$task_version" --build-arg "ELECT_BUILD_REVISION=$task_revision" -t elect-backend:test backend
 docker build --target test -t elect-backend-smoke:test backend
-docker build -t elect-frontend:test frontend
+docker build --build-arg "ELECT_BUILD_VERSION=$task_version" --build-arg "ELECT_BUILD_REVISION=$task_revision" -t elect-frontend:test frontend
 docker run --rm --network none --user 0:0 -v "$task_dir/secrets:/run/provision" \
   elect-backend:test python -m services.deployment.provision \
   --output-dir /run/provision --test-tls-domain elect.test.local
@@ -32,7 +34,7 @@ compose() {
   sh deploy/compose.sh "$task_dir/stack.env" "$task_project" --test "$@"
 }
 compose config --quiet
-compose up -d --no-build --wait --wait-timeout 180
+sh deploy/start.sh "$task_dir/stack.env" "$task_project" --test
 compose run --rm --no-deps smoke
 # 合成学校的事务/恢复验收由同进程驱动；真实 Worker 不得消费合成任务并访问学校。
 if [ "$task_mode" = combined ]; then

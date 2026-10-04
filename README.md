@@ -2,7 +2,7 @@
 
 通过学校账号查询和管理寝室电费的 Web 应用，提供寝室绑定、余额查询、消费明细、定时监控和低余额邮件提醒，支持桌面与手机使用。
 
-当前版本：`0.17.0`（开发版）。
+当前版本：`0.18.0`（开发版）。
 
 ## 功能
 
@@ -27,19 +27,18 @@
 
 ## 部署
 
-目标机器需要 Docker Engine 和 Docker Compose 2.24.4 或更新版本。前后端构建、数据库初始化和后台服务均在容器中执行。
+目标机器需要 Docker Engine 和 Docker Compose 2.24.4 或更新版本。使用发布的固定摘要镜像，目标机只拉取、初始化和运行；源码构建在开发机或 CI 完成。
 
-默认采用 HTTPS。首次部署请按 [Docker 部署说明](docs/Docker部署配置说明.md) 准备 `deploy/.env`、服务 Secret、域名和证书，并完成 Secret 初始化；之后在仓库根目录执行：
+默认采用 HTTPS。按 [固定镜像发布与启动](docs/runbooks/固定镜像发布与启动.md) 下载开发版部署包和 `release.env`，配置服务 Secret、域名和证书并完成首次 Secret 初始化后执行：
 
 ```sh
-sh deploy/compose.sh "$PWD/deploy/.env" elect config --quiet
-sh deploy/compose.sh "$PWD/deploy/.env" elect up -d --build
-sh deploy/compose.sh "$PWD/deploy/.env" elect ps -a
+sh deploy/start.sh /absolute/stack.env elect
+sh deploy/status.sh /absolute/stack.env elect
 ```
 
 私网 HTTP 模式使用独立配置，见 [私网部署说明](docs/runbooks/本机私网部署.md)。数据使用 Docker 命名卷持久化；启停、升级和备份恢复按对应运行手册执行。
 
-在公开配置中设置 `ELECT_DEPLOYMENT_MODE=combined` 可选择 13 个长期容器的轻量组合；默认 `standalone` 保留独立角色。轻量组合采用每池 `2+1`、MySQL 128MiB/40连接、Redis 32MiB、普通 RabbitMQ 和 30秒探针；参数与兼容方式见 [第三步资源说明](docs/decisions/Docker低资源资源参数.md)。0.17.0引入事务提交后Outbox唤醒、有界消息推送、空闲退避及两个监控执行槽，邮件保持单槽，见[执行效率说明](docs/decisions/Docker低资源执行效率.md)。切换已有部署使用 `deploy/upgrade.sh` 停止旧角色后迁移、启动，目标机使用已构建镜像。2核2GB/50人容量仍需按优化方案验收。
+在公开配置中设置 `ELECT_DEPLOYMENT_MODE=combined` 可选择 13 个长期容器的轻量组合；默认 `standalone` 保留独立角色。轻量组合采用每池 `2+1`、MySQL 128MiB/40连接、Redis 32MiB、普通 RabbitMQ 和 30秒探针；参数与兼容方式见 [第三步资源说明](docs/decisions/Docker低资源资源参数.md)。0.17.0引入事务提交后Outbox唤醒、有界消息推送、空闲退避及两个监控执行槽，邮件保持单槽，见[执行效率说明](docs/decisions/Docker低资源执行效率.md)。首次和已有部署升级分别使用 `deploy/start.sh` / `deploy/upgrade.sh`，校验并拉取摘要后停止全部旧角色，按依赖串行启动。开发机在 `ELECT_IMAGE_MODE=local` 时使用 `compose.sh up -d --build`。2核2GB/50人容量仍需按优化方案验收。
 
 ## 本地开发
 

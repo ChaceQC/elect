@@ -8,6 +8,12 @@
 
 0.17.0第四步接通成功提交后Outbox提示、空闲退避、有界basic.consume及两个监控执行槽，邮件发送仍单槽；无新增迁移、密钥或公共API字段。补齐既有room.binding_confirmed的MQ最小权限/路由/Inbox消费；已有Secret须在停应用后重复离线upgrade_controls，再重建RabbitMQ加载定义，详见[执行效率决策](decisions/Docker低资源执行效率.md)。原模式切换与恢复隔离入口继续适用。
 
+## 固定镜像交付（0.18.0）
+
+目标机使用开发版发布的摘要镜像和仅deploy包，不执行构建；首次/原卷升级用start.sh/upgrade.sh逐个等待基础服务、迁移、领域、后台和入口。发布与元数据/入口预检、私有registry登录及失败边界见[固定镜像手册](runbooks/固定镜像发布与启动.md)。第五步页面刷新/数据清理和2核2GB/50人24小时仍未完成。
+
+基础compose.yaml不再含build，开发机的ELECT_IMAGE_MODE=local通过compose.sh加载compose.build.yaml。下面源码构建命令只供开发机/历史升级参考；目标机以固定镜像手册为准。
+
 ## 轻量组合与统一入口
 
 在公开env中设置`ELECT_DEPLOYMENT_MODE=combined`后，`deploy/compose.sh`自动加入`compose.low-resource.yaml`；默认standalone为原30个长期容器。七域API与后台各共用一个Python进程，邮件发送独立；Gateway无数据库。可选SMTP定向通道另加1个，须先配置Secret并显式设`ELECT_SMTP_DIRECT_ENABLED=true`，不能自动照搬本机网络。
@@ -38,7 +44,7 @@ docker run --rm --network none --user 0:0 \
   -v /opt/elect/secrets:/run/upgrade elect-backend:local \
   python -m services.deployment.upgrade_controls --directory /run/upgrade
 docker compose --env-file deploy/.env -f deploy/compose.yaml config --quiet
-docker compose --env-file deploy/.env -f deploy/compose.yaml build
+sh deploy/compose.sh "$PWD/deploy/.env" elect build
 docker compose --env-file deploy/.env -f deploy/compose.yaml run --rm migrate
 docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --force-recreate
 ```
@@ -81,7 +87,7 @@ ELECT_SECRETS_DIR=/opt/elect/secrets
 | ELECT_TLS_KEY_FILE | 配套 PEM 私钥文件绝对路径；一期使用可非交互读取的无口令私钥，由文件权限保护 |
 | ELECT_SECRETS_DIR | 其他数据库、服务认证、学校密钥等 Secret 文件所在的受限目录 |
 
-deploy/.env.example 已列出 ELECT_IMAGE、ELECT_WEB_IMAGE、MYSQL_IMAGE、REDIS_IMAGE、RABBITMQ_IMAGE 等镜像变量；版本和基础镜像摘要由实施阶段验证后固定。ELECT_IMAGE/ELECT_WEB_IMAGE 是 Compose 构建后端/前端时使用的镜像名称。
+deploy/.env.example 已列出 ELECT_IMAGE、ELECT_WEB_IMAGE、MYSQL_IMAGE、REDIS_IMAGE、RABBITMQ_IMAGE 等镜像变量；基础服务固定摘要，CI版本标签发布受测应用镜像/摘要。ELECT_IMAGE_MODE=published时ELECT_IMAGE/ELECT_WEB_IMAGE为repo@sha256引用；local时为开发构建的镜像名称。
 
 域名 DNS 应指向部署入口，证书 SAN 应覆盖域名，证书在有效期内，私钥与证书公钥必须匹配。证书文件通过 Docker Secret 只读挂载，私钥限制文件读取权限。
 
@@ -104,7 +110,6 @@ Gateway/Identity 的 Origin/CSRF 检查、可信跳转和 Notification 的站内
 services:
   nginx:
     image: ${ELECT_WEB_IMAGE:?set-reviewed-web-image}
-    build: {context: ../frontend, dockerfile: Dockerfile}
     ports: ["80:80", "443:443"]
     networks: [edge, app]
     environment:
@@ -150,7 +155,7 @@ docker run --rm --network none --user 0:0 \
 
 ```sh
 docker compose --env-file deploy/.env -f deploy/compose.yaml config --quiet
-docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build
+sh deploy/compose.sh "$PWD/deploy/.env" elect up -d --build
 docker compose --env-file deploy/.env -f deploy/compose.yaml ps -a
 ```
 

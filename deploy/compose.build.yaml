@@ -1,0 +1,34 @@
+# 仅由ELECT_IMAGE_MODE=local选择；发布包不依赖源码或构建工具。
+x-backend: &backend-build
+  build: {context: ../backend, dockerfile: Dockerfile}
+services:
+  nginx:
+    build: {context: ../frontend, dockerfile: Dockerfile}
+  tls-check: *backend-build
+  migrate: *backend-build
+  gateway: *backend-build
+  identity: *backend-build
+  school-adapter: *backend-build
+  room: *backend-build
+  monitoring: *backend-build
+  notification: *backend-build
+  payment: *backend-build
+  audit: *backend-build
+  identity-relay: *backend-build
+  school-relay: *backend-build
+  room-relay: *backend-build
+  monitoring-relay: *backend-build
+  notification-relay: *backend-build
+  payment-relay: *backend-build
+  audit-worker: *backend-build
+  identity-recovery: *backend-build
+  room-sync-worker: *backend-build
+  school-maintenance: *backend-build
+  monitor-scheduler: *backend-build
+  monitor-worker: *backend-build
+  monitor-recovery: *backend-build
+  monitor-alerts: *backend-build
+  notification-worker: *backend-build
+  notification-recovery: *backend-build
+  payment-worker: *backend-build
+  payment-recovery: *backend-build

@@ -16,6 +16,11 @@ ENV PATH="/app/.venv/bin:$PATH"
 CMD ["uv", "run", "pytest", "-q"]
 
 FROM base AS runtime
+ARG ELECT_BUILD_VERSION=dev
+ARG ELECT_BUILD_REVISION=unknown
+LABEL org.opencontainers.image.source="https://github.com/ChaceQC/elect" \
+      org.opencontainers.image.version=$ELECT_BUILD_VERSION \
+      org.opencontainers.image.revision=$ELECT_BUILD_REVISION
 RUN groupadd --gid 10001 elect && useradd --uid 10001 --gid elect --no-create-home elect
 COPY --from=dependencies /app/.venv /app/.venv
 COPY services ./services

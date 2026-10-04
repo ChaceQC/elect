@@ -18,7 +18,8 @@ source_compose() {
   sh deploy/compose.sh "$task_dir/stack.env" "$task_project" --test "$@"
 }
 target_compose() {
-  sh deploy/compose.sh "$task_recovery/restore.env" "$task_restore_project" --test --restore "$@"
+  ELECT_TEST_NETWORK_PREFIX=${ELECT_TEST_RESTORE_NETWORK_PREFIX:-} \
+    sh deploy/compose.sh "$task_recovery/restore.env" "$task_restore_project" --test --restore "$@"
 }
 probe() {
   task_target=$1 task_mode=$2
@@ -49,7 +50,8 @@ docker run --rm --network none --user 0:0 -v "$task_dir/secrets:/source:ro" \
   -v "$task_recovery/secrets:/target" elect-backend:ops sh -c 'cp -a /source/. /target/'
 sed "s|$task_dir/secrets|$task_recovery/secrets|g" "$task_dir/stack.env" > "$task_recovery/restore.env"
 task_started=$(date +%s)
-sh deploy/restore.sh "$task_recovery/restore.env" "$task_restore_project" \
+ELECT_TEST_NETWORK_PREFIX=${ELECT_TEST_RESTORE_NETWORK_PREFIX:-} \
+  sh deploy/restore.sh "$task_recovery/restore.env" "$task_restore_project" \
   "$task_recovery/backup.key" "$task_recovery/snapshot.electbackup"
 target_compose run -T --rm --no-deps recovery-guard inventory > "$task_recovery/after.json"
 probe target_compose restored

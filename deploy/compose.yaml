@@ -6,7 +6,6 @@ x-logging: &logging
 
 x-python: &python
   image: ${ELECT_IMAGE:?set-backend-image}
-  build: {context: ../backend, dockerfile: Dockerfile}
   init: true
   restart: unless-stopped
   read_only: true
@@ -55,7 +54,6 @@ x-job: &job
 services:
   nginx:
     image: ${ELECT_WEB_IMAGE:?set-frontend-image}
-    build: {context: ../frontend, dockerfile: Dockerfile}
     restart: unless-stopped
     ports: ["80:80", "443:443"]
     networks: [edge, app]
@@ -85,7 +83,6 @@ services:
 
   tls-check:
     image: ${ELECT_IMAGE:?set-backend-image}
-    build: {context: ../backend, dockerfile: Dockerfile}
     restart: "no"
     network_mode: none
     read_only: true
