@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
+import { PollingNotice } from '../../components/feedback/PollingNotice.jsx'
 import { useOperation } from '../../hooks/useOperation.js'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
 import { timestampLabel } from '../../lib/dates.js'
@@ -52,6 +53,7 @@ export function RunControls({ monitor }) {
       {run.error_code && <p role="alert">采集错误：{run.error_code}</p>}
       <button className="quiet" disabled={cancelling || !['pending', 'running', 'retry_wait'].includes(run.state)} onClick={() => { void cancel() }}>取消本次采集</button></>}
     {intent?.id && <button className="quiet" disabled={operation.isFetching} onClick={() => { void operation.refresh() }}>读取最新运行</button>}
+    <PollingNotice paused={operation.pollingPaused} busy={operation.isFetching} onResume={() => { void operation.refresh() }} />
     {(error || operation.error) && <StatusBlock title={error || operation.error?.message || '运行查询失败'} error />}
   </section>
 }

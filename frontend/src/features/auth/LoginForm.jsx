@@ -72,8 +72,6 @@ export function LoginForm({ reauthenticate = false, onSuccess }) {
     <div className="agreement-check"><label className="checkbox-row"><input type="checkbox" checked={accepted} disabled={readVersion !== currentVersion || !currentVersion}
       onChange={event => setAccepted(event.target.checked)} />我同意应用使用协议</label>
       <button type="button" className="text-button" disabled={!policy.data} onClick={() => setAgreementOpen(true)}>阅读应用协议</button></div>
-    {readVersion !== currentVersion && <p className="field-hint">请打开协议并阅读到底部，之后即可勾选。</p>}
-    <p className="authorization-note">登录或重新认证即同意协议中的后台授权：使用加密凭据恢复学校登录，提供查询、绑定、缴费及已开启的监控服务。授权不会自动开启监控。</p>
     {error && <StatusBlock title={error.message} error><p>{error.retryAfterSeconds ? `请至少等待 ${error.retryAfterSeconds} 秒后重试。` :
       '请检查输入或重新获取验证码后重试。'}</p>{error.requestId && <small>请求编号：{error.requestId}</small>}</StatusBlock>}
     <button className="primary-action" type="submit" disabled={!valid || busy}>{busy ? '正在学校认证…' : reauthenticate ? '重新认证' : '登录'}</button>

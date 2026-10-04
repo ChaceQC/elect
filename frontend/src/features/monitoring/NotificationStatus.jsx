@@ -7,7 +7,7 @@ export function NotificationStatus({ notification }) {
   const states = { idle: '暂无发送', pending: '等待发送', sending: '发送中', sent: '邮件服务器已接收',
     email_failed: '发送失败', delivery_unknown: '投递结果未知', cancelled: '已取消' }
   return <section aria-label="邮件投递状态">
-    <p>邮件状态：{states[notification.state]} · 在途邮件 {notification.in_flight_count} 封</p>
+    <p>邮件状态：{states[notification.state]} · 正在处理 {notification.in_flight_count} 封</p>
     <p>最近服务器接收：{when(notification.last_sent_at)}</p>
     {notification.next_retry_at && <p>邮件下次重试：{when(notification.next_retry_at)}</p>}
     {notification.last_error_code && <p>最近邮件错误：{notification.last_error_code}</p>}

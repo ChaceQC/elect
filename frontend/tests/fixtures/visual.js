@@ -7,7 +7,7 @@ import { addDays } from '../../src/lib/dates.js'
 // 与 example 的截图采用相同合成账号、房间和总览趋势；明细数据独立合成，仅由测试拦截 API 使用。
 const captchaImage = 'data:image/png;base64,' + readFileSync(new URL('./visual-captcha.png', import.meta.url)).toString('base64')
 const amounts = ['3.20', '4.50', '3.80', '5.90', '4.70', '3.50', '4.20', '5.30', '4.10', '3.70', '4.80', '3.60', '4.40', '3.90']
-const currentBalance = { ...balance('86.42'), stale: false }
+const currentBalance = { ...balance('86.42'), fetched_at: '2026-10-01T10:00:00+08:00', stale: false }
 const room = { id: a, room_id: a, display_name: '合成楼 · 示例室', building: '合成楼', number: '示例室', status: 'active', balance: currentBalance }
 const user = { ...me, student_id: '000000000000' }
 /** @param {string} start @param {string} end @param {string} [granularity] */

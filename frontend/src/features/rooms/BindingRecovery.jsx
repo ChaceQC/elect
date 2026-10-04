@@ -21,8 +21,8 @@ export function BindingRecovery({ onAccepted }) {
     }
   }
   return <>{pending.map(intent => <StatusBlock key={intent.key} title={intent.method === 'DELETE' ? '有一笔删除绑定受理尚未确认' : '有一笔学校绑定受理尚未确认'}>
-    <p>请使用原目标和原幂等键查询受理；已受理操作会返回原编号。</p>
-    <button disabled={busy} onClick={() => { void retry(intent) }}>重试原受理请求</button>
+    <p>将继续确认上次提交的结果；已经受理的操作会继续使用原记录。</p>
+    <button disabled={busy} onClick={() => { void retry(intent) }}>查看上次提交结果</button>
     <button className="quiet" disabled={busy} onClick={() => {
       controller?.forget(intent.key); setError('')
       setNotice('已停止本地重试；学校请求仍可能已受理，请同步学校绑定核对。')

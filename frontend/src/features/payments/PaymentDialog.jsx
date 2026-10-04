@@ -1,28 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import Decimal from 'decimal.js'
-import { ApiError, apiClient } from '../../api/client.js'
+import { ApiError } from '../../api/client.js'
 import { isFeatureRejected } from '../../api/intents.js'
 import { Modal } from '../../components/Modal.jsx'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
 import { validateAmount } from '../../lib/money.js'
-import { useSession } from '../auth/SessionProvider.jsx'
+import { usePaymentCapability } from './usePaymentCapability.js'
 import { OrderStatus } from './OrderStatus.jsx'
 import { Building2 } from 'lucide-react'
 
 /** @param {{bindingId: string, displayName: string, onClose: ()=>void}} props */
 export function PaymentDialog({ bindingId, displayName, onClose }) {
-  const { user } = useSession()
   const { controller, submit, busy } = useRequestIntent()
   const [amount, setAmount] = useState('1')
   const [orderId, setOrderId] = useState(/** @type {string|null} */ (null))
   const [frozen, setFrozen] = useState(/** @type {import('../../api/intents.js').Intent|null} */ (null))
   const [error, setError] = useState('')
   const submitting = useRef(false)
-  const capability = useQuery({ queryKey: ['payment-capabilities', user?.id, bindingId], retry: false,
-    queryFn: async ({ signal }) => /** @type {import('../../api/generated').components['schemas']['Capabilities']} */ (
-      (await apiClient.request(`/payments/capabilities?binding_id=${bindingId}`, { signal })).data) })
+  const capability = usePaymentCapability(bindingId)
   const rules = capability.data
   const restored = controller?.restore().find(item => item.kind === 'order' && item.path === '/payment-orders' && item.body.binding_id === bindingId)
   const intent = frozen ?? restored
@@ -55,7 +51,7 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
     {rules && !rules.enabled && <StatusBlock title={rules.unavailable_reason ?? '支付暂未开放'} />}
     {id ? <OrderStatus key={id} id={id} onStartNew={() => {
       void capability.refetch().then(() => { setOrderId(null); setFrozen(null); setAmount('1') })
-    }} /> : <>
+    }} /> : (rules?.enabled || intent) && <>
       {rules && <p className="muted">{rules.min_amount}–{rules.max_amount} 元 · 每次递增 {rules.amount_step} 元</p>}
       <label className="payment-amount">充值金额（元）<input inputMode="decimal" maxLength={16}
         value={intent ? String(intent.body.amount) : amount} disabled={busy || !!intent || !rules?.enabled}

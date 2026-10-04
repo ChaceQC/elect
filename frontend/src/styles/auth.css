@@ -22,7 +22,6 @@
 .agreement-check { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; font-size: 11px; }
 .agreement-check .checkbox-row, .login-form > .checkbox-row { font-size: 11px; }
 .login-form > .field-hint { margin: -17px 0 -10px; }
-.authorization-note { font-size: 11px; color: var(--muted); margin-top: -16px; }
 .login-form .primary-action { margin-top: -7px; }
 .login-form .status-block { margin: 0; }
 @media (min-width: 1500px) { .login-story { padding: 55px 85px; } .story-copy h1 { font-size: 66px; } }

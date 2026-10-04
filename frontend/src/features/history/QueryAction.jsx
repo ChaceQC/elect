@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useOperation } from '../../hooks/useOperation.js'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
+import { PollingNotice } from '../../components/feedback/PollingNotice.jsx'
 import { useSession } from '../auth/SessionProvider.jsx'
 import { RefreshCw } from 'lucide-react'
 
@@ -36,6 +37,7 @@ export function QueryAction({ path, body = {}, label, operationId, compact = fal
     {operation.data && <p role="status">{({ accepted: '查询已受理', running: '正在从学校读取', succeeded: '查询已完成', failed: '查询失败，保留已有数据', cancelled: '查询已取消', reconciling: '结果确认中', unknown: '查询结果尚未确认' })[operation.data.state] ?? operation.data.state}</p>}
     {running && intent?.body.start_date && <p className="muted">本次同步范围：{intent.body.start_date} 至 {intent.body.end_date}</p>}
     {(error || operation.error) && <StatusBlock title={error || operation.error?.message || '查询未完成'} error />}
+    <PollingNotice paused={operation.pollingPaused} busy={operation.isFetching} onResume={() => { void operation.refresh() }} />
     {running && intent?.id && <button className="quiet" onClick={() => { void operation.refresh() }}>查询最新进度</button>}
   </div>
 }

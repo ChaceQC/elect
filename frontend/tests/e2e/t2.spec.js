@@ -61,7 +61,7 @@ for (const width of [1440, 375]) {
     await page.locator('.agreement-content').evaluate(element => { element.scrollTop = element.scrollHeight })
     await page.getByRole('button', { name: '我已阅读' }).click()
     await page.getByLabel('我同意应用使用协议').check()
-    await expect(page.getByText(/登录或重新认证即同意协议中的后台授权/)).toBeVisible()
+    await expect(page.locator('.authorization-note')).toHaveCount(0)
     await page.getByRole('button', { name: '登录', exact: true }).click()
     await expect(page.getByRole('heading', { name: '选择与绑定', exact: true })).toBeVisible()
     await expect(page.getByText('合成楼栋 001', { exact: true })).toBeVisible()

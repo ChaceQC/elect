@@ -57,10 +57,9 @@ for (const width of [1440, 375]) {
     await expect(page.getByRole('button', { name: '2026-08-31', exact: true })).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('button', { name: '打开开始日期日历' })).toBeFocused()
-    await page.getByRole('button', { name: '充值电费' }).click()
-    await expect(page.getByRole('button', { name: '确认创建充值订单' })).toBeDisabled()
-    await capture(page, width, 'payment')
-    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: '充值电费' })).toBeDisabled()
+    await expect(page.getByText('支付暂未开放', { exact: true })).toBeVisible()
+    await capture(page, width, 'payment-unavailable')
     await page.getByRole('button', { name: '我的账户' }).click()
     await page.getByRole('button', { name: '退出应用', exact: true }).click()
     await expect(page.getByRole('form', { name: '学校账号登录' })).toBeVisible()
@@ -76,7 +75,7 @@ test('成功空绑定显示参考引导，失败状态不伪装为首次绑定',
   await visualFixture(page)
   let state = 'empty'
   await page.route('**/api/v1/room-bindings?*', route => route.fulfill({ json: envelope({
-    items: [], page: 1, page_size: 100, total: 0, default_binding_id: null, preference_version: 1,
+    items: [], page: 1, page_size: 100, total: 0, default_binding_id: null, preference_version: 1, binding_write_enabled: true,
     sync_status: state, last_synced_at: '2026-10-01T10:00:00+08:00', pending_operations: [], pending_operations_truncated: false,
   }) }))
   await page.goto('/overview')

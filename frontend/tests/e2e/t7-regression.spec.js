@@ -41,7 +41,7 @@ async function noOverflow(page) {
 }
 
 for (const width of [375, 390, 768, 1280, 1440]) {
-  test(`${width}px：四页、长错误、账户与支付弹窗可达`, async ({ page, context }) => {
+  test(`${width}px：四页、长错误、账户与支付限制可见`, async ({ page, context }) => {
     await fixture(context)
     await page.setViewportSize({ width, height: 900 })
     for (const [path, title] of [['overview', '总览'], ['details', '电费明细'], ['rooms', '选择与绑定'], ['monitor', '监控与预警']]) {
@@ -58,11 +58,10 @@ for (const width of [375, 390, 768, 1280, 1440]) {
     await page.keyboard.press('Escape')
     await expect(page.getByRole('button', { name: '我的账户' })).toBeFocused()
     await page.goto(`/rooms/${a}`)
-    await page.getByRole('button', { name: '充值电费' }).click()
-    await expect(page.getByRole('dialog')).toContainText('支付尚未完成真实验收')
-    await expect(page.getByRole('button', { name: '确认创建充值订单' })).toBeDisabled()
-    await page.keyboard.press('Escape')
-    await expect(page.getByRole('button', { name: '充值电费' })).toBeFocused()
+    await expect(page.getByRole('button', { name: '充值电费' })).toBeDisabled()
+    await expect(page.getByText('支付尚未完成真实验收', { exact: true })).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByLabel('充值金额（元）')).toHaveCount(0)
     await page.goto('/details')
     await page.getByLabel('开始日期', { exact: true }).fill('2027-01-01')
     await expect(page.getByLabel('开始日期', { exact: true })).toHaveAttribute('aria-invalid', 'true')
