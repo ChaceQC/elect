@@ -1,5 +1,7 @@
 # Docker低资源资源参数
 
+2026-10-05七容器改造第一轮继续收紧combined基础参数：日志缓冲16MiB、MyISAM key buffer 1MiB，Performance Schema开启并限制线程/表/账号/摘要及历史容量；Nginx固定1个worker。128MiB Buffer Pool、40连接、临时表和刷盘/binlog不变。新core模式也沿用这些参数，目标与验收见[七容器方案](七容器核心组合.md)。以下0.16.0数据保留为历史基线。
+
 日期：2026-10-03（Asia/Shanghai）；版本：0.16.0。对应[优化方案](../Docker低资源部署优化方案.md)第三步，延续[后台生命周期](Docker低资源后台生命周期.md)。本轮在新隔离项目验证，原业务部署继续停机。
 
 ## 参数与适用组合

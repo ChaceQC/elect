@@ -16,6 +16,8 @@ x-disabled: &disabled
     ELECT_PROCESS_MODE: combined
 services:
   nginx:
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     healthcheck:
       <<: *slow-health
       start_period: 15s

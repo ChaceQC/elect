@@ -1,3 +1,32 @@
+## 2026-10-05 · 七容器核心组合实施
+
+### 已完成
+
+- 核对dev/e881c93干净工作区、13容器combined运行状态、统一启停/恢复及CI入口；先落地docs/decisions/七容器核心组合.md。
+- 重构原因：独立Python运行时与MySQL预留占用较高；影响公共运行上下文、内部调用、生命周期、邮件入口、迁移版本清单、Compose与运维/CI，保持数据库与外部API边界。
+- 第一轮参数已落实：日志缓冲16MiB、key buffer 1MiB，保留Performance Schema并限制实例/摘要/历史容量；combined Nginx单worker，其他持久性与连接池预算不变。
+
+### 进行中
+
+- 按基线→MySQL/Nginx→核心进程→邮件精简→7容器切换→测量与CI顺序实施。
+
+### 阻塞与风险
+
+- 无代码实施阻塞；700 MiB为目标，合并后故障和Secret访问范围扩大，真实学校/OCR/支付高峰不能由空闲数据推断。
+- 现有elect-wsl正在运行，验证使用独立项目、合成凭据与数据，避免重复触发原监控/邮件/支付。
+
+### 下一步
+
+- 实现核心运行上下文、复用原权限/DTO的进程内调用，以及无Web初始化的邮件入口；再接7容器Compose和旧卷双向切换。
+
+### 主要文件或模块
+
+- backend/services/common、core、notification、deployment；deploy及.github/workflows/check.yaml；相关部署/架构与验收文档。
+
+### 验证
+
+- 已只读核对13个elect-wsl容器健康；MySQL8.4.6无网络容器以全部公开参数执行validate-config通过，Nginx无网络配置检查通过，git diff --check通过。首次MySQL默认entrypoint要求初始化且Windows挂载文件被视为全局可写，因此最终改为直接mysqld参数验证；未将忽略配置的结果计为成功。未修改运行配置或加载真实凭据。
+
 ## 2026-10-05 · WSL 部署与内存采样（0.18.3）
 
 ### 已完成
