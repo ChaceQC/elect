@@ -1,3 +1,39 @@
+## 2026-10-05 · WSL 部署与内存采样（0.18.3）
+
+### 已完成
+
+- 在本机 Ubuntu-24.04/Docker29.1.3/Compose2.40.3 新建 elect-wsl，使用 aa7c5ad 源码构建前后端 runtime、combined 组合及独立 Secret/三个卷，13个长期容器健康；入口 http://172.23.107.48:6874。原10.8.0.88环境不在本机WSL，未改动它或其他项目容器。
+- 按用户追加要求开启本地绑定、支付建单/表单/能力门槛及真实SMTP；专用无网络进程导入 email_auth.txt，未输出凭据。未登录学校、建单、付款或发送测试邮件。
+- 补装缺失的Docker Buildx；Windows脚本CRLF不适用于sh，因此在/home/cloudhelm/elect-wsl检出同一提交的LF副本。本地deploy/.env.wsl被Git忽略，真实Secret只保存在WSL受限目录。
+- 定位容器一起停止为WSL/systemd整体退出、Docker正常终止，非OOM；用户明确要求自行保持运行后，成功启动隐藏WSL保活进程（启动时Windows PID20488），未设置开机计划任务。
+- 稳定运行后7次采样：全栈1332.31–1339.84MiB，平均1336.08MiB（约1.305GiB），不计WSL/Docker守护进程；逐项原始数据和启停方式已落文档。
+- 同步AGENTS、文档导航和deploy README。根/前后端README无产品能力、目录或通用启动规则变化，无需修改；仓库无AGENT.md。
+
+### 进行中
+
+- 运行环境保留供用户使用；本轮部署记录按当前dev提交推送。
+
+### 阻塞与风险
+
+- SMTP开关和凭据已生效，但正式Worker直连以及既有DoH/eth0定向检查均在connect阶段ConnectionResetError，尚未通过TLS/认证；不描述为邮件可投递。
+- 当前采样为空业务库/无活跃监控、订单和邮件任务的启动基线，未加载登录OCR或施加并发负载，不能替代2核2GB/50人/24小时容量验收。
+- WSL保活仅适用于当前Windows会话；重启/主动关闭WSL后需恢复会话并核对可能变化的私网IP。
+
+### 下一步
+
+- 处理本机Windows/WSL至指定SMTP的出口连接重置，再从正式Worker验证TLS/认证；不关闭TLS验证、不自动扩大真实发送范围。后续开发仍按第五步页面稳定刷新与引用安全清理推进。
+
+### 主要文件或模块
+
+- docs/runbooks/WSL部署与内存.md、docs/acceptance/WSL内存2026-10-05.json、docs/README.md、deploy/README.md、AGENTS.md；本地忽略配置deploy/.env.wsl及WSL运行环境。
+
+### 验证
+
+- 前后端runtime构建、镜像版本/源提交一致性、Compose配置、Nginx预检、七域迁移通过；页面/healthz/登录协议接口均200；采样结束13/13健康，OOMKilled均false，保活后无容器重启。
+- 7次docker stats、Linux free和Windows vmmemWSL分别记录；后者约3977.37MiB，包含系统/Docker/缓存，不计入项目总量。
+- SMTP首次普通连接及保活后的普通/定向连接未通过，未发送正文。定向探针最初以去除DAC权限的root读取应用所属0400文件失败，改为文件所属UID后完成检查，未修改Secret权限。
+- 未运行全量测试或压力测试；未读取学校凭据、未触发学校写或真实邮件发送。此前后台保活命令曾被自动审批拒绝，用户再次明确授权后执行成功。
+
 ## 2026-10-05 · 搜索焦点与采集明细更新修复（0.18.3）
 
 ### 已完成

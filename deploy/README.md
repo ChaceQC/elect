@@ -40,3 +40,5 @@ T5新增 monitor-alerts、notification-worker、notification-recovery，长期�
 0.12.0交付T7集中回归、加密备份/隔离恢复、运行状态和模拟容量入口；证书部署/更换按用户要求跳过。完整范围与未验事项见 [T7验收](../docs/acceptance/T7验收记录.md)。
 
 本机私网部署使用 `.env.local`、`compose.yaml` 和 `compose.local.yaml`，只发布指定 `10.8.0.88:6874`，暂不配置入口域名/证书；本机SMTP代理问题由 `compose.smtp-direct.yaml` 定向直连解决。首次Secret/邮件导入、显式开关与启停见[本机私网部署](../docs/runbooks/本机私网部署.md)。
+
+2026-10-05新建的本机WSL环境使用独立`elect-wsl`项目、忽略配置`.env.wsl`和Linux检出目录，与上述环境分开。当前入口、用户指定的能力开关、保活、内存基线及SMTP出口限制见[WSL部署与内存](../docs/runbooks/WSL部署与内存.md)。
