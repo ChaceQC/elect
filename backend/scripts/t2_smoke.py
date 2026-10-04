@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from scripts.t2_fixtures import SyntheticSchool
 from services.common.app import create_app
+from services.common.config_contract import SideEffectPolicy
 from services.common.database import create_database
 from services.common.ids import new_id
 from services.common.runtime import Runtime, read_secret
@@ -37,6 +38,7 @@ async def fixture_apps():
         runtime = Runtime.model_validate_json(read_secret(f"/run/secrets/{service}_runtime.json"))
         app.state.runtime = runtime
         app.state.public_origin = "https://elect.test.local"
+        app.state.side_effect_policy = SideEffectPolicy()
         app.state.database = (
             create_database(runtime.db_url.get_secret_value()) if runtime.db_url else None
         )
