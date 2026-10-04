@@ -77,8 +77,8 @@ it('未知绑定只查询原操作，绑定确认而默认失败分别显示', a
   await screen.findByText('学校绑定：结果尚未确认')
   expect(screen.getByText(/后台只回查学校结果/)).toBeInTheDocument()
   state = 'succeeded'
-  fireEvent.click(screen.getByRole('button', { name: '查询最新进度' }))
-  await screen.findByText('绑定状态：学校已确认')
+  expect(screen.queryByRole('button', { name: '查询最新进度' })).not.toBeInTheDocument()
+  await screen.findByText('绑定状态：学校已确认', {}, { timeout: 4000 })
   expect(screen.getByText('默认状态：默认设置失败，已绑定关系保留')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: '确认绑定' })).not.toBeInTheDocument()
 })

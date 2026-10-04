@@ -79,7 +79,7 @@ for (const width of [1440, 375]) {
     await expect(page.getByText('学校绑定：结果尚未确认')).toBeVisible()
     expect(bindCount).toBe(1)
     state = 'succeeded'
-    await page.getByRole('button', { name: '查询最新进度' }).click()
+    await expect(page.getByRole('button', { name: '查询最新进度' })).toHaveCount(0)
     await expect(page.locator('.room-card').filter({ hasText: '枫苑5号-402' })).toBeVisible()
     await page.locator('.room-card').filter({ hasText: '枫苑5号-402' }).getByRole('link', { name: '查看寝室' }).click()
     await expect(page.getByText('查看此寝室不会修改默认寝室或监控目标。')).toBeVisible()
@@ -99,7 +99,7 @@ for (const width of [1440, 375]) {
     await page.reload()
     await expect(page.getByText('默认切换：处理中')).toBeVisible()
     defaultState = 'succeeded'
-    await page.getByRole('button', { name: '查询最新进度' }).click()
+    await expect(page.getByRole('button', { name: '查询最新进度' })).toHaveCount(0)
     await expect(newCard).toContainText('默认寝室')
     expect(defaultCount).toBe(1)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

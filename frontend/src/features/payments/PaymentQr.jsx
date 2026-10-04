@@ -40,7 +40,7 @@ export function PaymentQr({ order, onRefresh }) {
     {image ? <img src={image} width={220} height={220} alt="此充值订单的微信支付二维码" onError={() => setError('二维码图片显示失败，请重新读取原订单图片。')} />
       : <p>{order.qr_status === 'unknown' ? '支付页面结果尚未确认，暂无法展示二维码。' : order.qr_status === 'failed' ? '二维码获取失败，原订单仍保留。'
         : order.qr_status === 'not_requested' ? '订单确认后生成二维码。' : '正在取得原订单二维码…'}</p>}
-    {image && <p className="muted">二维码有效期尚未确认。扫码后请查询支付结果。</p>}
+    {image && <p className="muted">二维码有效期尚未确认。扫码后支付结果会自动更新。</p>}
     {(query.error || error) && <StatusBlock title={error || query.error?.message || '二维码读取失败'} error />}
     {order.qr_error_code && <p className="muted">二维码状态：{order.qr_error_code}</p>}
     {['awaiting_payment', 'status_unknown'].includes(order.state) && order.qr_status !== 'unknown' && <button className="quiet" disabled={busy} onClick={() => { void refresh() }}>重新获取同订单二维码</button>}

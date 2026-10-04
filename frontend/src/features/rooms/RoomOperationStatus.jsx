@@ -28,6 +28,5 @@ export function RoomOperationStatus({ id }) {
     {data?.error_code && <p className="muted">最近错误：{data.error_code}</p>}
     {query.error && <p>{query.error.message}</p>}
     <PollingNotice paused={query.pollingPaused} busy={query.isFetching} onResume={() => { void query.refresh() }} />
-    <button className="quiet" onClick={() => { void query.refresh() }}>查询最新进度</button>
   </StatusBlock>
 }

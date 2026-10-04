@@ -6,7 +6,7 @@ import { binding, bindingId, capability, order, orderId } from '../fixtures/t6.j
 for (const width of [1440, 375]) {
   test(`${width}px：能力规则、建单重复防护、未知订单重开和刷新恢复`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
-    let accepted = false, cancelled = false, cancels = 0, writes = 0, amount = '20.00'
+    let accepted = false, cancelled = false, cancels = 0, writes = 0, reads = 0, amount = '20.00'
     await page.route('**/api/v1/**', async route => {
       const request = route.request(), path = new URL(request.url()).pathname
       if (path === '/api/v1/auth/me') return route.fulfill({ json: envelope(me) })
@@ -23,7 +23,7 @@ for (const width of [1440, 375]) {
       }
       const current = { ...order, amount, version: cancelled ? 2 : 1,
         cancelled_at: cancelled ? '2026-10-02T03:00:00+08:00' : null }
-      if (path === `/api/v1/payment-orders/${orderId}`) return route.fulfill({ json: envelope(current) })
+      if (path === `/api/v1/payment-orders/${orderId}`) { reads += 1; return route.fulfill({ json: envelope(current) }) }
       if (path === `/api/v1/payment-orders/${orderId}/cancel`) {
         expect(request.postDataJSON()).toEqual({ expected_version: 1 })
         expect(request.headers()['x-csrf-token']).toBe(me.csrf_token)
@@ -48,7 +48,9 @@ for (const width of [1440, 375]) {
     await page.reload()
     await page.getByRole('button', { name: '查看原充值订单' }).click()
     await expect(page.getByText('支付状态尚未确认')).toBeVisible()
-    await page.getByRole('button', { name: '查询支付结果' }).click()
+    await expect(page.getByRole('button', { name: '查询支付结果' })).toHaveCount(0)
+    const previousReads = reads
+    await expect.poll(() => reads).toBeGreaterThan(previousReads)
     expect(writes).toBe(1)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     const directory = process.env.ELECT_T6_SCREENSHOT_DIR

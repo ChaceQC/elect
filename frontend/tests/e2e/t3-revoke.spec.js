@@ -20,7 +20,7 @@ for (const width of [1440, 375]) {
     await expect(page.getByText('学校认证正在更新…')).toBeVisible()
     await expect(page.getByRole('button', { name: '撤回后台授权', exact: true })).toHaveCount(0)
     done = true
-    await page.getByRole('button', { name: '查询认证进度' }).click()
+    await expect(page.getByRole('button', { name: '查询认证进度' })).toHaveCount(0)
     await expect(page.getByText('学校认证：已撤回')).toBeVisible()
     await expect(page.getByRole('button', { name: '重新学校认证' })).toBeEnabled()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

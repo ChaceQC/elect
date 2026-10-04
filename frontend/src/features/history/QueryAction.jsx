@@ -38,6 +38,5 @@ export function QueryAction({ path, body = {}, label, operationId, compact = fal
     {running && intent?.body.start_date && <p className="muted">本次同步范围：{intent.body.start_date} 至 {intent.body.end_date}</p>}
     {(error || operation.error) && <StatusBlock title={error || operation.error?.message || '查询未完成'} error />}
     <PollingNotice paused={operation.pollingPaused} busy={operation.isFetching} onResume={() => { void operation.refresh() }} />
-    {running && intent?.id && <button className="quiet" onClick={() => { void operation.refresh() }}>查询最新进度</button>}
   </div>
 }

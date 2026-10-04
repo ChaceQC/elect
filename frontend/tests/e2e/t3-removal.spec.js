@@ -38,7 +38,7 @@ for (const width of [1440, 375]) {
     await expect(page.getByText('学校解绑：结果尚未确认')).toBeVisible()
     expect(count).toBe(1)
     state = 'succeeded'
-    await page.getByRole('button', { name: '查询最新进度' }).click()
+    await expect(page.getByRole('button', { name: '查询最新进度' })).toHaveCount(0)
     await expect(page.locator('.room-card')).toHaveCount(0)
     await page.goto(`/rooms/${id}`)
     await expect(page).toHaveURL(/\/rooms$/)

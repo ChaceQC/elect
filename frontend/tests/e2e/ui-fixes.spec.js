@@ -51,7 +51,8 @@ test('支付未开放仍可查看原订单，恢复自动更新不创建新单',
   await page.clock.fastForward(121_000)
   await expect(page.getByText(/已暂停自动刷新/)).toBeVisible()
   const previous = reads
-  await page.getByRole('button', { name: '查询支付结果' }).click()
+  await expect(page.getByRole('button', { name: '查询支付结果' })).toHaveCount(0)
+  await page.getByRole('button', { name: '恢复自动更新' }).click()
   await expect(page.getByText(/已暂停自动刷新/)).toHaveCount(0)
   await expect.poll(() => reads).toBeGreaterThan(previous)
 })
