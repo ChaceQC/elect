@@ -61,7 +61,8 @@ services:
     tmpfs: [/etc/nginx/conf.d, /var/cache/nginx, /var/run, /tmp]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
-    cap_add: [NET_BIND_SERVICE, SETUID, SETGID, CHOWN]
+    # CA沿用应用UID的0400文件；Nginx主进程仅需跨UID读取已有证书。
+    cap_add: [NET_BIND_SERVICE, SETUID, SETGID, CHOWN, DAC_READ_SEARCH]
     environment:
       ELECT_DOMAIN: ${ELECT_DOMAIN:-}
       ELECT_GATEWAY_URL: http://gateway:8000

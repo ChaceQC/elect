@@ -39,7 +39,7 @@ it('账户没有撤回按钮；重新认证阅读协议后仍明确授权后台'
   await waitFor(() => expect(submitted).toMatchObject({ credential_use_allowed: true, agreement_accepted: true }))
 })
 
-it('升级前正在撤回的操作仍能查询终态，不能发起新的撤回', async () => {
+it('升级前正在撤回的操作自动更新终态，不能发起新的撤回', async () => {
   const id = '0199a10c-0000-7000-8000-000000000002'
   let done = false
   const summary = { id, type: 'credential_revoke', state: 'running' }
@@ -51,7 +51,7 @@ it('升级前正在撤回的操作仍能查询终态，不能发起新的撤回'
   expect(screen.getByRole('button', { name: '重新学校认证' })).toBeDisabled()
   expect(screen.queryByRole('button', { name: '撤回后台授权' })).not.toBeInTheDocument()
   done = true
-  fireEvent.click(screen.getByRole('button', { name: '查询认证进度' }))
-  await screen.findByText('学校认证：已撤回')
+  expect(screen.queryByRole('button', { name: '查询认证进度' })).not.toBeInTheDocument()
+  await screen.findByText('学校认证：已撤回', {}, { timeout: 5000 })
   expect(screen.getByRole('button', { name: '重新学校认证' })).toBeEnabled()
 })
