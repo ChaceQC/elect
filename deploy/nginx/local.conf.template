@@ -12,7 +12,11 @@ server {
     root /usr/share/nginx/html;
     index index.html;
     client_max_body_size 64k;
-    set $gateway http://gateway:8000;
+    set $gateway ${ELECT_GATEWAY_URL};
+    proxy_ssl_verify on;
+    proxy_ssl_trusted_certificate /run/secrets/internal_ca;
+    proxy_ssl_server_name on;
+    proxy_ssl_name identity;
 
     location = /healthz {
         access_log off;

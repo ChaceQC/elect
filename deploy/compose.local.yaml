@@ -6,10 +6,10 @@ services:
     environment:
       ELECT_HTTP_BIND: ${ELECT_HTTP_BIND}
       ELECT_HTTP_PORT: ${ELECT_HTTP_PORT}
-      NGINX_ENVSUBST_FILTER: "^ELECT_HTTP_(BIND|PORT)$$"
+      NGINX_ENVSUBST_FILTER: "^ELECT_(HTTP_(BIND|PORT)|GATEWAY_URL)$$"
     volumes: !override
       - ./nginx/local.conf.template:/etc/nginx/templates/default.conf.template:ro
-    secrets: !reset []
+    secrets: !override [internal_ca]
     depends_on: !override
       gateway: {condition: service_healthy}
     healthcheck:

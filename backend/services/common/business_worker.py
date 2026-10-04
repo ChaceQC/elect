@@ -6,7 +6,6 @@ import signal
 import time
 from functools import partial
 
-from .app import create_app
 from .background import require_standalone
 from .background_roles import BUSINESS_ROLES
 from .heartbeat import Heartbeat
@@ -29,6 +28,8 @@ async def school_cleanup(app):
 
 
 async def run(service):
+    from .app import create_app
+
     require_standalone()
     app = create_app(service, business=service != "school_adapter", background=False)
     stop, heartbeat = asyncio.Event(), Heartbeat(service, BUSINESS_ROLES[service])

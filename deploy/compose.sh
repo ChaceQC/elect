@@ -39,15 +39,22 @@ if [ -n "$task_test_network" ]; then
   case "$task_test_network" in 10.[0-9]|10.[0-9][0-9]|10.[12][0-9][0-9]) ;; *) exit 2;; esac
   [ "${task_test_network#10.}" -le 255 ] || exit 2
 fi
-case "$task_mode" in standalone|combined) ;; *) echo '部署模式只允许standalone/combined' >&2; exit 2;; esac
+case "$task_mode" in standalone|combined|core) ;; *) echo '部署模式只允许standalone/combined/core' >&2; exit 2;; esac
 case "$task_image_mode" in local|published) ;; *) echo '镜像模式只允许local/published' >&2; exit 2;; esac
 case "$task_local:$task_smtp" in true:true|true:false|false:true|false:false) ;; *)
   echo '部署选择开关只允许true/false' >&2; exit 2;; esac
 # 从后向前添加，恢复覆盖始终最后；恢复完全不加载host网络SMTP通道。
 set -- -p "$task_project" "$@"
+if [ "$task_restore" = true ] && [ "$task_mode" = core ]; then
+  set -- -f "$task_root/deploy/compose.core-restore.yaml" "$@"
+fi
 if [ "$task_restore" = true ]; then set -- -f "$task_root/deploy/compose.restore.yaml" "$@"; fi
 set -- -f "$task_root/deploy/compose.ops.yaml" "$@"
-if [ "$task_mode" = combined ]; then set -- -f "$task_root/deploy/compose.low-resource.yaml" "$@"; fi
+if [ "$task_mode" = core ] && [ "$task_image_mode" = local ]; then
+  set -- -f "$task_root/deploy/compose.core-build.yaml" "$@"
+fi
+if [ "$task_mode" = core ]; then set -- -f "$task_root/deploy/compose.core.yaml" "$@"; fi
+if [ "$task_mode" != standalone ]; then set -- -f "$task_root/deploy/compose.low-resource.yaml" "$@"; fi
 if [ "$task_browser" = true ]; then set -- -f "$task_root/deploy/compose.t7.yaml" "$@"; fi
 if [ "$task_test" = true ]; then set -- -f "$task_root/deploy/compose.test.yaml" "$@"; fi
 if [ -n "$task_test_network" ]; then set -- -f "$task_root/deploy/compose.test-network.yaml" "$@"; fi

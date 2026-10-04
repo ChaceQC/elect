@@ -1,0 +1,71 @@
+# 在low-resource之后应用：七域边界不变，三个常驻Python进程。
+x-core-disabled: &core-disabled
+  profiles: [separate-domains]
+  environment:
+    ELECT_CORE_ONLY: "true"
+services:
+  core:
+    extends: {file: compose.yaml, service: identity}
+    profiles: !reset []
+    command: [python, -m, services.core]
+    environment:
+      ELECT_CORE_ONLY: "false"
+      ELECT_PROCESS_MODE: combined
+      ELECT_DB_POOL_SIZE: "2"
+      ELECT_DB_MAX_OVERFLOW: "1"
+    secrets: !override
+      - gateway_runtime
+      - identity_runtime
+      - room_runtime
+      - monitoring_runtime
+      - notification_runtime
+      - payment_runtime
+      - audit_runtime
+      - internal_ca
+      - identity_tls_cert
+      - identity_tls_key
+      - identity_session_pepper
+      - monitoring_encryption_key_bundle
+      - notification_encryption_key_bundle
+    networks: !override
+      app: {aliases: [identity]}
+      data: {}
+    mem_limit: 384m
+    cpus: 1.5
+    stop_grace_period: 195s
+    healthcheck:
+      interval: 30s
+      start_interval: 5s
+      retries: 2
+  mail-worker:
+    extends: {file: compose.yaml, service: notification-worker}
+    profiles: !reset []
+    environment:
+      ELECT_CORE_ONLY: "false"
+      ELECT_CORE_URL: https://identity:8000
+      ELECT_PROCESS_MODE: standalone
+      ELECT_DB_POOL_SIZE: "2"
+      ELECT_DB_MAX_OVERFLOW: "1"
+    healthcheck:
+      interval: 30s
+      start_interval: 5s
+      retries: 2
+    mem_limit: 160m
+  school-adapter:
+    environment:
+      ELECT_CORE_URL: https://identity:8000
+  nginx:
+    environment:
+      ELECT_GATEWAY_URL: https://identity:8000
+    depends_on: !override
+      core: {condition: service_healthy}
+      tls-check: {condition: service_completed_successfully, required: false}
+    # HTTP模式的tls-check在非默认profile，默认HTTPS仍执行入口证书预检。
+  gateway: *core-disabled
+  identity: *core-disabled
+  room: *core-disabled
+  monitoring: *core-disabled
+  notification: *core-disabled
+  payment: *core-disabled
+  audit: *core-disabled
+  notification-worker: *core-disabled

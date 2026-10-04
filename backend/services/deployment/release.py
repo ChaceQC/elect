@@ -24,7 +24,7 @@ def check_version(root, tag):
 
 def check_config(config, allow_local=False):
     services = config["services"]
-    backend = services["gateway"]["image"]
+    backend = services["core" if "core" in services else "gateway"]["image"]
     for name, service in services.items():
         image = service.get("image", "")
         if not allow_local and (not PINNED.fullmatch(image) or service.get("build")):

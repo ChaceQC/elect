@@ -28,6 +28,8 @@ jobs:
         run: sh deploy/test-execution-efficiency.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 加密备份与隔离恢复
         run: sh deploy/test-t7-recovery.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
+      - name: 七容器核心调用与原卷双向切换
+        run: sh deploy/test-core.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
       - name: 模拟容量与生产前端容器联调
         run: |
           ELECT_TEST_IMAGE=elect-backend-smoke:ops docker compose --env-file "$RUNNER_TEMP/elect-t1/stack.env" -f deploy/compose.yaml -f deploy/compose.test.yaml -p elect-test-ci run -T --rm --no-deps smoke python -m scripts.t7_capacity --plans 100 --workers 8

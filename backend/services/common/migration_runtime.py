@@ -9,15 +9,7 @@ from sqlalchemy import pool, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
-DATABASES = {
-    "identity": "elect_identity",
-    "school_adapter": "elect_school",
-    "room": "elect_room",
-    "monitoring": "elect_monitoring",
-    "notification": "elect_notification",
-    "payment": "elect_payment",
-    "audit": "elect_audit",
-}
+from .domains import DATABASES
 
 
 def configure_connection(connection):

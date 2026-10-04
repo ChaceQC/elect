@@ -1,7 +1,10 @@
 """有上限的本域数据库连接池；数据库会话固定 UTC。"""
 
+import json
 import os
 from contextlib import asynccontextmanager
+from functools import cache
+from pathlib import Path
 
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -33,12 +36,14 @@ class DomainEngine(AsyncEngine):
             self.outbox_wakeup.set()
 
 
+@cache
 def migration_head(domain):
-    from alembic.script import ScriptDirectory
+    from .domains import DATABASES
 
-    from scripts.migrations import configuration
-
-    return ScriptDirectory.from_config(configuration(domain)).get_current_head()
+    heads = json.loads(Path(__file__).with_name("migration_heads.json").read_text(encoding="utf-8"))
+    if set(heads) != set(DATABASES) or not all(isinstance(v, str) and v for v in heads.values()):
+        raise RuntimeError("构建迁移版本清单无效")
+    return heads[domain]
 
 
 def pool_options():

@@ -7,50 +7,25 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from .context import domain_context
 from .database import create_database, database_ready, migration_head
 from .dependencies import transport_status
 from .http import ApiError, install_http
 from .logging import configure_logging
-from .runtime import load_runtime, public_origin, side_effect_policy
-from .security import Principal, require_principal, validate_keys
+from .security import Principal, require_principal
 
 
 def create_app(service: str, *, business=False, background=True):
     @asynccontextmanager
     async def lifespan(app):
         configure_logging()
-        runtime = load_runtime(service)
-        validate_keys(runtime)
-        app.state.runtime = runtime
-        app.state.public_origin = public_origin()
-        app.state.side_effect_policy = side_effect_policy()
-        engine = create_database(runtime.db_url.get_secret_value()) if runtime.db_url else None
-        app.state.database = engine
-        app.state.migration_head = migration_head(service) if engine else None
-        app.state.background = None
-        try:
-            if business:
-                from .business import initialize
+        async with domain_context(app, service, enabled=business,
+                                  database_factory=create_database, head=migration_head):
+            if business and background:
+                from .background import start_background
 
-                await initialize(app, service)
-                if background:
-                    from .background import start_background
-
-                    await start_background(app, service)
+                await start_background(app, service)
             yield
-        finally:
-            try:
-                if app.state.background:
-                    await app.state.background.close()
-            finally:
-                try:
-                    if business:
-                        from .business import close
-
-                        await close(app)
-                finally:
-                    if engine:
-                        await engine.dispose()
 
     app = FastAPI(
         title=f"elect-{service}", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None

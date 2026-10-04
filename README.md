@@ -2,7 +2,7 @@
 
 通过学校账号查询和管理寝室电费的 Web 应用，提供寝室绑定、余额查询、消费明细、定时监控和低余额邮件提醒，支持桌面与手机使用。
 
-当前版本：`0.18.3`（开发版）。支付确认和解绑控制独立调度，可见页面每2秒持续更新，刷新使用旋转图标；后台认证每轮最多取5张验证码、提交2次登录。规则见[自动更新](docs/decisions/支付与解绑自动更新.md)与[认证及刷新反馈](docs/decisions/后台认证与刷新反馈.md)。
+当前版本：`0.19.0`（开发版）。新增核心服务、学校适配器和邮件发送三个Python进程的7容器组合，保留领域数据库和13容器回退。空闲约700MiB为实测目标，说明见[核心组合](docs/decisions/七容器核心组合.md)。支付/解绑的2秒自动更新、后台认证预算及界面行为沿用原规则。
 
 ## 功能
 
@@ -37,6 +37,8 @@ sh deploy/status.sh /absolute/stack.env elect
 ```
 
 私网 HTTP 模式使用独立配置，见 [私网部署说明](docs/runbooks/本机私网部署.md)。数据使用 Docker 命名卷持久化；启停、升级和备份恢复按对应运行手册执行。
+
+设置 `ELECT_DEPLOYMENT_MODE=core` 选择7容器组合。核心保留各领域账号/连接池、事务与后台心跳，内部直接调用仍校验权限和DTO，Adapter与邮件发送保持独立。切换/回退使用同一 `upgrade.sh`，先停止全部旧应用角色；不要直接启动两套组合。迁移版本清单在构建时生成，MySQL保留Performance Schema诊断但限制容量，Nginx使用1个worker。
 
 在公开配置中设置 `ELECT_DEPLOYMENT_MODE=combined` 可选择 13 个长期容器的轻量组合；默认 `standalone` 保留独立角色。轻量组合采用每池 `2+1`、MySQL 128MiB/40连接、Redis 32MiB、普通 RabbitMQ 和 30秒探针；参数与兼容方式见 [第三步资源说明](docs/decisions/Docker低资源资源参数.md)。0.17.0引入事务提交后Outbox唤醒、有界消息推送、空闲退避及两个监控执行槽，邮件保持单槽，见[执行效率说明](docs/decisions/Docker低资源执行效率.md)。首次和已有部署升级分别使用 `deploy/start.sh` / `deploy/upgrade.sh`，校验并拉取摘要后停止全部旧角色，按依赖串行启动。开发机在 `ELECT_IMAGE_MODE=local` 时使用 `compose.sh up -d --build`。2核2GB/50人容量仍需按优化方案验收。
 

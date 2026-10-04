@@ -1,5 +1,7 @@
 # Docker 部署入口
 
+0.19.0新增`ELECT_DEPLOYMENT_MODE=core`：core、school-adapter、mail-worker与四个基础/入口服务共7个常驻容器。原Secret/卷可沿用，combined为13容器回退；统一upgrade先停尽本项目旧角色。核心无跨库访问，Adapter/邮件通过原Identity证书与网络别名访问受认证TLS接口，Nginx校验证书。部署细节、目标与验证见[七容器方案](../docs/decisions/七容器核心组合.md)。
+
 T1 已建立 [compose.yaml](compose.yaml)、[公开变量模板](.env.example)、[Secret/账号清单](secrets.example.yaml)、Nginx/TLS、MySQL 空卷 provisioning、Redis ACL 与 RabbitMQ 权限。
 
 目标机使用 CI 开发版发布中的 `release.env` 和部署包，设置域名/证书/Secret 路径，首次离线 provision 后执行：

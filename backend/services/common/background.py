@@ -33,7 +33,8 @@ def process_mode():
 
 
 def require_standalone():
-    if not background_enabled() or process_mode() != "standalone":
+    if (not background_enabled() or process_mode() != "standalone"
+            or os.environ.get("ELECT_CORE_ONLY") == "true"):
         raise RuntimeError("当前部署禁止独立后台入口")
 
 

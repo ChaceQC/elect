@@ -4,11 +4,12 @@ import argparse
 import asyncio
 import signal
 import time
+from types import SimpleNamespace
 
-from services.common.app import create_app
 from services.common.background import require_standalone
 from services.common.broker import Broker
 from services.common.business_worker import checked_tick
+from services.common.context import domain_context
 from services.common.heartbeat import Heartbeat
 from services.common.job import pause
 from services.common.logging import configure_logging, log
@@ -21,12 +22,12 @@ from .worker import worker_tick
 
 async def run(role):
     require_standalone()
-    app = create_app("notification", business=True, background=False)
+    app = SimpleNamespace(state=SimpleNamespace())
     stop = asyncio.Event()
     heartbeat = Heartbeat("notification", role, max_age=45 if role == "recovery" else 20)
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
-    async with app.router.lifespan_context(app):
+    async with domain_context(app, "notification"):
         await role_loop(role, app, stop, heartbeat)
 
 

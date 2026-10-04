@@ -1,5 +1,7 @@
 # 后端工程
 
+0.19.0新增`python -m services.core`，一个Web服务和各领域上下文运行Gateway及六个业务域，School Adapter和邮件发送仍为独立进程。邮件入口不创建FastAPI应用；运行时读取构建生成的migration_heads.json，不加载Alembic。`ELECT_DEPLOYMENT_MODE=core`及回退/安全边界见[七容器方案](../docs/decisions/七容器核心组合.md)，下文业务规则沿用0.18.3。
+
 后台自动认证每轮最多获取5张验证码、提交2次登录，仅在明确拒绝后换新图重试；保持总deadline、账号限流与人工修复，见[认证规则](../docs/decisions/后台认证与刷新反馈.md)。
 
 当前开发版本0.18.3：支付确认与建单/取码独立调度，Room控制与历史查询分开运行；正常支付/解绑每2秒安排回查，失败退避30秒，沿用原租约且不增加容器，见[自动更新规则](../docs/decisions/支付与解绑自动更新.md)。采集保存C02日读数；支付仍按[D04与原票据规则](../docs/decisions/电表读数与缴费结果确认.md)确认，协议2026-10-04.1与既有安全栅栏保持。

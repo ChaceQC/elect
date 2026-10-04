@@ -61,14 +61,14 @@ start_service() {
   fi
 }
 echo '依次启动领域服务'
-for task_service in school-adapter monitoring identity room notification payment audit gateway; do
+for task_service in school-adapter core monitoring identity room notification payment audit gateway; do
   start_service "$task_service"
 done
 echo '依次启动后台角色'
 for task_service in smtp-direct identity-relay school-relay room-relay monitoring-relay \
   notification-relay payment-relay audit-worker identity-recovery room-sync-worker \
   school-maintenance monitor-scheduler monitor-worker monitor-recovery monitor-alerts \
-  notification-worker notification-recovery payment-worker payment-recovery; do
+  mail-worker notification-worker notification-recovery payment-worker payment-recovery; do
   start_service "$task_service"
 done
 start_service nginx

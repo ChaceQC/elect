@@ -21,6 +21,8 @@ class ManagedServer(uvicorn.Server):
 
 
 def serve(service):
+    if os.environ.get("ELECT_CORE_ONLY") == "true" and service != "core":
+        raise SystemExit("核心组合禁止重复启动独立领域进程")
     app = import_module(f"services.{service}.app").app
     config = uvicorn.Config(
         app,
@@ -32,7 +34,7 @@ def serve(service):
         ssl_certfile=os.environ.get("ELECT_INTERNAL_TLS_CERT_FILE"),
         ssl_keyfile=os.environ.get("ELECT_INTERNAL_TLS_KEY_FILE"),
         timeout_graceful_shutdown=(
-            shutdown_timeout(service)
+            180 if service == "core" else shutdown_timeout(service)
             if os.environ.get("ELECT_PROCESS_MODE") == "combined" else None
         ),
     )

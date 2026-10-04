@@ -3,53 +3,24 @@
 import base64
 import os
 
-from redis.asyncio import Redis
+
+def routers(service):
+    from importlib import import_module
+
+    modules = {
+        "gateway": ("api", "monitor_api", "room_api", "query_api", "payment_api"),
+        "identity": ("api", "revocation_api"),
+        "room": ("api", "control_api", "query_api"),
+        "school_adapter": ("api", "query_api", "payment_api"),
+        "monitoring": ("api", "credential_api", "permit_api", "run_api", "metrics_api"),
+        "payment": ("api",),
+    }
+    return [import_module(f"services.{service}.{module}").router
+            for module in modules.get(service, ())]
 
 
 def register(app, service):
-    if service in {"gateway", "identity", "school_adapter", "room", "monitoring", "payment"}:
-        from importlib import import_module
-
-        app.include_router(import_module(f"services.{service}.api").router)
-    if service == "gateway":
-        from services.gateway.monitor_api import router
-        from services.gateway.room_api import router as room_router
-
-        app.include_router(router)
-        app.include_router(room_router)
-        from services.gateway.query_api import router as query_router
-
-        app.include_router(query_router)
-        from services.gateway.payment_api import router as payment_router
-
-        app.include_router(payment_router)
-    if service == "room":
-        from services.room.control_api import router
-
-        app.include_router(router)
-        from services.room.query_api import router as query_router
-
-        app.include_router(query_router)
-    if service == "school_adapter":
-        from services.school_adapter.payment_api import router as payment_router
-        from services.school_adapter.query_api import router
-
-        app.include_router(router)
-        app.include_router(payment_router)
-    if service == "monitoring":
-        from services.monitoring.credential_api import router
-        from services.monitoring.permit_api import router as permit_router
-
-        app.include_router(router)
-        app.include_router(permit_router)
-        from services.monitoring.metrics_api import router as metrics_router
-        from services.monitoring.run_api import router as run_router
-
-        app.include_router(run_router)
-        app.include_router(metrics_router)
-    if service == "identity":
-        from services.identity.revocation_api import router
-
+    for router in routers(service):
         app.include_router(router)
 
 
@@ -65,21 +36,22 @@ async def initialize(app, service):
     }:
         from .service_client import ServiceClient
 
-        app.state.service_client = ServiceClient(app.state.runtime)
+        factory = getattr(app.state, "service_client_factory", ServiceClient)
+        app.state.service_client = factory(app.state.runtime)
     if service == "monitoring":
         from services.monitoring.email_crypto import EmailCrypto
 
-        app.state.email_crypto = EmailCrypto.load(os.environ["ELECT_EMAIL_KEY_FILE"])
+        app.state.email_crypto = EmailCrypto.load(secret_file(app, "ELECT_EMAIL_KEY_FILE"))
     if service == "notification":
         from services.notification.email_crypto import EmailCrypto
         from services.notification.smtp import SmtpConfig, SmtpTransport
 
         from .runtime import side_effect_policy
 
-        app.state.email_crypto = EmailCrypto.load(os.environ["ELECT_EMAIL_KEY_FILE"])
+        app.state.email_crypto = EmailCrypto.load(secret_file(app, "ELECT_EMAIL_KEY_FILE"))
         app.state.smtp = (
             SmtpTransport(SmtpConfig.load(os.environ["ELECT_SMTP_CONFIG_FILE"]))
-            if side_effect_policy().real_smtp
+            if getattr(app.state, "mail_sender", True) and side_effect_policy().real_smtp
             else None
         )
     if service == "identity":
@@ -98,6 +70,8 @@ async def initialize(app, service):
             app.state.database, app.state.service_client, app.state.app_sessions
         )
     if service == "school_adapter":
+        from redis.asyncio import Redis
+
         from services.school_adapter.application.authentication import Authentication
         from services.school_adapter.application.sessions import SchoolSessions
         from services.school_adapter.infrastructure.credentials import CredentialRepository
@@ -121,6 +95,11 @@ async def initialize(app, service):
         app.state.school_credentials = repository
         app.state.school_auth = Authentication(repository, store, protocol, lookup)
         app.state.school_sessions = SchoolSessions(repository, store, protocol, lookup)
+
+
+def secret_file(app, name):
+    files = getattr(app.state, "secret_files", {})
+    return files[name] if name in files else os.environ[name]
 
 
 async def close(app):

@@ -1,3 +1,5 @@
+"""支付回查角色调度；与MySQL集成用例使用不同模块名，避免pytest收集冲突。"""
+
 import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock

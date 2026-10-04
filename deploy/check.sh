@@ -11,6 +11,7 @@ docker run --rm --network none -v "$task_root/docs:/docs:ro" \
   uv run python -m scripts.generate_openapi --check &&
   uv run python -m scripts.generate_protocols --check &&
   uv run python -m scripts.schema_catalog --check &&
+  uv run python -m scripts.migration_manifest --check &&
   uv run python -m scripts.migrations --domain all --sql --output-dir /tmp/elect-ddl
 '
 docker build --target test -t elect-frontend-check "$task_root/frontend"

@@ -15,6 +15,11 @@ COPY . .
 ENV PATH="/app/.venv/bin:$PATH"
 CMD ["uv", "run", "pytest", "-q"]
 
+FROM dependencies AS migration-manifest
+COPY services ./services
+COPY scripts/migrations.py scripts/migration_manifest.py ./scripts/
+RUN uv run --no-sync python -m scripts.migration_manifest
+
 FROM base AS runtime
 ARG ELECT_BUILD_VERSION=dev
 ARG ELECT_BUILD_REVISION=unknown
@@ -24,6 +29,7 @@ LABEL org.opencontainers.image.source="https://github.com/ChaceQC/elect" \
 RUN groupadd --gid 10001 elect && useradd --uid 10001 --gid elect --no-create-home elect
 COPY --from=dependencies /app/.venv /app/.venv
 COPY services ./services
+COPY --from=migration-manifest /app/services/common/migration_heads.json ./services/common/migration_heads.json
 COPY scripts/migrations.py ./scripts/migrations.py
 ENV PATH="/app/.venv/bin:$PATH"
 USER 10001:10001

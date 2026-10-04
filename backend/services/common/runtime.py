@@ -9,8 +9,8 @@ from pydantic import SecretStr, model_validator
 from sqlalchemy.engine import make_url
 
 from .config_contract import DeploymentConfig, SideEffectPolicy
+from .domains import DATABASES
 from .dto import DTO
-from .migration_runtime import DATABASES
 
 SERVICES = (*DATABASES, "gateway")
 
@@ -66,9 +66,9 @@ def read_secret(path: str | Path) -> str:
     return candidate.read_text(encoding="utf-8").strip()
 
 
-def load_runtime(expected_service: str) -> Runtime:
+def load_runtime(expected_service: str, *, path=None) -> Runtime:
     try:
-        runtime = Runtime.model_validate_json(read_secret(os.environ["ELECT_RUNTIME_FILE"]))
+        runtime = Runtime.model_validate_json(read_secret(path or os.environ["ELECT_RUNTIME_FILE"]))
         if runtime.service != expected_service:
             raise ValueError("服务身份不匹配")
         return runtime

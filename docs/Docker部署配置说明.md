@@ -1,5 +1,7 @@
 # Docker 全栈部署与域名证书配置
 
+0.19.0新增`ELECT_DEPLOYMENT_MODE=core`，统一入口在low-resource后加入core覆盖，7个常驻容器、3个Python进程；combined保留13容器回退。核心使用原Identity内部TLS证书与`identity`网络别名，Nginx与外部Worker校验证书；各域签名身份不变。restore额外最后覆盖core/mail-worker，关闭所有后台和副作用。见[七容器方案](decisions/七容器核心组合.md)。
+
 版本：1.2；更新日期：2026-10-04；状态：T1 基础已实现并通过独立验收。
 
 本文统一[后端架构](后端架构详细设计.md)、[后端实施计划](后端实施计划.md)和[前端实施计划](前端实施计划.md)中的部署方式。T0 已建立 [公开变量模板](../deploy/.env.example)、[Secret/账号清单](../deploy/secrets.example.yaml)与七域迁移；T1 已建立两端镜像、Compose、Secret 生成、空卷 provisioning、持锁迁移、TLS 预检和公共运行设施，并通过独立容器基础验收。前端公共数据层及 Docker CI 也已实现；学校业务不在本阶段开放。

@@ -11,10 +11,10 @@ import httpx
 ROLES = {
     "identity": {"relay", "recovery"},
     "school-adapter": {"relay", "cleanup"},
-    "room": {"relay", "worker"},
+    "room": {"relay", "worker", "control"},
     "monitoring": {"relay", "scheduler", "worker", "recovery", "alerts"},
     "notification": {"relay", "recovery"},
-    "payment": {"relay", "worker", "recovery"},
+    "payment": {"relay", "worker", "reconciliation", "recovery"},
     "audit": {"audit"},
     "gateway": set(),
 }
