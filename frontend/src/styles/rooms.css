@@ -1,5 +1,7 @@
 .room-toolbar { display: flex; gap: 16px; align-items: center; justify-content: space-between; }
 .search-box { display: flex; align-items: center; gap: 10px; border: 1px solid #dbe8f3; border-radius: 7px; padding: 0 12px; color: #84a2b9; max-width: 410px; flex: 1; }
+.search-box:focus-within { outline: 3px solid #579ed6; outline-offset: 0; }
+.search-box input:focus-visible { outline: none; }
 .search-box input { border: 0; margin: 0; background: none; width: 100%; padding: 12px 0; outline-offset: 0; }
 .room-list { list-style: none; margin: 0; padding: 0; }
 .room-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 23px 0; border-bottom: 1px solid #e5edf5; }

@@ -13,9 +13,10 @@ export function SamplesPanel({ bindingId, range, page, onPageChange }) {
   const { user } = useSession()
   const [snapshot, setSnapshot] = useState(/** @type {string|null} */ (null))
   const [revision, setRevision] = useState(() => randomId())
-  const query = useQuery({ queryKey: ['samples', user?.id, bindingId, range, revision, page], enabled: !!user,
+  const query = useQuery({ queryKey: ['samples', user?.id, bindingId, range, revision, page, page > 1 ? snapshot : null], enabled: !!user,
     queryFn: async ({ signal }) => {
-      let token = snapshot
+      // 首页重新读取最新集合；后续页按 token 隔离缓存，避免新旧快照混页。
+      let token = page > 1 ? snapshot : null
       const path = `/room-bindings/${bindingId}/monitor-samples`
       if (!token && page > 1) {
         const first = await apiClient.request(`${path}?${new URLSearchParams({ ...range, page: '1', page_size: '10' })}`, { signal })
@@ -23,7 +24,10 @@ export function SamplesPanel({ bindingId, range, page, onPageChange }) {
       }
       return /** @type {import('../../api/generated').components['schemas']['Samples']} */ ((await apiClient.request(`${path}?${new URLSearchParams({ ...range, page: String(page), page_size: '10', ...(token ? { snapshot_token: token } : {}) })}`, { signal })).data)
     },
-    staleTime: 60_000 })
+    staleTime: 60_000,
+    refetchInterval: page === 1 ? 60_000 : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: page === 1 })
   const samples = query.data
   const quality = { balance_only: '本次仅采集余额', meter_not_realtime: '学校日记录（非实时）', meter_inconsistent: '读数与学校用量不一致', meter_negative_delta: '读数差为负，请核对换表或回绕' }
   useEffect(() => { if (samples) setSnapshot(samples.snapshot_token) }, [samples])
