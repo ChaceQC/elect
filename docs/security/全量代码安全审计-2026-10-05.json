@@ -5,7 +5,21 @@
   "baseline_commit": "65ce8eb2cae5be3be900aa0f0a6f0d0109456ff9",
   "version": "0.19.0",
   "disposition_updated_at": "2026-10-05",
-  "open_finding_ids": ["SEC-02", "SEC-03", "SEC-05"],
+  "open_finding_ids": [],
+  "ignored_finding_ids": ["SEC-01", "SEC-02", "SEC-04"],
+  "remediated_finding_ids": ["SEC-03", "SEC-05"],
+  "remediation": {
+    "version": "0.19.1",
+    "deployed": false,
+    "mysql_version": "8.4.6",
+    "focused_database_tests_passed": 16,
+    "entrypoint": "deploy/test-query-resources.sh",
+    "migrations": ["monitoring_0006", "room_0005"],
+    "snapshot_limits": {"creations_per_minute": 6, "retained_snapshots_per_owner": 12, "retained_members_per_owner": 60000, "members_per_snapshot": 20000},
+    "cleanup": {"interval_seconds": 60, "snapshots_per_batch": 4, "members_per_batch": 1000},
+    "history_limits": {"new_operations_per_minute": 6, "new_operations_per_24_hours": 24, "pending_operations": 8, "pending_syncs": 2, "pending_windows": 64},
+    "limitations": ["Some tests lower limits to exercise boundaries with small fixtures", "No production deployment or real school, SMTP or payment validation"]
+  },
   "scope": {
     "tracked_files": 814,
     "source_script_config_style_files": 548,
@@ -16,10 +30,10 @@
   },
   "findings": [
     {"id": "SEC-01", "priority": null, "original_priority": "P1", "status": "ignored_upstream_constraint", "decision": "用户确认无法解决，忽略，不安排整改", "subject": "payment_http_and_downgrade", "evidence": "mock_transport_and_source"},
-    {"id": "SEC-02", "priority": "P1", "status": "open", "subject": "captcha_nonce_rate_bypass", "evidence": "in_memory_redis_model_and_source"},
-    {"id": "SEC-03", "priority": "P1", "status": "open", "decision": "本轮补充解释，尚未实施修复", "subject": "snapshot_persistent_write_amplification", "evidence": "sqlite_memory_adapter_and_source"},
+    {"id": "SEC-02", "priority": null, "original_priority": "P1", "status": "ignored_by_user", "decision": "用户要求忽略，不安排修复", "subject": "captcha_nonce_rate_bypass", "evidence": "in_memory_redis_model_and_source"},
+    {"id": "SEC-03", "priority": null, "original_priority": "P1", "status": "remediated_source", "decision": "0.19.1完成复用、配额、清理与隔离MySQL定向验证，未部署", "subject": "snapshot_persistent_write_amplification", "evidence": "sqlite_memory_adapter_and_source; mysql_8_4_6_remediation_tests"},
     {"id": "SEC-04", "priority": null, "original_priority": "P2", "status": "expected_behavior", "decision": "用户确认属于正常账号限流行为，忽略，不安排整改", "subject": "invalid_challenge_consumes_account_budget", "evidence": "in_memory_redis_model_and_source"},
-    {"id": "SEC-05", "priority": "P2", "status": "open", "subject": "history_queue_admission_unbounded", "evidence": "source_only"}
+    {"id": "SEC-05", "priority": null, "original_priority": "P2", "status": "remediated_source", "decision": "0.19.1完成用户锁内受理预算与隔离MySQL定向验证，未部署", "subject": "history_queue_admission_unbounded", "evidence": "source_only; mysql_8_4_6_remediation_tests"}
   ],
   "bandit_all_backend": {"loc": 30823, "high": 0, "medium": 22, "low": 1053, "parse_errors": 0},
   "bandit_services": {"loc": 18918, "high": 0, "medium": 7, "low": 7, "parse_errors": 0},

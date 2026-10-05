@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: 单元契约构建与浏览器
         run: sh deploy/check.sh
+      - name: 查询受理配额与快照清理
+        run: sh deploy/test-query-resources.sh
       - name: 空库与可靠事件容器集成
         run: sh deploy/test-stack.sh "$RUNNER_TEMP/elect-t1" elect-test-ci combined
       - name: 无源码发布包与已有卷分阶段启动

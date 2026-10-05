@@ -1237,7 +1237,7 @@
     },
     "room": {
       "database": "elect_room",
-      "revision": "room_0004",
+      "revision": "room_0005",
       "tables": {
         "rooms": {
           "columns": {
@@ -1547,6 +1547,11 @@
             [
               "owner_user_id",
               "state"
+            ],
+            [
+              "owner_user_id",
+              "type",
+              "created_at"
             ],
             [
               "state",
@@ -2223,7 +2228,7 @@
     },
     "monitoring": {
       "database": "elect_monitoring",
-      "revision": "monitoring_0005",
+      "revision": "monitoring_0006",
       "tables": {
         "monitors": {
           "columns": {
@@ -3222,6 +3227,11 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "membership_hash": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [
@@ -3241,6 +3251,10 @@
             [
               "owner_user_id",
               "binding_id"
+            ],
+            [
+              "owner_user_id",
+              "created_at"
             ]
           ]
         },

@@ -1,13 +1,13 @@
 # 数据结构与初始化
 
-更新日期：2026-10-02。七个库共有 55 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+更新日期：2026-10-05。七个库共有 55 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
 
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
 | Identity | elect_identity | identity_0003 | 7 |
 | School Adapter | elect_school | school_0006 | 10 |
-| Room | elect_room | room_0004 | 11 |
-| Monitoring | elect_monitoring | monitoring_0005 | 14 |
+| Room | elect_room | room_0005 | 11 |
+| Monitoring | elect_monitoring | monitoring_0006 | 14 |
 | Payment | elect_payment | payment_0004 | 6 |
 | Notification | elect_notification | notification_0002 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
@@ -21,6 +21,8 @@
 新增 schedule_anchor_at、run.version、history_sync_windows、credential_operations、control_operations、payment_sessions 和持久快照成员表，覆盖状态恢复与联调字段。current_run/current_episode/last_sample 的循环引用在表创建后建立本库外键。
 
 ## 初始化与验证边界
+
+0.19.1新增`sample_snapshots.membership_hash BINARY(32) NULL`和owner/created_at索引、Room operation的owner/type/created_at索引。旧快照摘要不回填，原token在TTL内仍可用；有界清理先删除成员，再删除空父行，不更改RESTRICT外键。规则见[查询资源受理](../decisions/查询资源受理与快照清理.md)。
 
 开发入口支持每域独立升级及离线 MySQL DDL；在线 URL 必须由本域 `ELECT_{DOMAIN}_DDL_URL_FILE` 提供且指向对应库。临时 MySQL 8.4.8 已验证七域在线升级两次、业务表为空、无跨库 FK、运行账号无 DDL/跨库权限，并验证监控间隔、唯一计划/样本和未知订单屏障。
 

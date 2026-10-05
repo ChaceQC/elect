@@ -67,4 +67,7 @@ async def cancel(command: CancelRunQuery, request: Request, principal: Browser):
 
 @router.post("/samples")
 async def samples(command: SampleQuery, request: Request, principal: Browser):
-    return await list_samples(request.app.state.database, principal.user_id, command)
+    return await list_samples(
+        request.app.state.database, principal.user_id, command,
+        request.app.state.runtime.signing_key.get_secret_value().encode(),
+    )

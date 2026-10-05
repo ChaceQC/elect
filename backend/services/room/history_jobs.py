@@ -1,6 +1,7 @@
 """C02 分段同步受理；请求内容和窗口进度持久保存。"""
 
 import hashlib
+from functools import partial
 from uuid import UUID
 
 from services.common.dates import check_range, windows
@@ -10,6 +11,7 @@ from services.common.internal_dto import EventEnvelope
 from services.common.outbox import append_event
 from services.common.sql import aware, execute, first
 
+from .history_admission import check_admission, covering_sync
 from .query_jobs import accept_query
 
 
@@ -19,18 +21,13 @@ async def accept_history(engine, owner, binding, command, key, request_id):
         f"history:{binding}:{command.start_date}:{command.end_date}".encode()
     ).digest()
     async with engine.begin() as conn:
-        operation, created = await accept_query(conn, owner, binding, key, "history_sync", digest)
+        operation, created = await accept_query(
+            conn, owner, binding, key, "history_sync", digest,
+            admission=partial(check_admission, owner=owner, binding=binding, command=command),
+        )
         if not created:
             return operation
-        pending = await first(
-            conn,
-            "SELECT operation_id FROM history_syncs WHERE binding_id=:binding AND "
-            "requested_start=:start AND requested_end=:end AND status IN "
-            "('accepted','running') ORDER BY created_at,id LIMIT 1",
-            binding=binding.bytes,
-            start=command.start_date,
-            end=command.end_date,
-        )
+        pending = await covering_sync(conn, owner, binding, command)
         if pending:
             await execute(
                 conn,

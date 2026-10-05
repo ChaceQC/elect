@@ -1,5 +1,7 @@
 # Docker 全栈部署与域名证书配置
 
+0.19.1部署须由统一upgrade执行`monitoring_0006`、`room_0005`后再启动应用。原Secret不变；Monitoring recovery承担每60秒的小批快照清理，关闭后台时不清理，存量配额仍限制新写入。只清理到期快照成员/父行，不清理原始采集、学校历史、订单或operation。见[查询资源规则](decisions/查询资源受理与快照清理.md)。
+
 0.19.0新增`ELECT_DEPLOYMENT_MODE=core`，统一入口在low-resource后加入core覆盖，7个常驻容器、3个Python进程；combined保留13容器回退。核心使用原Identity内部TLS证书与`identity`网络别名，Nginx与外部Worker校验证书；各域签名身份不变。restore额外最后覆盖core/mail-worker，关闭所有后台和副作用。见[七容器方案](decisions/七容器核心组合.md)。
 
 版本：1.2；更新日期：2026-10-04；状态：T1 基础已实现并通过独立验收。

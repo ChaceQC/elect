@@ -1,5 +1,7 @@
 # 后端工程
 
+0.19.1增加采集快照复用、受理配额及每60秒的小批到期清理，历史同步在本人锁内检查速率/待办/窗口配额。升级先应用`monitoring_0006`和`room_0005`，构建迁移清单已同步；不新增进程或Secret，详见[查询资源规则](../docs/decisions/查询资源受理与快照清理.md)。
+
 0.19.0新增`python -m services.core`，一个Web服务和各领域上下文运行Gateway及六个业务域，School Adapter和邮件发送仍为独立进程。邮件入口不创建FastAPI应用；运行时读取构建生成的migration_heads.json，不加载Alembic。`ELECT_DEPLOYMENT_MODE=core`及回退/安全边界见[七容器方案](../docs/decisions/七容器核心组合.md)，下文业务规则沿用0.18.3。
 
 后台自动认证每轮最多获取5张验证码、提交2次登录，仅在明确拒绝后换新图重试；保持总deadline、账号限流与人工修复，见[认证规则](../docs/decisions/后台认证与刷新反馈.md)。
