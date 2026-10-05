@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ApiError, apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useSession } from './SessionProvider.jsx'
 import { useCaptcha } from './useCaptcha.js'
 import { AgreementDialog } from './AgreementDialog.jsx'
+import { hasReadAgreement, rememberReadAgreement } from './agreementStorage.js'
 
 /** @typedef {import('../../api/generated').components['schemas']['Agreement']} Agreement */
 /** @param {{reauthenticate?: boolean, onSuccess?: ()=>void}} props */
@@ -17,6 +18,8 @@ export function LoginForm({ reauthenticate = false, onSuccess }) {
   const [readVersion, setReadVersion] = useState('')
   const [accepted, setAccepted] = useState(false)
   const [agreementOpen, setAgreementOpen] = useState(false)
+  const [showReadHint, setShowReadHint] = useState(false)
+  const agreementHintId = useId()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(/** @type {ApiError|null} */ (null))
   const submitting = useRef(false)
@@ -26,9 +29,14 @@ export function LoginForm({ reauthenticate = false, onSuccess }) {
     /** @type {Agreement} */ ((await apiClient.request('/auth/agreement', { signal })).data) })
   const currentVersion = policy.data ? `${policy.data.version}:${policy.data.content_hash}` : ''
   const { refresh } = captcha
-  useEffect(() => { if (currentVersion) { setAccepted(false); setReadVersion(''); void refresh() } }, [currentVersion, refresh])
+  useEffect(() => {
+    setAccepted(false); setShowReadHint(false)
+    setReadVersion(hasReadAgreement(currentVersion) ? currentVersion : '')
+    if (currentVersion) void refresh()
+  }, [currentVersion, refresh])
   useEffect(() => { setAnswer('') }, [captcha.data?.challenge_id])
-  const valid = !!policy.data && readVersion === currentVersion && accepted && student.trim().length > 0 &&
+  const canAccept = !!currentVersion && readVersion === currentVersion
+  const valid = !!policy.data && canAccept && accepted && student.trim().length > 0 &&
     student.trim().length <= 128 && !/\s/.test(student.trim()) && password.length > 0 && password.length <= 1024 &&
     answer.trim().length > 0 && !!captcha.data && !captcha.expired && !captcha.busy
   /** @param {import('react').FormEvent} event */
@@ -47,6 +55,7 @@ export function LoginForm({ reauthenticate = false, onSuccess }) {
       if (!login?.user?.id || !login.user.csrf_token) throw new ApiError('INVALID_RESPONSE', '登录结果无法识别，请检查当前会话', 200)
       setPassword(''); setAnswer('')
       await session.acceptUser(login.user)
+      rememberReadAgreement(currentVersion)
       onSuccess?.()
     } catch (cause) {
       const failure = cause instanceof ApiError ? cause : new ApiError('NETWORK_ERROR', '登录未完成，请稍后重试', 0)
@@ -69,13 +78,19 @@ export function LoginForm({ reauthenticate = false, onSuccess }) {
     {captcha.expired && <p role="alert" className="form-error">验证码已过期，请换一张。</p>}
     {captcha.error && <StatusBlock title={captcha.error.message} error />}
     {policy.isError && <StatusBlock title="无法加载使用协议" error action={{ label: '重试', onClick: () => { void policy.refetch() } }} />}
-    <div className="agreement-check"><label className="checkbox-row"><input type="checkbox" checked={accepted} disabled={readVersion !== currentVersion || !currentVersion}
-      onChange={event => setAccepted(event.target.checked)} />我同意应用使用协议</label>
-      <button type="button" className="text-button" disabled={!policy.data} onClick={() => setAgreementOpen(true)}>阅读应用协议</button></div>
+    <div className="agreement-check"><label className="checkbox-row"><input type="checkbox" checked={accepted && canAccept} aria-disabled={!canAccept}
+      aria-describedby={showReadHint && !canAccept ? agreementHintId : undefined}
+      onChange={event => {
+        if (!canAccept) { setShowReadHint(true); return }
+        setAccepted(event.target.checked)
+      }} />我同意应用使用协议</label>
+      <button type="button" className="text-button" disabled={!policy.data} onClick={() => setAgreementOpen(true)}>阅读应用协议</button>
+      {showReadHint && !canAccept && <p id={agreementHintId} role="alert" className="agreement-read-hint">请先阅读协议</p>}
+    </div>
     {error && <StatusBlock title={error.message} error><p>{error.retryAfterSeconds ? `请至少等待 ${error.retryAfterSeconds} 秒后重试。` :
       '请检查输入或重新获取验证码后重试。'}</p>{error.requestId && <small>请求编号：{error.requestId}</small>}</StatusBlock>}
     <button className="primary-action" type="submit" disabled={!valid || busy}>{busy ? '正在学校认证…' : reauthenticate ? '重新认证' : '登录'}</button>
     {policy.data && <AgreementDialog open={agreementOpen} agreement={policy.data} onClose={() => setAgreementOpen(false)}
-      onRead={() => setReadVersion(currentVersion)} />}
+      onRead={() => { setReadVersion(currentVersion); setShowReadHint(false) }} />}
   </form>
 }
