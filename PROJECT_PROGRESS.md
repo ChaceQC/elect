@@ -1,3 +1,36 @@
+## 2026-10-05 · 全量代码安全审计
+
+### 已完成
+
+- 基于dev/65ce8eb、0.19.0和干净工作区审计当前Git跟踪代码、公开配置、运维/CI及独立example；检查814个跟踪文件清单、371个Python文件与34个Gateway路由，结合全量规则扫描和关键调用链人工复核。
+- 确认5项问题：学校支付HTTP/协议降级、匿名验证码nonce限流绕过、采集快照持久写入放大及缺少清理、无效challenge消耗目标账号额度、历史同步任务缺少受理配额。详见docs/security/全量代码安全审计-2026-10-05.md及同名JSON证据。
+- 核对后端66个PyPI锁定包与前端/example依赖公告，区分cryptography/ECharts当前未触发的API用法、pytest/Vitest开发依赖风险，不将包版本命中直接当成生产漏洞。
+- 只新增审计报告/证据和文档导航，业务代码、配置、版本、能力开关及现有运行环境未调整。已检查README、AGENTS及前后端/deploy README，无产品总览、架构、启动规则或开发规范变化，无需同步；仓库无AGENT.md。
+
+### 进行中
+
+- 本轮审计已完成，报告按当前dev分支提交推送；源码整改尚未开始。
+
+### 阻塞与风险
+
+- 无审计交付阻塞；3项P1、2项P2待处理，P1支付项需要支付开启及链路篡改前提。现存私网HTTP、部分内部HTTP及core共享进程Secret范围按已批准部署的信任边界列出，不冒充本轮新增回归。
+- 未审计实际运行Secret、主机网络/证书状态、完整Git历史或容器OS漏洞，未证明现有环境已遭攻击或完成安全验收。
+
+### 下一步
+
+- 进入安全修复时，先共同处理SEC-02/SEC-04：为两种Nginx入口和服务端增加稳定来源的匿名预算，调整challenge校验与账号限流顺序，再以合成并发用例复核。随后处理SEC-03快照配额/复用/过期清理和SEC-05历史受理预算；公共支付开放前确认并解决SEC-01的上游传输完整性。
+
+### 主要文件或模块
+
+- docs/security/全量代码安全审计-2026-10-05.md、同名JSON、docs/README.md、PROJECT_PROGRESS.md；审查范围覆盖backend/services、backend/scripts/tests、frontend、example、deploy及.github/workflows。
+
+### 验证
+
+- Python AST解析无错误；Bandit全后端30823行有效代码，0 high/22 medium/1053 low，规则命中按上下文复核，测试断言和固定SQL片段不计为确认漏洞。services定向复核0 high/7 medium/7 low。
+- OSV查询66个后端锁定包，2个包命中；frontend npm audit为3个moderate包节点、example为1个，均无high/critical。npm退出码1代表发现公告，未升级依赖。
+- 4项小型合成复现完成：更换nonce的6次取图均受理、同nonce第6次429；5次无效challenge后目标账号第6次429；HTTPS支付地址降级到HTTP并接受合成PNG；3条样本/page_size=1的2次首页查询创建2快照及6成员。快照首次导入受Windows虚拟环境缺tzdata影响，改为验证进程使用系统已有tzdata目录后完成，未修改项目依赖。
+- 未运行全量业务/浏览器测试或压力测试；未读取真实学校/邮件凭据或实际Secret，未连接真实学校、支付、SMTP、现有数据库及部署服务。提交前核对报告路径、JSON解析、git diff --check与仅文档差异。
+
 ## 2026-10-05 · 七容器核心组合实施
 
 ### 已完成

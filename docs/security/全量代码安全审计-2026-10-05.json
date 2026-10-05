@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-05",
+  "timezone": "Asia/Shanghai",
+  "baseline_branch": "dev",
+  "baseline_commit": "65ce8eb2cae5be3be900aa0f0a6f0d0109456ff9",
+  "version": "0.19.0",
+  "scope": {
+    "tracked_files": 814,
+    "source_script_config_style_files": 548,
+    "utf8_text_files_pattern_scanned": 699,
+    "python_files_ast_parsed": 371,
+    "gateway_declared_routes": 34,
+    "backend_lock_pypi_packages": 66
+  },
+  "findings": [
+    {"id": "SEC-01", "priority": "P1", "subject": "payment_http_and_downgrade", "evidence": "mock_transport_and_source"},
+    {"id": "SEC-02", "priority": "P1", "subject": "captcha_nonce_rate_bypass", "evidence": "in_memory_redis_model_and_source"},
+    {"id": "SEC-03", "priority": "P1", "subject": "snapshot_persistent_write_amplification", "evidence": "sqlite_memory_adapter_and_source"},
+    {"id": "SEC-04", "priority": "P2", "subject": "invalid_challenge_consumes_account_budget", "evidence": "in_memory_redis_model_and_source"},
+    {"id": "SEC-05", "priority": "P2", "subject": "history_queue_admission_unbounded", "evidence": "source_only"}
+  ],
+  "bandit_all_backend": {"loc": 30823, "high": 0, "medium": 22, "low": 1053, "parse_errors": 0},
+  "bandit_services": {"loc": 18918, "high": 0, "medium": 7, "low": 7, "parse_errors": 0},
+  "dependency_advisories": [
+    {"ecosystem": "PyPI", "package": "cryptography", "version": "49.0.0", "id": "GHSA-g6cj-pr64-35w5", "alias": "PYSEC-2026-3552", "fixed": "50.0.0", "affected_api_found": false},
+    {"ecosystem": "PyPI", "package": "pytest", "version": "8.4.2", "id": "GHSA-6w46-j5rx-g56g", "alias": "PYSEC-2026-1845", "fixed": "9.0.3", "runtime_dependency": false},
+    {"ecosystem": "npm", "package": "echarts", "version": "5.6.0", "id": "GHSA-fgmj-fm8m-jvvx", "fixed": "6.1.0", "lockfiles": ["frontend/package-lock.json", "example/package-lock.json"], "affected_series_found": false},
+    {"ecosystem": "npm", "package": "vitest/@vitest/mocker", "version": "3.2.7", "id": "GHSA-82fw-gwwq-j7x9", "fixed_branches": ["4.1.11", "5.0.0"], "public_mocker_plugin_found": false}
+  ],
+  "npm_audit": {
+    "frontend": {"exit_code": 1, "moderate_package_nodes": 3, "high": 0, "critical": 0},
+    "example": {"exit_code": 1, "moderate_package_nodes": 1, "high": 0, "critical": 0}
+  },
+  "probes": [
+    {"name": "captcha_nonce_rotation", "rotating_nonce_school_stub_calls": 6, "same_nonce_accepted": 5, "same_nonce_sixth_status": 429},
+    {"name": "invalid_challenges_consume_account_budget", "statuses": [400, 400, 400, 400, 400, 429], "codes": ["CAPTCHA_EXPIRED", "CAPTCHA_EXPIRED", "CAPTCHA_EXPIRED", "CAPTCHA_EXPIRED", "CAPTCHA_EXPIRED", "RATE_LIMITED"], "real_school_calls": 0},
+    {"name": "payment_https_to_http_redirect", "mock_request_schemes": ["https", "http"], "replacement_image_accepted": true, "mime": "image/png"},
+    {"name": "repeated_snapshot_materialization", "source_samples": 3, "page_size": 1, "requests": 2, "snapshots": 2, "snapshot_items": 6, "database": "sqlite_memory_with_timestamp_adapter"}
+  ],
+  "sensitive_pattern_scan": {"reported_values": false, "private_key_block_hits": 0, "provider_token_pattern_hits": 0, "credential_url_hits": 4, "credential_url_context": "unit_test_fixtures", "confirmed_real_secrets": 0},
+  "limitations": [
+    "No existing deployment or secret files inspected",
+    "No live school, SMTP or payment calls",
+    "No full business test suite or load test",
+    "No complete Git history or container OS package scan",
+    "In-memory reproductions do not establish production capacity or MySQL concurrency behavior",
+    "Snapshot probe initially could not import Asia/Shanghai on Windows; rerun used an existing system tzdata directory only in the probe process"
+  ]
+}
