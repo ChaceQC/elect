@@ -21,6 +21,8 @@
 .captcha-image button { padding: 4px; min-height: 42px; font-size: 10px; border: 0; background: transparent; flex: 1; white-space: nowrap; }
 .agreement-check { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; font-size: 11px; }
 .agreement-check .checkbox-row, .login-form > .checkbox-row { font-size: 11px; }
+.agreement-check input[aria-disabled="true"] { cursor: not-allowed; opacity: .5; }
+.agreement-read-hint { flex-basis: 100%; margin: 0; color: #b42318; font-size: 12px; }
 .login-form > .field-hint { margin: -17px 0 -10px; }
 .login-form .primary-action { margin-top: -7px; }
 .login-form .status-block { margin: 0; }

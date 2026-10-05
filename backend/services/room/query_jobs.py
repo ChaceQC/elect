@@ -26,7 +26,7 @@ async def target(conn, owner, binding, *, active=False):
     return row
 
 
-async def accept_query(conn, owner, binding, key, kind, digest):
+async def accept_query(conn, owner, binding, key, kind, digest, *, admission=None):
     require_no_removal(await lock_preference(conn, owner))
     row = await target(conn, owner, binding, active=True)
     key_hash = hashlib.sha256(key.encode()).digest()
@@ -42,6 +42,8 @@ async def accept_query(conn, owner, binding, key, kind, digest):
         if prior["request_digest"] != digest:
             raise ApiError(409, ErrorCode.IDEMPOTENCY_CONFLICT, "同一幂等键的请求内容不同")
         return UUID(bytes=prior["id"]), False
+    if admission is not None:
+        await admission(conn)
     operation = new_id()
     await execute(
         conn,

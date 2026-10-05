@@ -6,6 +6,8 @@ build/
 coverage/
 test-results/
 playwright-report/
+.playwright-cli/
+output/playwright/
 
 # Python 环境、缓存与构建产物
 .venv/

@@ -131,6 +131,7 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
 
 async def scan_loop(role, app, stop, heartbeat, hub=None):
     broker, queue, reconnect_at = None, None, 0
+    next_snapshot_cleanup = 0
     idle = IdleBackoff((1, 2, 5) if role == "worker" else (1, 2, 5, 10))
     try:
         while not stop.is_set():
@@ -154,6 +155,11 @@ async def scan_loop(role, app, stop, heartbeat, hub=None):
                     activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
                         app.state.database
                     )
+                    if role == "recovery" and time.monotonic() >= next_snapshot_cleanup:
+                        from .snapshot_cleanup import cleanup_snapshots
+
+                        await cleanup_snapshots(app.state.database)
+                        next_snapshot_cleanup = time.monotonic() + 60
                 heartbeat.write(healthy=True, activity=activity)
             except Exception:
                 heartbeat.write(healthy=False)

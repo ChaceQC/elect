@@ -1,8 +1,8 @@
 {
   "identity": "identity_0003",
   "school_adapter": "school_0006",
-  "room": "room_0004",
-  "monitoring": "monitoring_0005",
+  "room": "room_0005",
+  "monitoring": "monitoring_0006",
   "notification": "notification_0002",
   "payment": "payment_0004",
   "audit": "audit_0001"

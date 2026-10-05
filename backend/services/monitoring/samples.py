@@ -1,17 +1,16 @@
 """固定实际成员的30分钟快照；不靠时间上界排除迟到提交。"""
 
 import hashlib
-import secrets
 from datetime import UTC
 from uuid import UUID
 
 from services.common.dates import utc_bounds
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.common.ids import new_id
 from services.common.sql import aware, execute, first
 
 from .dto import Sample, Samples
+from .sample_snapshots import create_or_reuse
 
 
 def sample_view(row):
@@ -47,13 +46,13 @@ def sample_view(row):
     )
 
 
-async def snapshot(conn, owner, command, start, end):
+async def snapshot(conn, owner, command, start, end, token_key):
     token = command.snapshot_token
     if token:
         row = await first(
             conn,
             "SELECT *,expires_at>UTC_TIMESTAMP(6) AS valid FROM sample_snapshots WHERE "
-            "token_hash=:hash AND owner_user_id=:owner",
+            "token_hash=:hash AND owner_user_id=:owner FOR SHARE",
             hash=hashlib.sha256(token.encode()).digest(),
             owner=owner.bytes,
         )
@@ -70,46 +69,13 @@ async def snapshot(conn, owner, command, start, end):
         return token, row
     if command.page != 1:
         raise ApiError(400, ErrorCode.SNAPSHOT_MISMATCH, "后续分页必须携带首页快照")
-    token, snapshot_id = secrets.token_urlsafe(32), new_id()
-    await execute(
-        conn,
-        "INSERT INTO sample_snapshots (id,owner_user_id,binding_id,start_date,end_date,toke"
-        "n_hash,total,expires_at) VALUES (:id,:owner,:binding,:start,:end,:hash,0,DATE_ADD("
-        "UTC_TIMESTAMP(6),INTERVAL 30 MINUTE))",
-        id=snapshot_id.bytes,
-        owner=owner.bytes,
-        binding=command.binding_id.bytes,
-        start=command.start_date,
-        end=command.end_date,
-        hash=hashlib.sha256(token.encode()).digest(),
-    )
-    await execute(
-        conn,
-        "INSERT INTO sample_snapshot_items (snapshot_id,position,sample_id) "
-        "SELECT :snapshot,ROW_NUMBER() OVER (ORDER BY captured_at DESC,id DESC),id "
-        "FROM monitor_samples WHERE owner_user_id=:owner AND binding_id=:binding "
-        "AND captured_at>=:start AND captured_at<:end",
-        snapshot=snapshot_id.bytes,
-        owner=owner.bytes,
-        binding=command.binding_id.bytes,
-        start=start,
-        end=end,
-    )
-    await execute(
-        conn,
-        "UPDATE sample_snapshots SET total=(SELECT COUNT(*) FROM sample_snapshot_items "
-        "WHERE snapshot_id=:id) WHERE id=:id",
-        id=snapshot_id.bytes,
-    )
-    return token, await first(
-        conn, "SELECT * FROM sample_snapshots WHERE id=:id", id=snapshot_id.bytes
-    )
+    return await create_or_reuse(conn, owner, command, start, end, token_key)
 
 
-async def list_samples(engine, owner, command):
+async def list_samples(engine, owner, command, token_key):
     start, end = utc_bounds(command.start_date, command.end_date)
     async with engine.begin() as conn:
-        token, fixed = await snapshot(conn, owner, command, start, end)
+        token, fixed = await snapshot(conn, owner, command, start, end, token_key)
         rows = (
             (
                 await execute(
