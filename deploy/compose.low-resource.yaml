@@ -1,0 +1,103 @@
+# 同域API与后台共用一个Python进程；发送Worker保持独立。
+x-combined: &combined
+  healthcheck: &slow-health
+    interval: 30s
+    start_interval: 5s
+    retries: 2
+  environment:
+    ELECT_PROCESS_MODE: combined
+    ELECT_BACKGROUND_ENABLED: ${ELECT_BACKGROUND_ENABLED:-true}
+    ELECT_DB_POOL_SIZE: "2"
+    ELECT_DB_MAX_OVERFLOW: "1"
+x-disabled: &disabled
+  profiles: [standalone-roles]
+  environment:
+    # 手工指定旧服务也不能在合并API外重复启动角色。
+    ELECT_PROCESS_MODE: combined
+services:
+  nginx:
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      <<: *slow-health
+      start_period: 15s
+  gateway:
+    healthcheck: *slow-health
+  mysql:
+    healthcheck:
+      <<: *slow-health
+      retries: 4
+    command: [mysqld, --defaults-extra-file=/etc/mysql/low-resource.cnf]
+    volumes:
+      - ./mysql/low-resource.cnf:/etc/mysql/low-resource.cnf:ro
+    mem_limit: 640m
+  redis:
+    healthcheck:
+      <<: *slow-health
+      start_period: 15s
+    command: [redis-server, /etc/redis/redis.conf, --maxmemory, 32mb]
+    mem_limit: 96m
+  rabbitmq:
+    healthcheck:
+      <<: *slow-health
+      retries: 4
+    image: ${RABBITMQ_LOW_RESOURCE_IMAGE:-rabbitmq:4.1.4-alpine@sha256:b736d649308e1b3e1a116c3f36986b605ee3d03e88f10166be2900083d2e63f2}
+    environment:
+      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/low-resource.conf
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "+S 1:1 +A 2 +SDcpu 1 +SDio 1"
+    volumes:
+      - ./rabbitmq/low-resource.conf:/etc/rabbitmq/low-resource.conf:ro
+    mem_limit: 256m
+  identity:
+    <<: *combined
+    stop_grace_period: 135s
+  school-adapter:
+    <<: *combined
+    environment:
+      ELECT_PROCESS_MODE: combined
+      ELECT_BACKGROUND_ENABLED: ${ELECT_BACKGROUND_ENABLED:-true}
+      ELECT_DB_POOL_SIZE: "2"
+      ELECT_DB_MAX_OVERFLOW: "1"
+      ELECT_OCR_LOW_RESOURCE: "true"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    mem_limit: 384m
+    stop_grace_period: 40s
+  room:
+    <<: *combined
+    stop_grace_period: 135s
+  monitoring:
+    <<: *combined
+    stop_grace_period: 110s
+  notification:
+    <<: *combined
+    stop_grace_period: 40s
+  payment:
+    <<: *combined
+    stop_grace_period: 190s
+  audit:
+    <<: *combined
+    stop_grace_period: 40s
+  notification-worker:
+    healthcheck: *slow-health
+    environment:
+      ELECT_PROCESS_MODE: standalone
+      ELECT_DB_POOL_SIZE: "2"
+      ELECT_DB_MAX_OVERFLOW: "1"
+  identity-relay: *disabled
+  identity-recovery: *disabled
+  school-relay: *disabled
+  school-maintenance: *disabled
+  room-relay: *disabled
+  room-sync-worker: *disabled
+  monitoring-relay: *disabled
+  monitor-scheduler: *disabled
+  monitor-worker: *disabled
+  monitor-recovery: *disabled
+  monitor-alerts: *disabled
+  notification-relay: *disabled
+  notification-recovery: *disabled
+  payment-relay: *disabled
+  payment-worker: *disabled
+  payment-recovery: *disabled
+  audit-worker: *disabled

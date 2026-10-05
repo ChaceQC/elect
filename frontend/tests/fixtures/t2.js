@@ -8,7 +8,7 @@ export const agreement = { version: 'test', content: '合成测试使用协议�
 export const image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
 export const captcha = (id = 'a') => ({ challenge_id: id.repeat(43), image_data_url: image,
   expires_at: new Date(Date.now() + 120_000).toISOString() })
-export const bindings = { items: [], page: 1, page_size: 10, total: 0, default_binding_id: null,
+export const bindings = { items: [], page: 1, page_size: 10, total: 0, default_binding_id: null, binding_write_enabled: true,
   preference_version: 1, default_switch_operation_id: null, sync_status: 'empty',
   last_synced_at: '2026-10-01T10:00:00+08:00', pending_operations: [], pending_operations_truncated: false }
 /** @template T @param {T} data */

@@ -14,24 +14,34 @@ TARGETS = {
     "school_adapter": "https://school-adapter:8000",
     "room": "http://room:8000",
     "monitoring": "http://monitoring:8000",
+    "payment": "http://payment:8000",
 }
 
 
 class ServiceClient:
-    def __init__(self, runtime, *, transport=None):
+    def __init__(self, runtime, *, transport=None, local=None):
         self.runtime = runtime
+        self.local = local
+        self.transport = transport
+        self._client = None
+
+    @property
+    def client(self):
+        if self._client is not None:
+            return self._client
         verify = (
             ssl.create_default_context(cafile=os.environ["ELECT_INTERNAL_CA_FILE"])
-            if transport is None
+            if self.transport is None
             else True
         )
-        self.client = httpx.AsyncClient(
+        self._client = httpx.AsyncClient(
             verify=verify,
-            transport=transport,
+            transport=self.transport,
             trust_env=False,
             timeout=httpx.Timeout(100, connect=3, pool=3),
             limits=httpx.Limits(max_connections=12),
         )
+        return self._client
 
     async def call(
         self, receiver, path, scope, request_id, payload=None, *, principal=None, method="POST"
@@ -44,10 +54,18 @@ class ServiceClient:
             user_id=principal.user_id if principal else None,
             session_version=principal.session_version if principal else None,
         )
+        if self.local is not None and receiver in self.local.contexts:
+            return await self.local.invoke(receiver, path, method, token, payload)
+        target = TARGETS[receiver]
+        core_url = os.environ.get("ELECT_CORE_URL")
+        if core_url and receiver != "school_adapter":
+            if core_url != "https://identity:8000":
+                raise RuntimeError("核心地址必须使用受验证的内部TLS服务名")
+            target = f"{core_url}/domains/{receiver}"
         try:
             response = await self.client.request(
                 method,
-                TARGETS[receiver] + "/internal/v1" + path,
+                target + "/internal/v1" + path,
                 headers={"Authorization": f"Bearer {token}"},
                 json=payload,
             )
@@ -75,4 +93,5 @@ class ServiceClient:
             ) from None
 
     async def close(self):
-        await self.client.aclose()
+        if self._client is not None:
+            await self._client.aclose()

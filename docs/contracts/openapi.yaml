@@ -2,7 +2,7 @@
 openapi: 3.1.0
 info:
   title: 寝室电费学生端 API
-  version: 0.9.0
+  version: 0.19.0
   description: T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，时间戳带时区。202 仅表示持久受理。业务服务按 x-stage
     实现。
 servers:
@@ -3598,6 +3598,129 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
       x-cache-control: no-store
+  /payment-orders/{id}/cancel:
+    post:
+      operationId: cancel_order
+      tags:
+      - payment
+      summary: cancel_order
+      x-owner: payment
+      x-stage: T6
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+      - $ref: '#/components/parameters/CSRF'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCancelRequest'
+      x-version-required: expected_version；缺失 428，冲突 409
+      x-result-query: /payment-orders/{id}
+      x-persistence: payment.payment_orders
   /payment-orders/{id}/qr:
     get:
       operationId: get_qr
@@ -3851,7 +3974,9 @@ components:
       type: apiKey
       in: cookie
       name: __Host-elect_session
-      description: Secure; HttpOnly; SameSite=Lax; Path=/；不设置 Domain
+      description: HTTPS：Secure; HttpOnly; SameSite=Lax; Path=/；不设置 Domain。显式私网 HTTP
+        部署使用 elect_session_local（HttpOnly/SameSite=Lax/Path=/），Cookie 模式只由服务端可信 Origin
+        决定。
   parameters:
     CSRF:
       name: X-CSRF-Token
@@ -4301,6 +4426,7 @@ components:
           title: Agreement Accepted
           type: boolean
         credential_use_allowed:
+          const: true
           title: Credential Use Allowed
           type: boolean
       required:
@@ -4558,6 +4684,10 @@ components:
             $ref: '#/components/schemas/Binding'
           title: Items
           type: array
+        binding_write_enabled:
+          default: false
+          title: Binding Write Enabled
+          type: boolean
         default_binding_id:
           anyOf:
           - format: uuid
@@ -5685,6 +5815,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/OrderReference'
           - type: 'null'
+        amount_policy_source:
+          const: application_policy
+          default: application_policy
+          title: Amount Policy Source
+          type: string
       required:
       - enabled
       - currency
@@ -5781,6 +5916,21 @@ components:
           format: date-time
           title: Created At
           type: string
+        version:
+          minimum: 1
+          title: Version
+          type: integer
+        cancel_pending:
+          default: false
+          title: Cancel Pending
+          type: boolean
+        cancelled_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          default: null
+          title: Cancelled At
         binding_display_name:
           title: Binding Display Name
           type: string
@@ -5814,6 +5964,28 @@ components:
           - type: string
           - type: 'null'
           title: Error Code
+        qr_error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Qr Error Code
+        balance_refresh_state:
+          default: not_required
+          enum:
+          - not_required
+          - pending
+          - succeeded
+          - failed
+          title: Balance Refresh State
+          type: string
+        balance_refresh_operation_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          default: null
+          title: Balance Refresh Operation Id
       required:
       - order_id
       - binding_id
@@ -5821,6 +5993,7 @@ components:
       - amount
       - currency
       - created_at
+      - version
       - binding_display_name
       - paid_confirmed
       - last_checked_at
@@ -5828,6 +6001,17 @@ components:
       - qr_expires_at
       - error_code
       title: Order
+      type: object
+    OrderCancelRequest:
+      additionalProperties: false
+      properties:
+        expected_version:
+          minimum: 1
+          title: Expected Version
+          type: integer
+      required:
+      - expected_version
+      title: OrderCancelRequest
       type: object
     QRPending:
       additionalProperties: false

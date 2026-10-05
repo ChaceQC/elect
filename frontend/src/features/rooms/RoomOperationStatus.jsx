@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useOperation } from '../../hooks/useOperation.js'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
+import { PollingNotice } from '../../components/feedback/PollingNotice.jsx'
 import { useSession } from '../auth/SessionProvider.jsx'
 
 /** @param {{id: string}} props */
@@ -26,6 +27,6 @@ export function RoomOperationStatus({ id }) {
     {data?.state === 'unknown' && <p>后台只回查学校结果，请勿重复提交。等待时间不会被当作操作失败。</p>}
     {data?.error_code && <p className="muted">最近错误：{data.error_code}</p>}
     {query.error && <p>{query.error.message}</p>}
-    <button className="quiet" onClick={() => { void query.refresh() }}>查询最新进度</button>
+    <PollingNotice paused={query.pollingPaused} busy={query.isFetching} onResume={() => { void query.refresh() }} />
   </StatusBlock>
 }

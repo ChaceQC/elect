@@ -552,7 +552,7 @@
     },
     "school_adapter": {
       "database": "elect_school",
-      "revision": "school_0005",
+      "revision": "school_0006",
       "tables": {
         "school_credentials": {
           "columns": {
@@ -937,6 +937,31 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "flow_step": {
+              "type": "VARCHAR(8)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "qr_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "qr_mime": {
+              "type": "VARCHAR(32)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [],
@@ -1140,6 +1165,72 @@
             "credential_version>=1"
           ],
           "foreign_keys": [],
+          "indexes": []
+        },
+        "adapter_payment_orders": {
+          "columns": {
+            "order_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "binding_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "upstream_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_ref": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "credential_version": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "observation_ciphertext": {
+              "type": "LONGBLOB",
+              "nullable": true,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "upstream_operation_id"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "upstream_operation_id"
+              ],
+              "targets": [
+                "upstream_operations.id"
+              ]
+            }
+          ],
           "indexes": []
         }
       }
@@ -3800,7 +3891,7 @@
     },
     "payment": {
       "database": "elect_payment",
-      "revision": "payment_0001",
+      "revision": "payment_0004",
       "tables": {
         "payment_orders": {
           "columns": {
@@ -3909,11 +4000,66 @@
               "nullable": false,
               "primary_key": false
             },
+            "qr_status": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "qr_error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "qr_expires_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "next_check_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "check_lease_owner": {
+              "type": "VARCHAR(128)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "check_lease_until": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "balance_refresh_state": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "balance_refresh_operation_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "cancel_requested_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "cancel_after": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "cancelled_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
             "unresolved_binding_id": {
               "type": "BINARY(16)",
               "nullable": true,
               "primary_key": false,
-              "computed": "IF(state IN ('created','submitting','awaiting_payment','submit_unknown','status_unknown'), binding_id, NULL)"
+              "computed": "IF(cancelled_at IS NULL AND state IN ('created','submitting','awaiting_payment','submit_unknown','status_unknown'),binding_id,NULL)"
             }
           },
           "unique": [
@@ -3937,6 +4083,14 @@
           ],
           "foreign_keys": [],
           "indexes": [
+            [
+              "cancelled_at",
+              "cancel_after"
+            ],
+            [
+              "next_check_at",
+              "check_lease_until"
+            ],
             [
               "state",
               "last_checked_at"
@@ -4019,9 +4173,18 @@
               "type": "DATETIME(6)",
               "nullable": false,
               "primary_key": false
+            },
+            "open_order_id": {
+              "type": "BINARY(16)",
+              "nullable": true,
+              "primary_key": false,
+              "computed": "IF(state IN ('accepted','running','reconciling','unknown'), order_id, NULL)"
             }
           },
           "unique": [
+            [
+              "open_order_id"
+            ],
             [
               "owner_user_id",
               "kind",
@@ -4169,6 +4332,56 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
+          "indexes": []
+        },
+        "payment_owners": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "payment_qr_requests": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "operation_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "operation_id"
+              ],
+              "targets": [
+                "payment_operations.id"
+              ]
+            }
+          ],
           "indexes": []
         }
       }

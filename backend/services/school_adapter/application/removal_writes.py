@@ -19,7 +19,7 @@ class RemovalWrites:
             row = await first(
                 conn,
                 "SELECT *,absence_first_at<=DATE_SUB(UTC_TIMESTAMP(6),"
-                "INTERVAL 30 SECOND) AS repeated_absence FROM upstream_operations "
+                "INTERVAL 2 SECOND) AS repeated_absence FROM upstream_operations "
                 "WHERE id=:id AND owner_user_id=:owner FOR UPDATE",
                 id=operation.bytes,
                 owner=owner.bytes,

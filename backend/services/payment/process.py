@@ -1,0 +1,81 @@
+"""独立支付 Worker/租约恢复器；默认学校写开关关闭。"""
+
+import argparse
+import asyncio
+import signal
+
+from services.common.app import create_app
+from services.common.background import require_standalone
+from services.common.heartbeat import Heartbeat
+from services.common.job import pause
+from services.common.logging import log
+from services.common.scheduling import IdleBackoff
+
+from .jobs import recover
+from .reconciliation import check_tick
+from .worker import worker_tick
+
+
+async def run(role):
+    require_standalone()
+    app = create_app("payment", business=True, background=False)
+    stop, heartbeat = asyncio.Event(), Heartbeat("payment", role)
+    for signum in (signal.SIGTERM, signal.SIGINT):
+        asyncio.get_running_loop().add_signal_handler(signum, stop.set)
+    async with app.router.lifespan_context(app):
+        if role == "worker":
+            async with asyncio.TaskGroup() as tasks:
+                tasks.create_task(role_loop(role, app, stop, heartbeat))
+                tasks.create_task(role_loop(
+                    "reconciliation", app, stop, Heartbeat("payment", "reconciliation"),
+                ))
+        else:
+            await role_loop(role, app, stop, heartbeat)
+
+
+async def role_loop(role, app, stop, heartbeat, hub=None):
+    idle = IdleBackoff((1,) if role == "reconciliation" else (1, 2, 5))
+    try:
+        while not stop.is_set():
+            try:
+                if role == "worker":
+                    from .wakeups import drain
+
+                    await drain(app, hub=hub)
+                    if stop.is_set():
+                        break
+                activity = (
+                    await recover(app.state.database)
+                    if role == "recovery"
+                    else await check_tick(app, heartbeat)
+                    if role == "reconciliation"
+                    else await worker_tick(app, heartbeat, stop=stop)
+                )
+                heartbeat.write(healthy=True, activity=activity)
+            except Exception:
+                heartbeat.write(healthy=False)
+                log("payment_retry", service="payment", error_code="DEPENDENCY_UNAVAILABLE")
+                activity = False
+            delay = 1 if role == "recovery" else idle.next(activity)
+            queue = getattr(app.state, "payment_queue", None)
+            if role == "worker" and getattr(app.state, "payment_broker", None) and queue:
+                if await queue.wait(stop, delay):
+                    idle.reset()
+            else:
+                await pause(stop, delay)
+    finally:
+        broker = getattr(app.state, "payment_broker", None) if role == "worker" else None
+        if broker:
+            await broker.close()
+            app.state.payment_broker = None
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--role", choices=["worker", "recovery"], required=True)
+    args = parser.parse_args()
+    asyncio.run(run(args.role))
+
+
+if __name__ == "__main__":
+    main()

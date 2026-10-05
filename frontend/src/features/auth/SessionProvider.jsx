@@ -30,8 +30,9 @@ export function SessionProvider({ children }) {
   const sequence = useRef(0)
   const refreshSequence = useRef(0)
   const pending = useRef(/** @type {AbortController|null} */ (null))
+  const channel = useRef(/** @type {BroadcastChannel|null} */ (null))
 
-  const acceptUser = useCallback(/** @param {Me|null} user */ async (user) => {
+  const acceptUser = useCallback(/** @param {Me|null} user @param {boolean} [announce] */ async (user, announce = true) => {
     const generation = ++sequence.current
     pending.current?.abort()
     const previous = currentUser.current?.id
@@ -44,6 +45,7 @@ export function SessionProvider({ children }) {
     currentUser.current = user
     apiClient.csrfToken = user?.csrf_token ?? null
     setState({ status: user ? 'authenticated' : 'signed_out', user, error: null })
+    if (announce) channel.current?.postMessage('session-changed')
   }, [queryClient])
 
   const endSession = useCallback(() => acceptUser(null), [acceptUser])
@@ -66,25 +68,45 @@ export function SessionProvider({ children }) {
     setState({ status: 'initializing', user: null, error: null })
     try {
       const result = await apiClient.request('/auth/me', { signal: pending.current.signal })
-      if (request === sequence.current) await acceptUser(parseSession(result.data))
+      if (request === sequence.current) await acceptUser(parseSession(result.data), false)
     } catch (error) {
       if (request !== sequence.current || (error instanceof DOMException && error.name === 'AbortError')) return
       if (error instanceof ApiError && error.code === 'APP_SESSION_EXPIRED') {
-        await endSession()
+        await acceptUser(null, false)
       } else {
         setState({ status: 'unavailable', user: null,
           error: error instanceof ApiError ? error : new ApiError('NETWORK_ERROR', '无法恢复会话', 0) })
       }
     }
-  }, [acceptUser, endSession])
+  }, [acceptUser])
 
   useEffect(() => {
-    apiClient.onSessionExpired = () => { void endSession() }
+    const events = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('elect-session')
+    channel.current = events
+    if (events) events.onmessage = event => {
+      if (event.data !== 'session-changed') return
+      void acceptUser(null, false).then(initialize)
+    }
+    apiClient.onSessionExpired = () => { if (currentUser.current) void endSession() }
     void initialize()
     const counter = sequence
     const request = pending
-    return () => { ++counter.current; request.current?.abort(); apiClient.onSessionExpired = null }
-  }, [initialize, endSession])
+    return () => {
+      ++counter.current; request.current?.abort(); apiClient.onSessionExpired = null
+      events?.close(); channel.current = null
+    }
+  }, [initialize, endSession, acceptUser])
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState !== 'hidden' && currentUser.current) void refreshUser().catch(() => {})
+    }
+    window.addEventListener('focus', check)
+    document.addEventListener('visibilitychange', check)
+    return () => {
+      window.removeEventListener('focus', check)
+      document.removeEventListener('visibilitychange', check)
+    }
+  }, [refreshUser])
   return <SessionContext.Provider value={{ ...state, initialize, acceptUser, endSession, refreshUser }}>{children}</SessionContext.Provider>
 }
 

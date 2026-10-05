@@ -7,6 +7,7 @@ import { BalancePanel } from './BalancePanel.jsx'
 import { ConsumptionPanel } from './ConsumptionPanel.jsx'
 import { DateRangePicker } from './DateRangePicker.jsx'
 import { SamplesPanel } from './SamplesPanel.jsx'
+import { PageHeading } from '../../components/layout/PageHeading.jsx'
 
 export function HistoryPage() {
   const bindings = useBindings({ pageSize: 100 })
@@ -32,16 +33,16 @@ export function HistoryPage() {
     for (const [key, value] of Object.entries(fields)) value === null ? next.delete(key) : next.set(key, value)
     setSearch(next)
   }
-  return <><p className="eyebrow">我的寝室生活</p><h1>电费明细</h1><p className="page-description">按日期查看学校消费记录与本系统实际采集；关闭监控后历史仍保留。</p>
+  return <><PageHeading title="电费明细">
+    {bindings.data && (bindings.data.items.length > 1 || !bindingId) && <label className="room-picker">查看寝室<select value={bindingId ?? ''} onChange={event => update({ binding_id: event.target.value || null, page: null })}>
+      <option value="">选择寝室</option>{bindings.data.items.map(b => <option key={b.id} value={b.id}>{b.display_name}{b.id === bindings.data.default_binding_id ? '（默认）' : ''}</option>)}</select></label>}
+    </PageHeading>
     {bindings.isPending && <StatusBlock title="正在读取寝室…" />}
     {bindings.error && <StatusBlock title={bindings.error.message} error action={{ label: '重新读取寝室', onClick: () => { void bindings.refetch() } }} />}
-    {bindings.data && <label className="room-picker">查看寝室<select value={bindingId ?? ''} onChange={event => update({ binding_id: event.target.value || null, page: null })}>
-      <option value="">选择寝室</option>{bindings.data.items.map(b => <option key={b.id} value={b.id}>{b.display_name}{b.id === bindings.data.default_binding_id ? '（默认）' : ''}</option>)}</select></label>}
-    <p className="muted">独立查看不会修改默认寝室或监控目标。</p>
+    {search.has('binding_id') && bindingId !== bindings.data?.default_binding_id && <p className="muted room-view-note">独立查看不会修改默认寝室或监控目标。</p>}
     {!bindingId && bindings.data && <StatusBlock title="请先选择或绑定寝室"><Link to="/rooms">管理我的寝室</Link></StatusBlock>}
-    {bindingId && <><BalancePanel key={bindingId} bindingId={bindingId} /><DateRangePicker key={`${range.start_date}:${range.end_date}`} range={range} onApply={value => update({ ...value, page: null })} />
-      <label className="granularity">图表粒度<select value={granularity} onChange={event => update({ granularity: event.target.value })}><option value="day">按天</option><option value="week">按周</option><option value="month">按月</option></select></label>
-      <ConsumptionPanel bindingId={bindingId} range={range} granularity={granularity} />
+    {bindingId && <><BalancePanel key={bindingId} bindingId={bindingId} displayName={bindings.data?.items.find(item => item.id === bindingId)?.display_name ?? '所选寝室'} /><DateRangePicker key={`${range.start_date}:${range.end_date}`} range={range} onApply={value => update({ ...value, page: null })} />
+      <ConsumptionPanel bindingId={bindingId} range={range} granularity={granularity} onGranularity={value => update({ granularity: value })} />
       <SamplesPanel key={`${bindingId}:${range.start_date}:${range.end_date}`} bindingId={bindingId} range={range} page={page} onPageChange={value => update({ page: value === 1 ? null : String(value) })} /></>}
   </>
 }

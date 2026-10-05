@@ -9,6 +9,7 @@ from uuid import UUID
 
 import httpx
 
+from scripts.room_test_setup import ready_default
 from scripts.t2_smoke import browser, fixture_apps, login, prepare
 from scripts.t4_monitor_smoke import enable
 from scripts.t4_query_smoke import QuerySchool
@@ -19,7 +20,7 @@ from services.monitoring.dto import MonitorPatch
 from services.monitoring.execution import claim_run
 from services.monitoring.recovery import recovery_tick
 from services.monitoring.worker import execute_run, worker_tick
-from services.room.worker import control_tick, sync_tick
+from services.room.worker import sync_tick
 
 
 async def prepared(apps, path):
@@ -27,8 +28,7 @@ async def prepared(apps, path):
         user = await login(client, await prepare(client, "synthetic-dependency-" + str(new_id())))
         await client.post("/api/v1/room-bindings/sync", headers={"Idempotency-Key": str(new_id())})
         assert await sync_tick(apps["room"])
-        for _ in range(5):
-            await control_tick(apps["room"])
+        await ready_default(client, apps["room"])
         await enable(client)
         response = await client.post(
             "/api/v1/monitor/runs", headers={"Idempotency-Key": str(new_id())}

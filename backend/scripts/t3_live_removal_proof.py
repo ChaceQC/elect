@@ -50,7 +50,7 @@ async def verify(operation):
                 upstream["target_ref"] == row["school_room_id"]
                 and upstream["candidate_ciphertext"] is None
             )
-            assert upstream["absence_seconds"] >= 30
+            assert upstream["absence_seconds"] >= 2
             record = json.loads(upstream["confirmed_record"])
             assert record["building"] == "枫苑5号" and record["number"] == "402"
             count = await first(

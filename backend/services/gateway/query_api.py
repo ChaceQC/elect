@@ -13,6 +13,7 @@ from services.common.http import ApiError
 from services.room.dto import HistoryRequest, Overview
 
 from .api import SESSION_COOKIE, session, success
+from .cookies import get_cookie
 
 router = APIRouter(prefix="/api/v1")
 Key = Annotated[str, Header(min_length=16, max_length=128)]
@@ -141,7 +142,7 @@ async def overview(request: Request, binding_id: UUID | None = None):
             "/browser/me",
             "identity:browser",
             principal.request_id,
-            {"session_token": request.cookies[SESSION_COOKIE]},
+            {"session_token": get_cookie(request, SESSION_COOKIE)},
             principal=principal,
         ),
         client.call(

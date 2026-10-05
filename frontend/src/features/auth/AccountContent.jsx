@@ -3,7 +3,7 @@ import { apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useSession } from './SessionProvider.jsx'
 import { LoginForm } from './LoginForm.jsx'
-import { RevokeCredential } from './RevokeCredential.jsx'
+import { CredentialProgress } from './CredentialProgress.jsx'
 
 /** @param {{onClose: ()=>void}} props */
 export function AccountContent({ onClose }) {
@@ -26,7 +26,7 @@ export function AccountContent({ onClose }) {
     {error && <StatusBlock title={error} error />}
     {repairing && user?.credential_status !== 'revoking' ? <LoginForm reauthenticate onSuccess={onClose} /> :
       <button className="quiet" disabled={user?.credential_status === 'revoking'} onClick={() => setRepairing(true)}>重新学校认证</button>}
-    <RevokeCredential />
+    <CredentialProgress />
     <button onClick={() => { void logout() }} disabled={busy}>{busy ? '正在退出…' : '退出应用'}</button>
   </>
 }

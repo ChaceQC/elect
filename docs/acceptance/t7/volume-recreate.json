@@ -1,0 +1,6 @@
+{
+  "mysql_container_recreated": true,
+  "schemas_and_table_counts_preserved": true,
+  "tables": 62,
+  "volumes_deleted": false
+}

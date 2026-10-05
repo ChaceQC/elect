@@ -19,14 +19,15 @@ def configure(definitions):
         if permission["user"] == "monitoring":
             permission.update(
                 write="^(audit\\.recorded|monitor\\.(run_ready|alert_reserved))$",
-                read="^(monitor\\.run_ready|notification\\.delivery_reported)$",
+                read="^(monitor\\.run_ready|notification\\.delivery_reported|"
+                     "room\\.binding_confirmed)$",
             )
         elif permission["user"] == "notification":
             permission.update(
                 write="^(audit\\.recorded|notification\\.delivery_reported)$",
                 read="^monitor\\.alert_reserved$",
             )
-    for queue, event in queues.values():
+    for queue, event in [*queues.values(), ("elect.monitoring.runs", "room.binding_confirmed")]:
         if not any(row["name"] == queue for row in definitions["queues"]):
             definitions["queues"].append(
                 {

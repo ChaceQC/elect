@@ -488,7 +488,7 @@ batchAdd({ roomUsers });
 | Authorization | 当前学校账号 token | 由 Adapter 保管 |
 | X-HTTP-Method-Override | 固定 DELETE | 与页面行为一致 |
 
-先校验本应用本人目标和持久凭据版本，再查询 B02 核对同一关系；关系 ID 变化时要求同步，不删除后来新建的关系。首次发送前登记 dispatched；超时/断连/5xx 或重启只回查 B02，不重复 POST。明确业务拒绝终结；code 200 本身不表示关系已消失。连续两次成功缺席、数据库时间至少间隔 30 秒后才确认；一次空列表、查询失败或重新出现都会阻止/重置确认。10 分钟未确认转 unknown，保留目标屏障。
+先校验本应用本人目标和持久凭据版本，再查询 B02 核对同一关系；关系 ID 变化时要求同步，不删除后来新建的关系。首次发送前登记 dispatched；超时/断连/5xx 或重启只回查 B02，不重复 POST。明确业务拒绝终结；code 200 本身不表示关系已消失。连续两次成功缺席、数据库时间至少间隔 2 秒后才确认；一次空列表、查询失败或重新出现都会阻止/重置确认。10 分钟未确认转 unknown，保留目标屏障。
 
 默认目标先建立监控 retarget-to-null 屏障；本地关系 inactive、清空默认与审计 Outbox 同事务，再由 Monitoring 读取偏好证明确认。默认删除后不擅自选择其他寝室，监控等待明确的新默认；关闭意图和已采集历史保留。非默认删除保持原默认与监控目标。
 
@@ -755,6 +755,8 @@ Content-Type: application/json
 <a id="d02"></a>
 ### D02 查询支付结果
 
+**2026-10-04纠正：此接口属于水费。** 学校移动端成功页`pages-topUpPayment-CN-RechargedSuccessfully.fb39d992.js`对电费调用`/base/order/getRoomInfoByOrderId`，后者返回寝室信息而非已确认支付状态。本系统电费确认改用D04与原支付票据证据，详见[0.18.2规则](decisions/电表读数与缴费结果确认.md)。以下保留早期参考接口记录，不作为电费状态实现依据。
+
 **请求**：`GET https://sdgl.hbue.edu.cn/api/water/order/getPayOrderReturnUrl`
 
 **认证**：SDGL Bearer token，使用下单时同一个学校账号。**超时**：20 秒。
@@ -825,6 +827,8 @@ Authorization: Bearer <SDGL_TOKEN>
 
 <a id="d04"></a>
 ### D04 查询学校电费订单列表
+
+2026-10-04已取得本人真实明细：orderId为19位字符串，userId/buildId/orderAmount/payAmount/createdTime/payTime均为字符串；已支付payStatus="2"、电费orderType="0"、微信payMethod="1"，tradeOrderNo本次为空。D01的64位prePayId不等于此orderId。原票据付款后E01的可见完整提示为“该订单已支付，无法再次交易,请返回系统重新发起交易”；与唯一本人/寝室/金额/建单后D04记录一起确认原单，不能单凭同金额匹配。指定1元及余额增量证据见[分类记录](acceptance/school/2026-10-04-meter-payment.json)。后文空数组为2026-09-30的历史结果。
 
 **请求**：`GET https://sdgl.hbue.edu.cn/api/base/order/page`
 
@@ -1745,3 +1749,11 @@ def create_order_and_qr(client, user_id, room_id, amount, *, confirmed=False):
 ## 2026-10-02学校验证码核查
 
 本次同一指定账号的对照：完全省略A03的id/code认证被拒绝；取得有效学校uid后留空code也被拒绝；在T5真实链路使用正常学校验证码认证及B02成功。因此当前CAS链路需要验证码，保留学校验证码获取/后台OCR，不以应用自生成验证码替代学校校验。该结论限定当前账号/协议；分类证据见 [空答案记录](acceptance/school/T5-captcha-empty-answer.json)，不记录账号/密码/uid/token。
+
+## 2026-10-02 T6指定真实增量
+
+使用auth.txt本人账号与应用默认寝室，生产Adapter执行一次10元D01、E01–E04取得可解码学校二维码；URL/prePayId与Cookie/VIEWSTATE保留在Adapter密文，SDGL内部单号仍未知。D02未取得可确认结果，错误分类SCHOOL_INVALID_RESPONSE；本地awaiting_payment仅表示建单后等待，不能当成已验证学校枚举。用户要求本轮先交付代码、暂不扫码；未付款、未核对到账、未建第二笔，公共支付保持关闭。见[T6记录](acceptance/T6验收记录.md)及[分类证据](acceptance/school/2026-10-02-T6-order.json)。
+
+## 2026-10-02指定1元增量
+
+用户将真实范围改为默认寝室1元并要求本地取消原10元。应用保留原D01/E02/E03台账、本地取消释放占位后一次1元D01/E链路；用户明确确认付款。精确匹配同一学校roomId的新鲜B02余额较付款前增加1.00元。D02仍为HTTP200、业务500、data=null，没有可验收的已支付枚举；不按空结果或余额差自动捏造支付状态，不开放D03备用写入。本地取消不表示学校撤单或二维码失效。

@@ -11,7 +11,7 @@ from .history_jobs import claim_history
 from .history_store import finish_history
 
 
-async def query_tick(app):
+async def query_tick(app, *, stop=None):
     row = await claim_refresh(app.state.database)
     if row:
         principal = Principal("room", UUID(bytes=row["owner_user_id"]), 1, new_id())
@@ -27,6 +27,8 @@ async def query_tick(app):
         except ApiError as failure:
             records, error = [], failure.code
         await finish_refresh(app.state.database, row, records, error)
+    if stop and stop.is_set():
+        return bool(row)
     history = await claim_history(app.state.database)
     if history:
         principal = Principal("room", UUID(bytes=history["owner_user_id"]), 1, new_id())

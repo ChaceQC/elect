@@ -1,0 +1,738 @@
+{
+  "date": "2026-10-03",
+  "version": "0.16.0",
+  "host_cpu_count": 6,
+  "host_memtotal_kib": 16262948,
+  "method": "cgroup v2 memory.current减inactive_file，2秒采样；各容器memory.peak为包括文件页的内核生命期峰值；没有相加单容器峰值作为同一时刻全栈峰值",
+  "scope": "专用新测试项目/无真实学校、SMTP、支付；原业务保持停止。前六阶段在同一测试卷依次切换，最后cold使用全新空卷及最终镜像。MySQL/probes窗口包含首次配置失败修正；阶段采样最大值包含变更前停机窗口，不能作为新参数冷启动结论。cold窗口在13个长期容器首次全部healthy时结束，包含初始化/migrate/tls-check，排除一次性smoke压测发起端；未加载运行API的OCR，未计宿主机/备份/24小时负载。",
+  "phases": [
+    {
+      "phase": "baseline",
+      "started_at": "2026-10-03T22:06:59.471655+08:00",
+      "ended_at": "2026-10-03T22:09:14.621104+08:00",
+      "sample_count": 67,
+      "sample_interval_seconds": 2,
+      "sampled_sum_max_bytes": 1572839424,
+      "final_working_set_bytes": 1461805056,
+      "final_running_count": 13,
+      "components": {
+        "nginx": {
+          "working_set": 8433664,
+          "current": 8466432,
+          "kernel_peak": 11546624,
+          "oom_kill": 0
+        },
+        "payment": {
+          "working_set": 87257088,
+          "current": 87257088,
+          "kernel_peak": 102055936,
+          "oom_kill": 0
+        },
+        "notification-worker": {
+          "working_set": 78839808,
+          "current": 78843904,
+          "kernel_peak": 92749824,
+          "oom_kill": 0
+        },
+        "gateway": {
+          "working_set": 82362368,
+          "current": 82362368,
+          "kernel_peak": 97075200,
+          "oom_kill": 0
+        },
+        "monitoring": {
+          "working_set": 89620480,
+          "current": 89624576,
+          "kernel_peak": 104165376,
+          "oom_kill": 0
+        },
+        "audit": {
+          "working_set": 81944576,
+          "current": 81944576,
+          "kernel_peak": 96661504,
+          "oom_kill": 0
+        },
+        "identity": {
+          "working_set": 88248320,
+          "current": 88248320,
+          "kernel_peak": 102830080,
+          "oom_kill": 0
+        },
+        "school-adapter": {
+          "working_set": 88944640,
+          "current": 88944640,
+          "kernel_peak": 103591936,
+          "oom_kill": 0
+        },
+        "notification": {
+          "working_set": 86884352,
+          "current": 86884352,
+          "kernel_peak": 101171200,
+          "oom_kill": 0
+        },
+        "room": {
+          "working_set": 88547328,
+          "current": 88547328,
+          "kernel_peak": 103251968,
+          "oom_kill": 0
+        },
+        "redis": {
+          "working_set": 8450048,
+          "current": 8454144,
+          "kernel_peak": 16658432,
+          "oom_kill": 0
+        },
+        "rabbitmq": {
+          "working_set": 100089856,
+          "current": 100397056,
+          "kernel_peak": 193396736,
+          "oom_kill": 0
+        },
+        "mysql": {
+          "working_set": 572182528,
+          "current": 591691776,
+          "kernel_peak": 596127744,
+          "oom_kill": 0
+        }
+      }
+    },
+    {
+      "phase": "pool",
+      "started_at": "2026-10-03T22:10:37.353000+08:00",
+      "ended_at": "2026-10-03T22:11:19.532404+08:00",
+      "sample_count": 21,
+      "sample_interval_seconds": 2,
+      "sampled_sum_max_bytes": 1542361088,
+      "final_working_set_bytes": 1462611968,
+      "final_running_count": 13,
+      "components": {
+        "school-adapter": {
+          "working_set": 88395776,
+          "current": 88395776,
+          "kernel_peak": 103374848,
+          "oom_kill": 0
+        },
+        "identity": {
+          "working_set": 88055808,
+          "current": 88055808,
+          "kernel_peak": 102629376,
+          "oom_kill": 0
+        },
+        "payment": {
+          "working_set": 87031808,
+          "current": 87031808,
+          "kernel_peak": 101707776,
+          "oom_kill": 0
+        },
+        "notification-worker": {
+          "working_set": 79912960,
+          "current": 79912960,
+          "kernel_peak": 93548544,
+          "oom_kill": 0
+        },
+        "notification": {
+          "working_set": 86884352,
+          "current": 86884352,
+          "kernel_peak": 101441536,
+          "oom_kill": 0
+        },
+        "monitoring": {
+          "working_set": 89280512,
+          "current": 89280512,
+          "kernel_peak": 103313408,
+          "oom_kill": 0
+        },
+        "gateway": {
+          "working_set": 82333696,
+          "current": 82333696,
+          "kernel_peak": 97026048,
+          "oom_kill": 0
+        },
+        "room": {
+          "working_set": 88158208,
+          "current": 88158208,
+          "kernel_peak": 102735872,
+          "oom_kill": 0
+        },
+        "audit": {
+          "working_set": 81055744,
+          "current": 81055744,
+          "kernel_peak": 96292864,
+          "oom_kill": 0
+        },
+        "nginx": {
+          "working_set": 6877184,
+          "current": 6901760,
+          "kernel_peak": 9863168,
+          "oom_kill": 0
+        },
+        "redis": {
+          "working_set": 8450048,
+          "current": 8454144,
+          "kernel_peak": 16662528,
+          "oom_kill": 0
+        },
+        "rabbitmq": {
+          "working_set": 98291712,
+          "current": 98598912,
+          "kernel_peak": 193396736,
+          "oom_kill": 0
+        },
+        "mysql": {
+          "working_set": 577884160,
+          "current": 597401600,
+          "kernel_peak": 601198592,
+          "oom_kill": 0
+        }
+      }
+    },
+    {
+      "phase": "mysql",
+      "started_at": "2026-10-03T22:11:21.155871+08:00",
+      "ended_at": "2026-10-03T22:15:49.683903+08:00",
+      "sample_count": 132,
+      "sample_interval_seconds": 2,
+      "sampled_sum_max_bytes": 1546506240,
+      "final_working_set_bytes": 1298178048,
+      "final_running_count": 13,
+      "components": {
+        "mysql": {
+          "working_set": 409665536,
+          "current": 411648000,
+          "kernel_peak": 415584256,
+          "oom_kill": 0
+        },
+        "school-adapter": {
+          "working_set": 89022464,
+          "current": 89022464,
+          "kernel_peak": 103448576,
+          "oom_kill": 0
+        },
+        "identity": {
+          "working_set": 88285184,
+          "current": 88285184,
+          "kernel_peak": 102846464,
+          "oom_kill": 0
+        },
+        "payment": {
+          "working_set": 87302144,
+          "current": 87302144,
+          "kernel_peak": 102006784,
+          "oom_kill": 0
+        },
+        "notification-worker": {
+          "working_set": 80195584,
+          "current": 80195584,
+          "kernel_peak": 93564928,
+          "oom_kill": 0
+        },
+        "notification": {
+          "working_set": 87031808,
+          "current": 87031808,
+          "kernel_peak": 101056512,
+          "oom_kill": 0
+        },
+        "monitoring": {
+          "working_set": 89604096,
+          "current": 89604096,
+          "kernel_peak": 104157184,
+          "oom_kill": 0
+        },
+        "gateway": {
+          "working_set": 82313216,
+          "current": 82313216,
+          "kernel_peak": 97001472,
+          "oom_kill": 0
+        },
+        "room": {
+          "working_set": 87982080,
+          "current": 87982080,
+          "kernel_peak": 103112704,
+          "oom_kill": 0
+        },
+        "audit": {
+          "working_set": 81547264,
+          "current": 81547264,
+          "kernel_peak": 96579584,
+          "oom_kill": 0
+        },
+        "nginx": {
+          "working_set": 7815168,
+          "current": 7839744,
+          "kernel_peak": 10829824,
+          "oom_kill": 0
+        },
+        "redis": {
+          "working_set": 8458240,
+          "current": 8462336,
+          "kernel_peak": 16678912,
+          "oom_kill": 0
+        },
+        "rabbitmq": {
+          "working_set": 98955264,
+          "current": 99262464,
+          "kernel_peak": 193396736,
+          "oom_kill": 0
+        }
+      }
+    },
+    {
+      "phase": "redis",
+      "started_at": "2026-10-03T22:15:51.436774+08:00",
+      "ended_at": "2026-10-03T22:16:37.575837+08:00",
+      "sample_count": 23,
+      "sample_interval_seconds": 2,
+      "sampled_sum_max_bytes": 1368145920,
+      "final_working_set_bytes": 1300004864,
+      "final_running_count": 13,
+      "components": {
+        "redis": {
+          "working_set": 8437760,
+          "current": 8441856,
+          "kernel_peak": 16642048,
+          "oom_kill": 0
+        },
+        "mysql": {
+          "working_set": 414564352,
+          "current": 416546816,
+          "kernel_peak": 420298752,
+          "oom_kill": 0
+        },
+        "school-adapter": {
+          "working_set": 88817664,
+          "current": 88817664,
+          "kernel_peak": 103313408,
+          "oom_kill": 0
+        },
+        "identity": {
+          "working_set": 88039424,
+          "current": 88039424,
+          "kernel_peak": 102084608,
+          "oom_kill": 0
+        },
+        "payment": {
+          "working_set": 86921216,
+          "current": 86921216,
+          "kernel_peak": 102060032,
+          "oom_kill": 0
+        },
+        "notification-worker": {
+          "working_set": 79826944,
+          "current": 79826944,
+          "kernel_peak": 93442048,
+          "oom_kill": 0
+        },
+        "notification": {
+          "working_set": 86896640,
+          "current": 86896640,
+          "kernel_peak": 100655104,
+          "oom_kill": 0
+        },
+        "monitoring": {
+          "working_set": 89223168,
+          "current": 89223168,
+          "kernel_peak": 103751680,
+          "oom_kill": 0
+        },
+        "gateway": {
+          "working_set": 82305024,
+          "current": 82305024,
+          "kernel_peak": 97026048,
+          "oom_kill": 0
+        },
+        "room": {
+          "working_set": 87736320,
+          "current": 87736320,
+          "kernel_peak": 102854656,
+          "oom_kill": 0
+        },
+        "audit": {
+          "working_set": 81633280,
+          "current": 81633280,
+          "kernel_peak": 96358400,
+          "oom_kill": 0
+        },
+        "nginx": {
+          "working_set": 6553600,
+          "current": 6578176,
+          "kernel_peak": 7897088,
+          "oom_kill": 0
+        },
+        "rabbitmq": {
+          "working_set": 99049472,
+          "current": 99356672,
+          "kernel_peak": 193396736,
+          "oom_kill": 0
+        }
+      }
+    },
+    {
+      "phase": "rabbitmq",
+      "started_at": "2026-10-03T22:18:38.407573+08:00",
+      "ended_at": "2026-10-03T22:19:26.663904+08:00",
+      "sample_count": 24,
+      "sample_interval_seconds": 2,
+      "sampled_sum_max_bytes": 1327443968,
+      "final_working_set_bytes": 1307299840,
+      "final_running_count": 13,
+      "components": {
+        "rabbitmq": {
+          "working_set": 84451328,
+          "current": 84754432,
+          "kernel_peak": 187781120,
+          "oom_kill": 0
+        },
+        "redis": {
+          "working_set": 8441856,
+          "current": 8445952,
+          "kernel_peak": 16670720,
+          "oom_kill": 0
+        },
+        "mysql": {
+          "working_set": 416681984,
+          "current": 418664448,
+          "kernel_peak": 422727680,
+          "oom_kill": 0
+        },
+        "school-adapter": {
+          "working_set": 88760320,
+          "current": 88760320,
+          "kernel_peak": 103247872,
+          "oom_kill": 0
+        },
+        "identity": {
+          "working_set": 88043520,
+          "current": 88043520,
+          "kernel_peak": 101838848,
+          "oom_kill": 0
+        },
+        "payment": {
+          "working_set": 86622208,
+          "current": 86622208,
+          "kernel_peak": 101699584,
+          "oom_kill": 0
+        },
+        "notification-worker": {
+          "working_set": 79921152,
+          "current": 79921152,
+          "kernel_peak": 93540352,
+          "oom_kill": 0
+        },
+        "notification": {
+          "working_set": 86851584,
+          "current": 86851584,
+          "kernel_peak": 100859904,
+          "oom_kill": 0
+        },
+        "monitoring": {
+          "working_set": 89235456,
+          "current": 89235456,
+          "kernel_peak": 103243776,
+          "oom_kill": 0
+        },
+        "gateway": {
+          "working_set": 94261248,
+          "current": 94261248,
+          "kernel_peak": 97071104,
+          "oom_kill": 0
+        },
+        "room": {
+          "working_set": 87715840,
+          "current": 87715840,
+          "kernel_peak": 102846464,
+          "oom_kill": 0
+        },
+        "audit": {
+          "working_set": 89784320,
+          "current": 89784320,
+          "kernel_peak": 96292864,
+          "oom_kill": 0
+        },
+        "nginx": {
+          "working_set": 6529024,
+          "current": 6553600,
+          "kernel_peak": 7544832,
+          "oom_kill": 0
+        }
+      }
+    },
+    {
+      "phase": "probes",
+      "started_at": "2026-10-03T22:29:22.759986+08:00",
+      "ended_at": "2026-10-03T22:31:54.793943+08:00",
+      "sample_count": 75,
+      "sample_interval_seconds": 2,
+      "sampled_sum_max_bytes": 1300893696,
+      "final_working_set_bytes": 1279578112,
+      "final_running_count": 13,
+      "components": {
+        "nginx": {
+          "working_set": 6893568,
+          "current": 6918144,
+          "kernel_peak": 9990144,
+          "oom_kill": 0
+        },
+        "identity": {
+          "working_set": 88334336,
+          "current": 88334336,
+          "kernel_peak": 102133760,
+          "oom_kill": 0
+        },
+        "school-adapter": {
+          "working_set": 89038848,
+          "current": 89038848,
+          "kernel_peak": 103505920,
+          "oom_kill": 0
+        },
+        "notification-worker": {
+          "working_set": 79843328,
+          "current": 79843328,
+          "kernel_peak": 93474816,
+          "oom_kill": 0
+        },
+        "notification": {
+          "working_set": 87117824,
+          "current": 87117824,
+          "kernel_peak": 101138432,
+          "oom_kill": 0
+        },
+        "payment": {
+          "working_set": 87212032,
+          "current": 87212032,
+          "kernel_peak": 102010880,
+          "oom_kill": 0
+        },
+        "monitoring": {
+          "working_set": 89624576,
+          "current": 89624576,
+          "kernel_peak": 104148992,
+          "oom_kill": 0
+        },
+        "gateway": {
+          "working_set": 82350080,
+          "current": 82350080,
+          "kernel_peak": 97042432,
+          "oom_kill": 0
+        },
+        "room": {
+          "working_set": 88047616,
+          "current": 88047616,
+          "kernel_peak": 103137280,
+          "oom_kill": 0
+        },
+        "audit": {
+          "working_set": 81993728,
+          "current": 81993728,
+          "kernel_peak": 96706560,
+          "oom_kill": 0
+        },
+        "mysql": {
+          "working_set": 407994368,
+          "current": 408424448,
+          "kernel_peak": 412725248,
+          "oom_kill": 0
+        },
+        "redis": {
+          "working_set": 8441856,
+          "current": 8441856,
+          "kernel_peak": 16261120,
+          "oom_kill": 0
+        },
+        "rabbitmq": {
+          "working_set": 82685952,
+          "current": 82808832,
+          "kernel_peak": 200077312,
+          "oom_kill": 0
+        }
+      }
+    },
+    {
+      "phase": "cold",
+      "started_at": "2026-10-03T22:48:05.053984+08:00",
+      "ended_at": "2026-10-03T22:49:32.587992+08:00",
+      "sample_count": 44,
+      "sample_interval_seconds": 2,
+      "sampled_sum_max_bytes": 1319034880,
+      "final_working_set_bytes": 1297801216,
+      "final_running_count": 13,
+      "components": {
+        "nginx": {
+          "working_set": 6868992,
+          "current": 6893568,
+          "kernel_peak": 10166272,
+          "oom_kill": 0
+        },
+        "monitoring": {
+          "working_set": 89612288,
+          "current": 89612288,
+          "kernel_peak": 104144896,
+          "oom_kill": 0
+        },
+        "payment": {
+          "working_set": 87298048,
+          "current": 87298048,
+          "kernel_peak": 102019072,
+          "oom_kill": 0
+        },
+        "audit": {
+          "working_set": 82018304,
+          "current": 82034688,
+          "kernel_peak": 96600064,
+          "oom_kill": 0
+        },
+        "gateway": {
+          "working_set": 82313216,
+          "current": 82313216,
+          "kernel_peak": 97017856,
+          "oom_kill": 0
+        },
+        "school-adapter": {
+          "working_set": 89071616,
+          "current": 89071616,
+          "kernel_peak": 103452672,
+          "oom_kill": 0
+        },
+        "identity": {
+          "working_set": 88301568,
+          "current": 88301568,
+          "kernel_peak": 102342656,
+          "oom_kill": 0
+        },
+        "notification": {
+          "working_set": 86888448,
+          "current": 86888448,
+          "kernel_peak": 100896768,
+          "oom_kill": 0
+        },
+        "notification-worker": {
+          "working_set": 78843904,
+          "current": 78860288,
+          "kernel_peak": 92487680,
+          "oom_kill": 0
+        },
+        "room": {
+          "working_set": 88436736,
+          "current": 88436736,
+          "kernel_peak": 103112704,
+          "oom_kill": 0
+        },
+        "redis": {
+          "working_set": 8437760,
+          "current": 8470528,
+          "kernel_peak": 18288640,
+          "oom_kill": 0
+        },
+        "mysql": {
+          "working_set": 423628800,
+          "current": 446922752,
+          "kernel_peak": 450605056,
+          "oom_kill": 0
+        },
+        "rabbitmq": {
+          "working_set": 86081536,
+          "current": 86462464,
+          "kernel_peak": 189468672,
+          "oom_kill": 0
+        }
+      }
+    }
+  ],
+  "pool_probe": {
+    "capacity": 3,
+    "wait_seconds": 0.2011,
+    "timeout_seconds": 3.0033,
+    "checkedout_after": 0,
+    "recovered_ready": true,
+    "utc": true
+  },
+  "ocr_baseline": {
+    "scope": "仅合成图/无网络，非学校验证码识别验收",
+    "load_seconds": 0.8351,
+    "inference_p50_ms": 82.058,
+    "inference_max_ms": 102.079,
+    "idle_cpu_seconds_over_2s": 0.3045,
+    "peak_rss_kib": 115392,
+    "threads": 17,
+    "intra_op_threads": 0,
+    "inter_op_threads": 0,
+    "result_digest": "f982bc51c1585df3a37e4e7cd1bd2d2131b329c5c9a417c38f200ecf6c1737cb",
+    "distinct_results": 1
+  },
+  "ocr_final_image": {
+    "scope": "仅合成图/无网络，非学校验证码识别验收",
+    "load_seconds": 0.4145,
+    "inference_p50_ms": 12.761,
+    "inference_max_ms": 14.24,
+    "idle_cpu_seconds_over_2s": 0.0,
+    "peak_rss_kib": 114880,
+    "threads": 2,
+    "intra_op_threads": 1,
+    "inter_op_threads": 1,
+    "result_digest": "f982bc51c1585df3a37e4e7cd1bd2d2131b329c5c9a417c38f200ecf6c1737cb",
+    "distinct_results": 1
+  },
+  "ocr_method": "同一合成图10次分类，单独无网络/1 CPU容器；基线512MiB限额，最终384MiB限额，均未接近硬限额。结果摘要相同，不是学校识别率验收。",
+  "redis_budget": {
+    "cgroup_peak_bytes": 75784192,
+    "cgroup_events": {
+      "low": 0,
+      "high": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_kill": 0,
+      "oom_group_kill": 0
+    },
+    "scope": "独立无网络96MiB Redis；32MiB数据/noeviction，合成会话/锁/槽，写满、AOF重写并发、重启"
+  },
+  "recovery_report": {
+    "scope": "隔离合成数据、实际MySQL加密快照恢复；不代表生产异机灾备",
+    "table_counts_preserved": true,
+    "tables": 62,
+    "rpo_seconds": 4.548,
+    "rto_seconds": 59,
+    "rpo_target_seconds": 900,
+    "rto_target_seconds": 7200,
+    "rpo_target_met_in_drill": true,
+    "rto_target_met_in_drill": true,
+    "post_snapshot_effects_held_unknown": true,
+    "restored_real_egress": false,
+    "automatic_outbox_replay": false
+  },
+  "backup_restore_scope": "冻结应用后的合成加密备份/恢复；各基础服务生命期内核峰值含其他本轮验证，未测带持续负载的并发备份窗口。RTO从补好网段后重入restore计时，不含首次地址池失败/排障，不能外推生产。",
+  "backup_restore_base_components": {
+    "elect-test-opt-step3-cold-20261003": {
+      "redis": {
+        "kernel_peak_bytes": 17219584,
+        "oom_kill": 0,
+        "state_oom_killed": false
+      },
+      "mysql": {
+        "kernel_peak_bytes": 384139264,
+        "oom_kill": 0,
+        "state_oom_killed": false
+      },
+      "rabbitmq": {
+        "kernel_peak_bytes": 200343552,
+        "oom_kill": 0,
+        "state_oom_killed": false
+      }
+    },
+    "elect-restore-elect-test-opt-step3-cold-20261003": {
+      "mysql": {
+        "kernel_peak_bytes": 441253888,
+        "oom_kill": 0,
+        "state_oom_killed": false
+      },
+      "rabbitmq": {
+        "kernel_peak_bytes": 198004736,
+        "oom_kill": 0,
+        "state_oom_killed": false
+      },
+      "redis": {
+        "kernel_peak_bytes": 16650240,
+        "oom_kill": 0,
+        "state_oom_killed": false
+      }
+    }
+  }
+}

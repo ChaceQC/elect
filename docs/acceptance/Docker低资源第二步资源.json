@@ -1,0 +1,238 @@
+{
+  "implementation_version": "0.15.0",
+  "source": "隔离项目双向升级中的单次docker stats --no-stream，已扣除inactive_file的CLI口径",
+  "scope": "6核、15.51GiB主机；原业务停机；不含OCR加载、50人负载、备份峰值或宿主机开销",
+  "samples": {
+    "combined": {
+      "captured_at": "2026-10-03T21:17:20.734492+08:00",
+      "running_containers": 13,
+      "memory_used_mib": 1376.16,
+      "components": [
+        {
+          "service": "audit",
+          "used_mib": 77.49,
+          "docker_cpu_percent": 0.22
+        },
+        {
+          "service": "gateway",
+          "used_mib": 78.13,
+          "docker_cpu_percent": 0.09
+        },
+        {
+          "service": "identity",
+          "used_mib": 83.98,
+          "docker_cpu_percent": 0.45
+        },
+        {
+          "service": "monitoring",
+          "used_mib": 85.16,
+          "docker_cpu_percent": 0.47
+        },
+        {
+          "service": "mysql",
+          "used_mib": 537.9,
+          "docker_cpu_percent": 1.9
+        },
+        {
+          "service": "nginx",
+          "used_mib": 6.57,
+          "docker_cpu_percent": 0.0
+        },
+        {
+          "service": "notification",
+          "used_mib": 82.85,
+          "docker_cpu_percent": 0.22
+        },
+        {
+          "service": "notification-worker",
+          "used_mib": 76.16,
+          "docker_cpu_percent": 0.15
+        },
+        {
+          "service": "payment",
+          "used_mib": 82.59,
+          "docker_cpu_percent": 0.68
+        },
+        {
+          "service": "rabbitmq",
+          "used_mib": 87.93,
+          "docker_cpu_percent": 0.25
+        },
+        {
+          "service": "redis",
+          "used_mib": 8.63,
+          "docker_cpu_percent": 0.33
+        },
+        {
+          "service": "room",
+          "used_mib": 84.05,
+          "docker_cpu_percent": 0.6
+        },
+        {
+          "service": "school-adapter",
+          "used_mib": 84.72,
+          "docker_cpu_percent": 0.3
+        }
+      ]
+    },
+    "standalone": {
+      "captured_at": "2026-10-03T21:19:34.761827+08:00",
+      "running_containers": 30,
+      "memory_used_mib": 2623.91,
+      "components": [
+        {
+          "service": "audit",
+          "used_mib": 77.39,
+          "docker_cpu_percent": 27.56
+        },
+        {
+          "service": "audit-worker",
+          "used_mib": 68.08,
+          "docker_cpu_percent": 0.13
+        },
+        {
+          "service": "gateway",
+          "used_mib": 78.12,
+          "docker_cpu_percent": 0.09
+        },
+        {
+          "service": "identity",
+          "used_mib": 83.09,
+          "docker_cpu_percent": 0.09
+        },
+        {
+          "service": "identity-recovery",
+          "used_mib": 77.07,
+          "docker_cpu_percent": 0.21
+        },
+        {
+          "service": "identity-relay",
+          "used_mib": 68.14,
+          "docker_cpu_percent": 0.1
+        },
+        {
+          "service": "monitor-alerts",
+          "used_mib": 78.29,
+          "docker_cpu_percent": 4.55
+        },
+        {
+          "service": "monitor-recovery",
+          "used_mib": 78.2,
+          "docker_cpu_percent": 0.0
+        },
+        {
+          "service": "monitor-scheduler",
+          "used_mib": 78.21,
+          "docker_cpu_percent": 0.0
+        },
+        {
+          "service": "monitor-worker",
+          "used_mib": 77.17,
+          "docker_cpu_percent": 0.18
+        },
+        {
+          "service": "monitoring",
+          "used_mib": 83.93,
+          "docker_cpu_percent": 27.49
+        },
+        {
+          "service": "monitoring-relay",
+          "used_mib": 68.21,
+          "docker_cpu_percent": 0.12
+        },
+        {
+          "service": "mysql",
+          "used_mib": 546.0,
+          "docker_cpu_percent": 2.03
+        },
+        {
+          "service": "nginx",
+          "used_mib": 6.57,
+          "docker_cpu_percent": 0.0
+        },
+        {
+          "service": "notification",
+          "used_mib": 80.29,
+          "docker_cpu_percent": 0.08
+        },
+        {
+          "service": "notification-recovery",
+          "used_mib": 76.11,
+          "docker_cpu_percent": 16.05
+        },
+        {
+          "service": "notification-relay",
+          "used_mib": 68.1,
+          "docker_cpu_percent": 0.12
+        },
+        {
+          "service": "notification-worker",
+          "used_mib": 78.62,
+          "docker_cpu_percent": 0.94
+        },
+        {
+          "service": "payment",
+          "used_mib": 81.6,
+          "docker_cpu_percent": 1.41
+        },
+        {
+          "service": "payment-recovery",
+          "used_mib": 77.11,
+          "docker_cpu_percent": 0.21
+        },
+        {
+          "service": "payment-relay",
+          "used_mib": 66.7,
+          "docker_cpu_percent": 0.13
+        },
+        {
+          "service": "payment-worker",
+          "used_mib": 76.1,
+          "docker_cpu_percent": 18.4
+        },
+        {
+          "service": "rabbitmq",
+          "used_mib": 88.21,
+          "docker_cpu_percent": 0.94
+        },
+        {
+          "service": "redis",
+          "used_mib": 8.84,
+          "docker_cpu_percent": 0.41
+        },
+        {
+          "service": "room",
+          "used_mib": 83.04,
+          "docker_cpu_percent": 21.13
+        },
+        {
+          "service": "room-relay",
+          "used_mib": 68.2,
+          "docker_cpu_percent": 0.12
+        },
+        {
+          "service": "room-sync-worker",
+          "used_mib": 78.32,
+          "docker_cpu_percent": 0.36
+        },
+        {
+          "service": "school-adapter",
+          "used_mib": 83.64,
+          "docker_cpu_percent": 0.96
+        },
+        {
+          "service": "school-maintenance",
+          "used_mib": 72.42,
+          "docker_cpu_percent": 0.11
+        },
+        {
+          "service": "school-relay",
+          "used_mib": 68.14,
+          "docker_cpu_percent": 0.11
+        }
+      ]
+    }
+  },
+  "capacity_2gb_verified": false,
+  "sustained_24h_verified": false
+}

@@ -1,0 +1,20 @@
+# 在通用restore之后最后应用；不向其他模式添加core角色。
+services:
+  core:
+    environment:
+      ELECT_BACKGROUND_ENABLED: "false"
+      ELECT_ALLOW_SCHOOL_BINDING_WRITES: "false"
+      ELECT_ALLOW_PAYMENT_ORDER_WRITES: "false"
+      ELECT_ALLOW_PAYMENT_FORM_WRITES: "false"
+      ELECT_ALLOW_REAL_SMTP: "false"
+      ELECT_PAYMENT_ACCEPTANCE_PASSED: "false"
+  mail-worker:
+    profiles: [reconciled]
+    networks: !override [app, data]
+    environment:
+      ELECT_BACKGROUND_ENABLED: "false"
+      ELECT_ALLOW_SCHOOL_BINDING_WRITES: "false"
+      ELECT_ALLOW_PAYMENT_ORDER_WRITES: "false"
+      ELECT_ALLOW_PAYMENT_FORM_WRITES: "false"
+      ELECT_ALLOW_REAL_SMTP: "false"
+      ELECT_PAYMENT_ACCEPTANCE_PASSED: "false"

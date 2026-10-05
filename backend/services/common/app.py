@@ -7,39 +7,25 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from .context import domain_context
 from .database import create_database, database_ready, migration_head
 from .dependencies import transport_status
 from .http import ApiError, install_http
 from .logging import configure_logging
-from .runtime import load_runtime, public_origin, side_effect_policy
-from .security import Principal, require_principal, validate_keys
+from .security import Principal, require_principal
 
 
-def create_app(service: str, *, business=False):
+def create_app(service: str, *, business=False, background=True):
     @asynccontextmanager
     async def lifespan(app):
         configure_logging()
-        runtime = load_runtime(service)
-        validate_keys(runtime)
-        app.state.runtime = runtime
-        app.state.public_origin = public_origin()
-        app.state.side_effect_policy = side_effect_policy()
-        engine = create_database(runtime.db_url.get_secret_value()) if runtime.db_url else None
-        app.state.database = engine
-        app.state.migration_head = migration_head(service) if engine else None
-        try:
-            if business:
-                from .business import initialize
+        async with domain_context(app, service, enabled=business,
+                                  database_factory=create_database, head=migration_head):
+            if business and background:
+                from .background import start_background
 
-                await initialize(app, service)
+                await start_background(app, service)
             yield
-        finally:
-            if business:
-                from .business import close
-
-                await close(app)
-            if engine:
-                await engine.dispose()
 
     app = FastAPI(
         title=f"elect-{service}", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
@@ -68,11 +54,22 @@ def create_app(service: str, *, business=False):
                 async with asyncio.timeout(3):
                     await database_ready(app.state.database, app.state.migration_head)
             components = await transport_status(app.state.runtime)
+            supervisor = app.state.background
+            roles = supervisor.snapshot() if supervisor else {}
+            if supervisor and not supervisor.available():
+                return JSONResponse(status_code=503, content={
+                    "service": service, "status": "not_ready", "background_roles": roles,
+                })
+            if supervisor:
+                components["background"] = all(
+                    value["status"] == "ready" for value in roles.values()
+                )
             return {
                 "service": service,
                 "status": "ready" if all(components.values()) else "degraded",
                 "components": components,
                 "business_enabled": business,
+                "background_roles": roles,
             }
         except Exception:
             return JSONResponse(
@@ -94,6 +91,7 @@ def create_app(service: str, *, business=False):
         for endpoint in ENDPOINTS:
             if business and (
                 endpoint.stage in {"T2", "T4"}
+                or endpoint.stage == "T6"
                 or endpoint.path
                 in {
                     "/monitor",

@@ -13,23 +13,17 @@ from services.common.security import Principal
 from services.identity.dto import CaptchaRequest, LoginRequest
 from services.school_adapter.infrastructure.redis_store import browser_hash
 
+from .cookies import NONCE_COOKIE, SESSION_COOKIE, clear_cookie, get_cookie, set_cookie
+
 router = APIRouter(prefix="/api/v1")
-SESSION_COOKIE = "__Host-elect_session"
-NONCE_COOKIE = "__Host-elect_browser"
 
 
 def success(request, value, *, status=200):
     return JSONResponse({"data": value, "meta": metadata(request)}, status_code=status)
 
 
-def cookie(response, name, value, age):
-    response.set_cookie(
-        name, value, max_age=age, secure=True, httponly=True, samesite="lax", path="/"
-    )
-
-
 async def session(request, *, required=True):
-    token = request.cookies.get(SESSION_COOKIE)
+    token = get_cookie(request, SESSION_COOKIE)
     if not token:
         if required:
             raise ApiError(401, ErrorCode.APP_SESSION_EXPIRED, "请先登录应用")
@@ -56,15 +50,15 @@ async def agreement(request: Request):
         "identity", "/browser/agreement", "identity:browser", UUID(request.state.request_id)
     )
     response = success(request, value)
-    if len(request.cookies.get(NONCE_COOKIE, "")) != 43:
-        cookie(response, NONCE_COOKIE, secrets.token_urlsafe(32), 600)
+    if len(get_cookie(request, NONCE_COOKIE) or "") != 43:
+        set_cookie(request, response, NONCE_COOKIE, secrets.token_urlsafe(32), 600)
     return response
 
 
 @router.post("/auth/captcha")
 async def captcha(command: CaptchaRequest, request: Request):
     require_origin(request)
-    nonce = request.cookies.get(NONCE_COOKIE)
+    nonce = get_cookie(request, NONCE_COOKIE)
     if not nonce or len(nonce) != 43:
         nonce = secrets.token_urlsafe(32)
     value = await request.app.state.service_client.call(
@@ -75,7 +69,7 @@ async def captcha(command: CaptchaRequest, request: Request):
         {"browser_nonce_hash": browser_hash(nonce)},
     )
     response = success(request, value)
-    cookie(response, NONCE_COOKIE, nonce, 600)
+    set_cookie(request, response, NONCE_COOKIE, nonce, 600)
     return response
 
 
@@ -92,11 +86,11 @@ async def login(command: LoginRequest, request: Request):
         "/browser/login",
         "identity:browser",
         UUID(request.state.request_id),
-        {"login": body, "browser_nonce_hash": browser_hash(request.cookies.get(NONCE_COOKIE))},
+        {"login": body, "browser_nonce_hash": browser_hash(get_cookie(request, NONCE_COOKIE))},
         principal=principal,
     )
     response = success(request, value["result"])
-    cookie(response, SESSION_COOKIE, value["session_token"], 7 * 86400)
+    set_cookie(request, response, SESSION_COOKIE, value["session_token"], 7 * 86400)
     return response
 
 
@@ -108,7 +102,7 @@ async def me(request: Request):
         "/browser/me",
         "identity:browser",
         principal.request_id,
-        {"session_token": request.cookies[SESSION_COOKIE]},
+        {"session_token": get_cookie(request, SESSION_COOKIE)},
         principal=principal,
     )
     return success(request, value)
@@ -124,11 +118,11 @@ async def logout(request: Request):
         "/browser/logout",
         "identity:browser",
         principal.request_id,
-        {"session_token": request.cookies[SESSION_COOKIE], "csrf_token": csrf},
+        {"session_token": get_cookie(request, SESSION_COOKIE), "csrf_token": csrf},
         principal=principal,
     )
     response = Response(status_code=204)
-    response.delete_cookie(SESSION_COOKIE, secure=True, httponly=True, samesite="lax", path="/")
+    clear_cookie(request, response, SESSION_COOKIE)
     return response
 
 
@@ -191,7 +185,7 @@ async def candidates(
 @router.get("/operations/{id}")
 async def operation(id: UUID, request: Request):
     principal, _ = await session(request)
-    for receiver in ["room", "identity"]:
+    for receiver in ["room", "identity", "payment"]:
         try:
             value = await request.app.state.service_client.call(
                 receiver,

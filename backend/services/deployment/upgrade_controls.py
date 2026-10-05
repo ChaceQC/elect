@@ -12,7 +12,7 @@ from .provision import write_file
 from .upgrade_auth import replace_secret
 
 SCOPES = {
-    "gateway": ["monitor:browser"],
+    "gateway": ["monitor:browser", "payment:browser"],
     "identity": ["monitor:credential", "credential:control-read", "credential:revoke"],
     "room": ["monitor:retarget", "school:binding", "school:history", "credential:control-read"],
     "monitoring": ["room:control", "room:query", "school:collect", "credential:control-read"],
@@ -22,8 +22,10 @@ SCOPES = {
         "room:remove-read",
         "room:query",
         "room:balance-commit",
+        "payment:proof",
     ],
     "notification": ["monitor:authorize-send", "monitor:alert-read"],
+    "payment": ["room:browser", "room:query", "credential:control-read", "school:payment"],
 }
 
 

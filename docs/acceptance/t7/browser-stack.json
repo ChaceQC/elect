@@ -1,0 +1,11 @@
+{
+  "scope": "生产静态前端/Nginx/Gateway/七域后端；登录预置使用合成学校",
+  "page_reads": 8,
+  "mock_routes": 0,
+  "cross_origin_rejected": true,
+  "csrf_rejected": true,
+  "foreign_binding_rejected": true,
+  "cross_tab_logout": true,
+  "session_revoked": true,
+  "page_errors": 0
+}

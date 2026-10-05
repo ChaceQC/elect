@@ -1,0 +1,29 @@
+.login-layout { display: grid; grid-template-columns: 1fr 1fr; min-height: 100dvh; background: white; }
+.login-story { background: #e8f4fd; padding: 43px 55px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.story-copy { max-width: 500px; margin: auto; width: 100%; padding-top: 25px; }
+.story-copy h1 { font-size: 58px; line-height: 1.35; letter-spacing: -2px; color: #427699; }
+.story-copy h1 > span { color: #9bc9e9; }
+/* 沿用参考源码的 Home/Zap 装饰；不展示示例账户余额。 */
+.energy-art { height: 280px; position: relative; margin: 15px auto 20px; max-width: 400px; }
+.orbit { border: 1px solid #c8dfef; border-radius: 50%; position: absolute; width: 240px; height: 240px; left: calc(50% - 120px); top: 25px; }
+.orbit.two { width: 180px; height: 180px; left: calc(50% - 90px); top: 55px; border-style: dashed; }
+.art-home { position: absolute; left: calc(50% - 62px); top: 83px; border-radius: 25px; transform: rotate(-8deg); width: 124px; height: 124px; display: grid; place-items: center; background: #cce5f8; color: #86b5d6; box-shadow: 10px 15px 35px #769dba16; }
+.art-bolt { position: absolute; bottom: 18px; right: 23px; color: #6ca3ca; }
+.art-value { position: absolute; right: 0; bottom: 29px; background: #fffffff2; border-radius: 12px; padding: 16px 24px; font-size: 28px; color: #6b9abb; box-shadow: 0 8px 25px #6178460d; }
+.login-panel { padding: 50px; display: flex; align-items: center; justify-content: center; }
+.login-card { width: 100%; max-width: 360px; margin: auto; }
+.login-card h2 { font-size: 30px; letter-spacing: -1px; margin: 21px 0 12px; }
+.login-form { display: grid; gap: 23px; margin-top: 26px; }
+.captcha-field { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 10px; align-items: end; }
+.captcha-image { display: flex; align-items: center; min-height: 44px; border: 1px solid #d8e9f6; border-radius: 7px; background: #edf6fd; overflow: hidden; }
+.captcha-image img { width: 90px; min-width: 0; height: 42px; object-fit: contain; }
+.captcha-image span { font-size: 10px; padding: 6px; }
+.captcha-image button { padding: 4px; min-height: 42px; font-size: 10px; border: 0; background: transparent; flex: 1; white-space: nowrap; }
+.agreement-check { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; font-size: 11px; }
+.agreement-check .checkbox-row, .login-form > .checkbox-row { font-size: 11px; }
+.login-form > .field-hint { margin: -17px 0 -10px; }
+.login-form .primary-action { margin-top: -7px; }
+.login-form .status-block { margin: 0; }
+@media (min-width: 1500px) { .login-story { padding: 55px 85px; } .story-copy h1 { font-size: 66px; } }
+@media (max-width: 1100px) { .login-story, .login-panel { padding: 35px; } .story-copy h1 { font-size: 48px; } }
+@media (max-width: 760px) { .login-layout { grid-template-columns: 1fr; } .login-story { padding: 23px; } .story-copy { display: none; } .login-panel { padding: 40px 25px; min-height: calc(100dvh - 89px); } .login-card { max-width: 400px; } }

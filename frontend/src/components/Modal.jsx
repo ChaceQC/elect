@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef } from 'react'
+import { X } from 'lucide-react'
 
-/** @param {{open: boolean, title: string, onClose: ()=>void, children: import('react').ReactNode}} props */
-export function Modal({ open, title, onClose, children }) {
+/** @param {{open: boolean, title: string, onClose: ()=>void, children: import('react').ReactNode, inactive?: boolean}} props */
+export function Modal({ open, title, onClose, children, inactive = false }) {
   const dialog = useRef(/** @type {HTMLDialogElement|null} */ (null))
   const titleId = useId()
   useEffect(() => {
@@ -12,7 +13,7 @@ export function Modal({ open, title, onClose, children }) {
     element.querySelector('button')?.focus()
     return () => { element.close(); if (previous instanceof HTMLElement) previous.focus() }
   }, [open])
-  return open && <dialog ref={dialog} className="modal" aria-labelledby={titleId}
+  return open && <dialog ref={dialog} className="modal" aria-labelledby={titleId} inert={inactive} aria-hidden={inactive || undefined}
     onCancel={(event) => { event.preventDefault(); onClose() }}
     onKeyDown={(event) => {
       if (event.key !== 'Tab') return
@@ -30,6 +31,6 @@ export function Modal({ open, title, onClose, children }) {
         event.clientY < bounds.top || event.clientY > bounds.bottom) onClose()
     }}>
     <div className="modal-content"><header><h2 id={titleId}>{title}</h2>
-      <button className="quiet" aria-label="关闭弹窗" onClick={onClose}>关闭</button></header>{children}</div>
+      <button className="icon-button" aria-label="关闭弹窗" onClick={onClose}><X size={20} /></button></header>{children}</div>
   </dialog>
 }

@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import Field, SecretStr, model_validator
 
 from services.identity.dto import LoginRequest
+from services.payment.dto import OrderState, QRStatus
 
 from .dto import DTO, Count, DateRange, Money, PositiveMoney, Timestamp, Version
 from .events import EVENTS, EventPayload
@@ -234,6 +235,9 @@ class DispatchBinding(UserCommand):
 
 
 class DispatchOrder(UserCommand):
+    order_id: UUID
+    operation_id: UUID
+    lease_owner: str
     upstream_operation_id: UUID
     credential_ref: UUID
     credential_version: Version
@@ -283,6 +287,44 @@ class PaymentSessionCommand(UserCommand):
     order_id: UUID
     upstream_operation_id: UUID
     step: Literal["E01", "E02", "E03", "E04"]
+    operation_id: UUID
+    lease_owner: str
+
+
+class OrderQuery(DTO):
+    order_id: UUID
+
+
+class PaymentProofQuery(OrderQuery):
+    operation_id: UUID
+    lease_owner: str
+
+
+class SchoolOrderResult(DTO):
+    state: Literal["prepared", "dispatched", "confirmed", "rejected", "reconciling", "unknown"]
+    upstream_operation_id: UUID
+    error_code: str | None
+    order_state: OrderState | None = None
+
+
+class SchoolQRResult(DTO):
+    qr_status: QRStatus
+    error_code: str | None
+
+
+class PaymentImage(DTO):
+    image_base64: str | None
+    mime: Literal["image/png", "image/jpeg"] | None
+
+
+class PaymentDispatchProof(DTO):
+    can_dispatch: bool
+    binding_id: UUID
+    upstream_operation_id: UUID
+    credential_ref: UUID
+    credential_version: Version
+    amount: PositiveMoney
+    currency: Literal["CNY"]
 
 
 class SessionIntrospection(DTO):

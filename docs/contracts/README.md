@@ -1,12 +1,18 @@
 # API 契约
 
-当前版本：0.7.0；T0 冻结基线 0.1.0，日期：2026-10-01。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.19.0；T0 冻结基线 0.1.0，更新日期：2026-10-05。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+
+core模式公开API和领域DTO不变。核心内部52个接口直接复用原身份依赖、参数与返回模型；独立Adapter/邮件通过`https://identity:8000/domains/{domain}/internal/v1/...`访问相同领域协议，沿用原issuer/audience/scope和Identity证书。部署模式不引入全权core服务身份，也不允许跨库查询；详见[核心组合](../decisions/七容器核心组合.md)。
+
+0.18.3不改变DTO或学校确认条件。订单GET只读本地状态，回查由独立持久调度负责；支付/解绑每2秒自动更新，规则见[支付与解绑自动更新](../decisions/支付与解绑自动更新.md)。
+
+当前协议2026-10-04.1已将后台授权并入登录/重新认证同意，LoginRequest.credential_use_allowed须为true（false或缺失返回422）。历史未授权凭据保持原状，需本人阅读新版协议重新认证。Bindings.binding_write_enabled默认为false，由Room根据当前副作用开关返回，供入口提前展示绑定/解绑限制；写接口仍独立校验，旧未知请求可按原键查询。详见[界面规则](../decisions/界面状态与登录授权.md)。
 
 ## 公开 API
 
-[openapi.yaml](openapi.yaml)包含全部 33 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
+[openapi.yaml](openapi.yaml)包含全部 34 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
 
-- 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。
+- 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。显式私网 HTTP 模式使用 elect_session_local/elect_browser_local（HttpOnly/SameSite=Lax/Path=/、不设 Domain）；模式由服务端校验的 Origin 决定，Origin/CSRF 与归属校验保留。
 - 匿名验证码/登录使用浏览器 nonce、Origin 与限流；已有会话的重认证还要校验当前会话与 CSRF，登录接口不得静默切账号，账号不同返回 `409 REAUTH_ACCOUNT_MISMATCH`。
 - 受保护写请求使用 Origin 和内存 `X-CSRF-Token`；每次实时 introspection，依赖不可用时拒绝新写入。对象不属于本人返回不可枚举 404。
 - 成功信封为 data/meta；失败为 error/meta，meta 包含 request_id 与带时区 server_time；logout 204 无正文。429 使用 Retry-After，错误中 retry_after_seconds 表达相同等待期。
@@ -30,6 +36,7 @@
 
 - 后续页复用 token，页码从 1 开始，每页默认 10、最大 100；超出末页返回空 items 与同一 total。
 - 换绑定、范围、账号或主动刷新清空 token/page；换粒度只影响消费聚合，不改变明细范围。
+- 前端第一页可见时每60秒不带token读取最新集合，恢复可见时重新读取已过期的查询缓存；后续页停止定时刷新并复用原token，分页缓存按token隔离。total是当前日期范围的快照总数，没有50条上限。
 - token 过期/服务端快照丢失返回 `410 SNAPSHOT_EXPIRED`，保留日期/草稿，提示重新加载第一页；范围不匹配返回 `400 SNAPSHOT_MISMATCH`，其他用户 token 返回 404。
 - 快照 TTL 内保留成员样本，归档不能破坏集合；过期先清成员再清快照，不级联删除历史。token 只保存 hash，不暴露业务 ID 集合。
 
@@ -37,15 +44,17 @@
 
 [内部命令](internal/commands.yaml)声明服务调用白名单、幂等边界和 DTO 引用；[schemas.json](internal/schemas.json)是后端内部 DTO 导出。[事件登记](events/registry.yaml)声明生产者、消费者、schema_version、聚合版本和去重键；内部事件 DTO 验证载荷与生产者，不含敏感材料。Outbox/Inbox 属于各域，不用消息替代 MySQL 权威状态。
 
+0.17.0仅更新版本及事件传输实现说明，公共字段与事件schema不变：事务成功提交后本进程提示、空闲最多10秒扫描及有界basic.consume/prefetch=1；原签名、Inbox、提交后ACK与持久恢复规则保留。
+
 前端 MSW 场景位于 `frontend/src/mocks/scenarios.json`，覆盖空账户、有绑定、学校失败、部分历史、默认切换中、运行取消、未知订单和快照过期；普通 CI 对响应按 OpenAPI 校验。学校夹具为合成数据，不能作为真实支付状态映射证据。生产入口不导入 mocks，也不注册 service worker。
 
 生成与检查命令见 [开发说明](../开发说明.md)，按钮、字段和实现阶段见 [需求追踪](../T0需求追踪表.md)。
 
 ## T2 当前实现
 
-公开认证五接口、本人绑定列表/持久同步/候选和 operation 查询已接通；后续阶段仍返回 FEATURE_DISABLED。LoginRequest 密码 1..1024、challenge 43..128；学号 1..128 且无空白/控制字符，不限制为参考页面的纯数字正则。协议与后台授权独立，未授权不进行后台密码认证。SessionContext 内部增加本人 CSRF；凭据激活内部命令携带显式 credential_use_allowed，凭据失效新增 credential.requires_reauth 持久广播。
+公开认证五接口、本人绑定列表/持久同步/候选和 operation 查询已接通；后续阶段仍返回 FEATURE_DISABLED。LoginRequest 密码 1..1024、challenge 43..128；学号 1..128 且无空白/控制字符，不限制为参考页面的纯数字正则。当前协议已将后台授权并入登录同意（2026-10-04.1），新登录/重认证须传credential_use_allowed=true；历史未授权凭据仍不进行后台密码认证。SessionContext 内部增加本人 CSRF；凭据激活内部命令携带显式 credential_use_allowed，凭据失效新增 credential.requires_reauth 持久广播。
 
-T2 默认 id 始终为已有偏好或 null，不自行初始化。首次成功空列表 sync_status=empty，首次失败 failed；已有镜像失败/关系缺失 stale，缺失关系 rechecking，保留历史。B03 候选固定 unverified，完整记录仅在服务端加密短期缓存。细节见 [实施决策](../decisions/T2认证与读取.md)。
+T2 默认 id 始终为已有偏好或 null，不自行初始化。首次成功空列表 sync_status=empty，首次失败 failed；该阶段采用缺席复核；现行0.13.1按用户要求，成功B02列表覆盖当前绑定，缺席记录inactive并保留历史；原默认仍在保留，不在选学校列表第一项，成功空列表清空默认/监控目标。查询失败才保留原列表并标记stale。B03 候选固定 unverified，完整记录仅在服务端加密短期缓存。细节见 [实施决策](../decisions/T2认证与读取.md)。
 
 ## T3 第一批增量
 
@@ -70,3 +79,19 @@ GET/PATCH monitor 已接通，首次幂等创建 disabled 记录；版本匹配�
 ## T5投递与状态
 
 AlertSlotQuery/AlertSnapshot仅Notification受限本人上下文读取，包含邮箱明文仅在内部请求中传输，不能进入MQ。投递事件增加execution_epoch及retry_wait/脱敏error_code/next_retry_at；结果由job版本/许可epoch与Inbox防重。Monitor.failed_cycles与NotificationSummary.delivery_enabled为兼容新增字段，发送默认关闭。slot镜像持久错误/重试时间，unknown永久占一个名额。当前首次投递后最多三次重试，1/5/15分钟，固定Message-ID不代表SMTP去重。见 [T5决策](../decisions/T5低余额与邮件.md)。
+
+## T6订单增量
+
+能力、建单和订单读取接入本人会话与内部 payment:browser 权限。capabilities.amount_policy_source=application_policy，金额初始为1–500元整数；不是学校确认上限。原键重放返回原订单，键同内容不同409，同用户/寝室未解决订单以409 existing_operation_id恢复，不能换键重建。订单新增qr_error_code、balance_refresh_state/operation_id（兼容默认）；尚未确认付款时不计算充值后余额。学校写入/二维码/真实状态继续实施，普通部署开关仍关闭。
+
+T6后续接通原订单QR/qr-refresh和三域operation查询。QR 200仅image/png或image/jpeg（二进制/no-store），202为QRPending JSON；未知表单只查原结果，不重发。订单余额刷新状态的succeeded仅表示School余额已重新查询，不表示本地已加到账。内部SchoolOrderResult/SchoolQRResult/PaymentImage/PaymentDispatchProof及实际路径已同步；Adapter独占票据密文。
+
+## 支付本地取消
+
+`POST /payment-orders/{id}/cancel` 使用本人Cookie、Origin、CSRF与 `expected_version`，返回含 `version/cancel_pending/cancelled_at` 的 Order；订单ID使重复取消返回原结果，不需要新的幂等键。缺版本428、冲突409、跨用户404；已确认付款不能取消。取消停止本系统执行，不撤销学校订单或退款，不删除D01/E02/E03台账。未取得许可的后续发送被阻断；已有运行等待原租约安全边界结束，随后释放未解决槽。旧键仍返回原订单，不重新派发；二维码读取/刷新拒绝取消订单。学校只读核对仍可记录原订单真实终态。
+
+## 本机受理拒绝与本地重试
+
+FEATURE_DISABLED即使返回503也表示该功能未受理，客户端清理该未受理意图及弹窗冻结状态；DEPENDENCY_UNAVAILABLE/网络超时保留原幂等请求。历史无操作ID的绑定/删除恢复记录可由用户停止本地重试，仅移除浏览器那一条记录，不发学校请求、不撤销服务端/学校受理，其他未知记录和服务端进度继续保留。
+
+0.18.0更新发布版本元数据；公共字段与事件schema保持不变，固定摘要镜像与启动配置见[运行手册](../runbooks/固定镜像发布与启动.md)。

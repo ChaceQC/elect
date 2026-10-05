@@ -1,0 +1,15 @@
+{
+  "version": "v0.18.0",
+  "revision": "2e130f199691664dd004980f715aaebe6f934e52",
+  "platform": "linux/amd64",
+  "check_run": "https://github.com/ChaceQC/elect/actions/runs/37198320789",
+  "backend": "ghcr.io/chaceqc/elect-backend@sha256:beb45f709dc62a9ca17c563cbb4ffc37626596ae6caa1772d7072a2beb026e98",
+  "frontend": "ghcr.io/chaceqc/elect-frontend@sha256:f146b300171910925159682b8a08dca1c38ee6f32ad143a239634a1950587f31",
+  "base_images": {
+    "MYSQL_IMAGE": "mysql:8.4.8@sha256:2952e3be7807f06fc18de50b3ea1a632d5c70d63482ff7d7376fe3aa8999babf",
+    "REDIS_IMAGE": "redis:7.4.7-alpine@sha256:02f2cc4882f8bf87c79a220ac958f58c700bdec0dfb9b9ea61b62fb0e8f1bfcf",
+    "RABBITMQ_IMAGE": "rabbitmq:4.1.4-management-alpine@sha256:5cbd7145b0306399ad68422c3350b6cbd1bb95704b39f5896480e5b6d4238a04",
+    "RABBITMQ_LOW_RESOURCE_IMAGE": "rabbitmq:4.1.4-alpine@sha256:b736d649308e1b3e1a116c3f36986b605ee3d03e88f10166be2900083d2e63f2"
+  },
+  "capacity_2cpu_2gb_50users_24h_verified": false
+}

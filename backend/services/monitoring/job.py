@@ -4,13 +4,16 @@ import argparse
 import asyncio
 import signal
 import time
+from functools import partial
 
 from services.common.app import create_app
-from services.common.broker import Broker, verified_event
+from services.common.background import Role, require_standalone
+from services.common.broker import Broker, BrokerHub, verified_event
 from services.common.heartbeat import Heartbeat
-from services.common.job import pause
+from services.common.job import pause, transport_loop
 from services.common.logging import configure_logging, log
 from services.common.outbox import consume_once
+from services.common.scheduling import IdleBackoff, retry_delay
 
 from .execution import claim_run
 from .recovery import recovery_tick
@@ -19,102 +22,154 @@ from .worker import execute_run
 
 
 async def registered(conn, event):
-    # 唤醒处理已先尝试持久领取；没有有效任务也可ACK，恢复使用新event_id。
+    # run提示先尝试持久领取；绑定确认的控制已由Saga持久协调，事件只记Inbox。
     from services.common.sql import execute
 
     await execute(conn, "SELECT 1")
 
 
-async def message_tick(app, queue, heartbeat):
-    message = await queue.get(fail=False, timeout=1)
+async def message_tick(app, queue, heartbeat, stop=None):
+    async with asyncio.timeout(3):
+        message = await queue.get(fail=False, timeout=1)
     if message is None:
+        return False
+    if stop and stop.is_set():
+        await message.nack(requeue=True)
         return False
     try:
         event = verified_event(app.state.runtime, message)
-        if event.type != "monitor.run_ready":
+        if event.type not in {"monitor.run_ready", "room.binding_confirmed"}:
             raise ValueError("错误唤醒类型")
     except Exception:
         await message.reject(requeue=False)
         log("monitor_event_rejected", service="monitoring", error_code="INVALID_EVENT")
         return True
     try:
-        execution = await claim_run(app.state.database, event.payload.run_id)
-        await consume_once(app.state.database, "monitor.run_ready", event, registered)
+        execution = (
+            await claim_run(app.state.database, event.payload.run_id)
+            if event.type == "monitor.run_ready" else None
+        )
+        await consume_once(app.state.database, event.type, event, registered)
     except Exception:
         await message.nack(requeue=True)
         raise
     # 领取状态已经提交；此后崩溃由MySQL租约恢复。
     await message.ack()
     if execution:
+        if heartbeat:
+            heartbeat.write(healthy=True)
         await execute_run(app, execution, heartbeat)
     return True
 
 
 async def run(role):
-    app = create_app("monitoring", business=True)
-    stop, heartbeat = asyncio.Event(), Heartbeat("monitoring", role)
+    require_standalone()
+    app = create_app("monitoring", business=True, background=False)
+    stop = asyncio.Event()
+    heartbeat = Heartbeat("monitoring", role, max_age=45 if role == "recovery" else 20)
     for signum in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
-    broker, queue, reconnect_at = None, None, 0
     async with app.router.lifespan_context(app):
-        try:
-            while not stop.is_set():
-                try:
-                    if role in {"worker", "alerts"}:
-                        if queue is None and time.monotonic() >= reconnect_at:
-                            try:
-                                broker = Broker(app.state.runtime)
-                                await broker.open()
-                                await broker.channel.set_qos(prefetch_count=1)
-                                queue = await broker.channel.declare_queue(
-                                    "elect.monitoring.runs"
-                                    if role == "worker"
-                                    else "elect.monitoring.deliveries",
-                                    durable=True,
-                                )
-                            except Exception:
-                                if broker:
-                                    await broker.close()
-                                broker, queue = None, None
-                                reconnect_at = time.monotonic() + 15
+        await role_loop(role, app, stop, heartbeat)
+
+
+def roles():
+    return [Role("relay", transport_loop, max_age=45), *(
+        Role(role, partial(role_loop, role), max_age=45 if role == "recovery" else 20)
+        for role in ("scheduler", "worker", "recovery", "alerts")
+    )]
+
+
+async def connect_queue(app, role, hub):
+    broker = Broker(app.state.runtime, hub=hub)
+    try:
+        async with asyncio.timeout(8):
+            await broker.open()
+            queue = await broker.channel.declare_queue(
+                "elect.monitoring.runs" if role == "worker" else "elect.monitoring.deliveries",
+                durable=True,
+            )
+            queue = await broker.consume(queue)
+        return broker, queue
+    except Exception:
+        await broker.close()
+        raise
+
+
+async def consumer_tick(role, app, queue, heartbeat, stop):
+    if stop.is_set():
+        return False
+    if role == "alerts":
+        from .alert_recovery import report_tick, wake_tick
+
+        activity = await report_tick(app, queue) if queue else False
+        return await wake_tick(app.state.database) or activity
+    activity = await message_tick(app, queue, heartbeat, stop) if queue else False
+    # 已终结/重复的MQ提示也算已处理，不能因此跳过本轮的持久领取。
+    if not stop.is_set():
+        from .worker import worker_tick
+
+        activity = await worker_tick(app, heartbeat=heartbeat) or activity
+    return activity
+
+
+async def role_loop(role, app, stop, heartbeat, hub=None):
+    if role != "worker":
+        return await scan_loop(role, app, stop, heartbeat, hub)
+    shared = hub or BrokerHub(app.state.runtime)
+    try:
+        # 两个槽共用本域engine/client/AMQP连接，各有prefetch=1的独立channel。
+        async with asyncio.TaskGroup() as tasks:
+            for slot in range(2):
+                tasks.create_task(
+                    scan_loop(role, app, stop, heartbeat, shared), name=f"monitor-slot:{slot}",
+                )
+    finally:
+        if hub is None:
+            await shared.close()
+
+
+async def scan_loop(role, app, stop, heartbeat, hub=None):
+    broker, queue, reconnect_at = None, None, 0
+    idle = IdleBackoff((1, 2, 5) if role == "worker" else (1, 2, 5, 10))
+    try:
+        while not stop.is_set():
+            try:
+                if role in {"worker", "alerts"}:
+                    if queue is None and time.monotonic() >= reconnect_at:
                         try:
-                            if role == "alerts":
-                                from .alert_recovery import report_tick
-
-                                activity = await report_tick(app, queue) if queue else False
-                            else:
-                                activity = (
-                                    await message_tick(app, queue, heartbeat) if queue else False
-                                )
+                            broker, queue = await connect_queue(app, role, hub)
                         except Exception:
-                            await broker.close()
                             broker, queue = None, None
-                            reconnect_at = time.monotonic() + 15
-                            activity = False
-                        if role == "alerts":
-                            from .alert_recovery import wake_tick
-
-                            activity = await wake_tick(app.state.database) or activity
-                        elif not activity:
-                            from .worker import worker_tick
-
-                            activity = await worker_tick(app, heartbeat=heartbeat)
-                    else:
-                        activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
-                            app.state.database
-                        )
-                    heartbeat.write(healthy=True, activity=activity)
-                except Exception:
-                    heartbeat.write(healthy=False)
-                    log(
-                        "monitor_job_retry",
-                        service="monitoring",
-                        error_code="DEPENDENCY_UNAVAILABLE",
+                            reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
+                    try:
+                        activity = await consumer_tick(role, app, queue, heartbeat, stop)
+                    except Exception:
+                        if broker:
+                            await broker.close()
+                        broker, queue = None, None
+                        reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
+                        raise
+                else:
+                    activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
+                        app.state.database
                     )
-                await pause(stop, {"scheduler": 5, "recovery": 15, "worker": 1, "alerts": 1}[role])
-        finally:
-            if broker:
-                await broker.close()
+                heartbeat.write(healthy=True, activity=activity)
+            except Exception:
+                heartbeat.write(healthy=False)
+                log("monitor_job_retry", service="monitoring", error_code="DEPENDENCY_UNAVAILABLE")
+                activity = False
+            delay = {"scheduler": 5, "recovery": 15}.get(role)
+            if delay is None:
+                delay = idle.next(activity)
+            if queue:
+                if await queue.wait(stop, delay):
+                    idle.reset()
+            else:
+                await pause(stop, delay)
+    finally:
+        if broker:
+            await broker.close()
 
 
 def main():

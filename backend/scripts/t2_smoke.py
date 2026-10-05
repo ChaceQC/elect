@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from scripts.t2_fixtures import SyntheticSchool
 from services.common.app import create_app
+from services.common.config_contract import SideEffectPolicy
 from services.common.database import create_database
 from services.common.ids import new_id
 from services.common.runtime import Runtime, read_secret
@@ -28,7 +29,7 @@ from services.school_adapter.infrastructure.protocol import SchoolProtocol
 from services.school_adapter.infrastructure.redis_store import SharedStore
 from services.school_adapter.infrastructure.transport import SchoolTransport
 
-SERVICES = ["gateway", "identity", "school_adapter", "room", "monitoring"]
+SERVICES = ["gateway", "identity", "school_adapter", "room", "monitoring", "payment"]
 
 
 async def fixture_apps():
@@ -37,6 +38,7 @@ async def fixture_apps():
         runtime = Runtime.model_validate_json(read_secret(f"/run/secrets/{service}_runtime.json"))
         app.state.runtime = runtime
         app.state.public_origin = "https://elect.test.local"
+        app.state.side_effect_policy = SideEffectPolicy()
         app.state.database = (
             create_database(runtime.db_url.get_secret_value()) if runtime.db_url else None
         )
@@ -198,13 +200,13 @@ async def verify(apps, school):
             "/api/v1/room-bindings/sync", headers={"Idempotency-Key": str(new_id())}
         )
         assert await sync_tick(room)
-        rechecking = (await first_browser.get("/api/v1/room-bindings")).json()["data"]
+        replaced = (await first_browser.get("/api/v1/room-bindings")).json()["data"]
         assert (
-            rechecking["sync_status"] == "stale"
-            and rechecking["items"][0]["status"] == "rechecking"
+            replaced["sync_status"] == "empty"
+            and replaced["items"] == [] and replaced["total"] == 0
         )
         school.empty_rooms = False
-        print("学校失败保留余额、短暂空列表复核且保留镜像：通过")
+        print("学校失败保留余额；成功空列表覆盖当前绑定、保留持久历史：通过")
         assert (
             await first_browser.post("/api/v1/auth/logout", headers={"X-CSRF-Token": "wrong"})
         ).status_code == 403

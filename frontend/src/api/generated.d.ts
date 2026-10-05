@@ -483,6 +483,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payment-orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** cancel_order */
+        post: operations["cancel_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/payment-orders/{id}/qr": {
         parameters: {
             query?: never;
@@ -732,8 +749,11 @@ export interface components {
              * @constant
              */
             agreement_accepted: true;
-            /** Credential Use Allowed */
-            credential_use_allowed: boolean;
+            /**
+             * Credential Use Allowed
+             * @constant
+             */
+            credential_use_allowed: true;
         };
         /** Consent */
         Consent: {
@@ -854,6 +874,11 @@ export interface components {
             total: number;
             /** Items */
             items: components["schemas"]["Binding"][];
+            /**
+             * Binding Write Enabled
+             * @default false
+             */
+            binding_write_enabled: boolean;
             /** Default Binding Id */
             default_binding_id: string | null;
             /** Preference Version */
@@ -1393,6 +1418,12 @@ export interface components {
             /** Unavailable Reason */
             unavailable_reason: string | null;
             unresolved_order: components["schemas"]["OrderReference"] | null;
+            /**
+             * Amount Policy Source
+             * @default application_policy
+             * @constant
+             */
+            amount_policy_source: "application_policy";
         };
         /** OrderRequest */
         OrderRequest: {
@@ -1454,6 +1485,18 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Version */
+            version: number;
+            /**
+             * Cancel Pending
+             * @default false
+             */
+            cancel_pending: boolean;
+            /**
+             * Cancelled At
+             * @default null
+             */
+            cancelled_at: string | null;
             /** Binding Display Name */
             binding_display_name: string;
             /** Paid Confirmed */
@@ -1469,6 +1512,27 @@ export interface components {
             qr_expires_at: string | null;
             /** Error Code */
             error_code: string | null;
+            /**
+             * Qr Error Code
+             * @default null
+             */
+            qr_error_code: string | null;
+            /**
+             * Balance Refresh State
+             * @default not_required
+             * @enum {string}
+             */
+            balance_refresh_state: "not_required" | "pending" | "succeeded" | "failed";
+            /**
+             * Balance Refresh Operation Id
+             * @default null
+             */
+            balance_refresh_operation_id: string | null;
+        };
+        /** OrderCancelRequest */
+        OrderCancelRequest: {
+            /** Expected Version */
+            expected_version: number;
         };
         /** QRPending */
         QRPending: {
@@ -5619,6 +5683,146 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Order"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS, SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description PRECONDITION_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancel_order: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderCancelRequest"];
+            };
+        };
         responses: {
             /** @description 成功 */
             200: {

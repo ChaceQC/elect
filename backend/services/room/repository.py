@@ -7,10 +7,10 @@ from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.sql import execute, first
 
-from .defaults import initialize_default
 from .mirror import mirror_bindings
 from .preference_store import lock_preference, locked_operation, require_no_removal
 from .queries import RoomQueries
+from .sync_defaults import align_default, snapshot_target
 
 
 class RoomRepository(RoomQueries):
@@ -110,6 +110,7 @@ class RoomRepository(RoomQueries):
                 "SELECT * FROM room_sync_state WHERE owner_user_id=:owner FOR UPDATE",
                 owner=owner,
             )
+            target = None
             if error:
                 sync_state = "stale" if state["last_synced_at"] else "failed"
                 await execute(
@@ -122,7 +123,8 @@ class RoomRepository(RoomQueries):
                 )
             else:
                 sync_state = await mirror_bindings(conn, owner, records)
-                await initialize_default(conn, UUID(bytes=owner), request_id)
+                target = await snapshot_target(conn, UUID(bytes=owner), records)
+                await align_default(conn, UUID(bytes=owner), target, request_id)
             await execute(
                 conn,
                 "UPDATE room_sync_state SET state=:state,error_code=:error,"
@@ -136,9 +138,12 @@ class RoomRepository(RoomQueries):
             await execute(
                 conn,
                 "UPDATE room_operations SET state=:state,saga_step='complete',"
+                "target_binding_id=IF(:success,:target,target_binding_id),"
                 "error_code=:error,lease_owner=NULL,lease_until=NULL,next_reconcile_at=NULL,"
                 "updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
                 state="failed" if error else "succeeded",
+                success=error is None,
+                target=target.bytes if error is None and target else None,
                 error=error,
                 id=operation["id"],
             )

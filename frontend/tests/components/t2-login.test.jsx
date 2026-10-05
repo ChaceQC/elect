@@ -25,7 +25,7 @@ afterAll(() => server.close())
 async function completeForm() {
   await screen.findByAltText('学校算式验证码')
   expect(screen.getByLabelText('我同意应用使用协议')).not.toBeChecked()
-  expect(screen.getByLabelText('允许后台使用加密凭据恢复学校认证')).not.toBeChecked()
+  expect(screen.queryByLabelText('允许后台使用加密凭据恢复学校认证')).not.toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('学校账号'), { target: { value: 'school.account' } })
   fireEvent.change(screen.getByLabelText('学校密码'), { target: { value: ' a password ' } })
   fireEvent.change(screen.getByLabelText('验证码答案'), { target: { value: '3' } })
@@ -37,7 +37,7 @@ async function completeForm() {
   expect(screen.getByRole('button', { name: /^登录$/ })).not.toBeDisabled()
 }
 
-it('短协议可确认；重复提交只发一次，密码原样提交且成功清理，不自动勾选后台授权', async () => {
+it('阅读协议后登录统一授权；重复提交只发一次，密码原样提交且成功清理', async () => {
   let count = 0
   let finish = /** @type {(()=>void)|null} */ (null)
   const pending = new Promise(resolve => { finish = () => resolve(null) })
@@ -46,7 +46,7 @@ it('短协议可确认；重复提交只发一次，密码原样提交且成功�
     const body = /** @type {import('../../src/api/generated').components['schemas']['LoginRequest']} */ (await request.json())
     expect(body.password).toBe(' a password ')
     expect(body.student_id).toBe('school.account')
-    expect(body.credential_use_allowed).toBe(false)
+    expect(body.credential_use_allowed).toBe(true)
     await pending
     return HttpResponse.json(envelope({ user: me, bootstrap: { rooms_state: 'loading', requires_binding: null,
       default_binding_id: null, credential_status: 'active' } }))
@@ -57,7 +57,7 @@ it('短协议可确认；重复提交只发一次，密码原样提交且成功�
   fireEvent.submit(form); fireEvent.submit(form)
   await waitFor(() => expect(count).toBe(1))
   if (finish) /** @type {()=>void} */ (finish)()
-  await screen.findByRole('heading', { name: '用电总览' })
+  await screen.findByRole('heading', { name: '先找到你的寝室' })
   expect(screen.queryByLabelText('学校密码')).not.toBeInTheDocument()
   expect(JSON.stringify(sessionStorage)).not.toContain('password')
 })

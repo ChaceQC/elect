@@ -36,7 +36,7 @@ async def age_absence(apps, operation):
         await execute(
             conn,
             "UPDATE upstream_operations SET absence_first_at=DATE_SUB(UTC_TIMESTAMP(6),"
-            "INTERVAL 31 SECOND) WHERE id=:id AND absence_first_at IS NOT NULL",
+            "INTERVAL 3 SECOND) WHERE id=:id AND absence_first_at IS NOT NULL",
             id=row["upstream_operation_id"],
         )
 

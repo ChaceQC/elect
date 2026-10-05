@@ -12,6 +12,7 @@ from .preference_store import lock_preference, locked_operation, require_no_remo
 
 
 async def accept_default(conn, owner, target, expected, request_id):
+    target_id = target.bytes if target else None
     preference = await lock_preference(conn, owner)
     require_no_removal(preference)
     if preference["switch_operation_id"]:
@@ -19,7 +20,7 @@ async def accept_default(conn, owner, target, expected, request_id):
             conn, "SELECT * FROM room_operations WHERE id=:id", id=preference["switch_operation_id"]
         )
         if (
-            previous["target_binding_id"] == target.bytes
+            previous["target_binding_id"] == target_id
             and previous["expected_preference_version"] == expected
         ):
             return UUID(bytes=previous["id"])
@@ -35,12 +36,12 @@ async def accept_default(conn, owner, target, expected, request_id):
         conn,
         "SELECT id FROM room_bindings WHERE id=:id AND owner_user_id=:owner AND status='active' "
         "FOR UPDATE",
-        id=target.bytes,
+        id=target_id,
         owner=owner.bytes,
     )
-    if not binding:
+    if target_id is not None and not binding:
         raise ApiError(404, ErrorCode.NOT_FOUND, "目标寝室不可用或不属于本人")
-    if preference["default_binding_id"] == target.bytes:
+    if preference["default_binding_id"] == target_id:
         return None
     operation = new_id()
     await execute(
@@ -51,8 +52,8 @@ async def accept_default(conn, owner, target, expected, request_id):
         "(:id,:owner,'switch_default',:target,:digest,'accepted','room_prepared',:version,UTC_TIMESTAMP(6))",
         id=operation.bytes,
         owner=owner.bytes,
-        target=target.bytes,
-        digest=target.bytes.ljust(32, b"\x00"),
+        target=target_id,
+        digest=(target_id or b"").ljust(32, b"\x00"),
         version=expected,
     )
     await execute(
@@ -106,7 +107,7 @@ async def commit_preference(engine, row, request_id):
             id=current["target_binding_id"],
             owner=current["owner_user_id"],
         )
-        if not binding:
+        if current["target_binding_id"] is not None and not binding:
             raise ApiError(404, ErrorCode.NOT_FOUND, "目标绑定已失效，正在恢复原目标")
         if (
             preference["switch_operation_id"] != current["id"]

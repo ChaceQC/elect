@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-02",
+  "timezone": "Asia/Shanghai",
+  "version": "0.13.0",
+  "project": "elect-local",
+  "entry": "http://10.8.0.88:6874",
+  "domain_and_edge_certificate_configured": false,
+  "internal_tls_preserved": true,
+  "long_running_services": 31,
+  "healthy_services": 31,
+  "migration": "passed",
+  "published_ports": [
+    {
+      "host_ip": "10.8.0.88",
+      "host_port": 6874,
+      "container_port": 80
+    }
+  ],
+  "other_host_addresses_same_port_rejected": true,
+  "nginx_config": "passed",
+  "backend": {
+    "tests_passed": 166,
+    "tests_skipped": 1,
+    "ruff": "passed",
+    "contracts": "passed"
+  },
+  "frontend": {
+    "tests_passed": 47,
+    "lint": "passed",
+    "typecheck": "passed",
+    "contract_types": "passed",
+    "docker_build": "passed",
+    "admission_rejection_and_local_retry_tests": "passed"
+  },
+  "browser": {
+    "source": "production frontend / Nginx / real backend / own real school read-only",
+    "authentication": "passed",
+    "school_binding_read": "passed",
+    "page_reads": 8,
+    "viewport_widths": [
+      1440,
+      375
+    ],
+    "origin_csrf": "passed",
+    "session_restore": "passed",
+    "cross_tab_logout": "passed",
+    "page_errors": 0,
+    "sensitive_browser_storage": false,
+    "api_mocks": 0,
+    "school_business_writes": false,
+    "local_retry_stop": "passed",
+    "school_write_requests": 0
+  },
+  "smtp": {
+    "config_source": "authorized local email_auth.txt imported in dedicated process",
+    "connection": "passed",
+    "tls_verified": true,
+    "authentication": "passed",
+    "transport": "physical_interface_direct",
+    "message_sent": false,
+    "mailbox_receipt_verified_in_this_run": false
+  },
+  "school_binding_writes_enabled": true,
+  "public_payments_enabled": false,
+  "remaining": [
+    "real D02 final status mapping",
+    "production off-host backups / PITR",
+    "T8 release"
+  ],
+  "school_binding_activation": "local only; user confirms the selected target in UI",
+  "manual_balance_refresh": {
+    "result": "school_invalid_response",
+    "source": "user observation / confirmed school-side error",
+    "fresh_balance_verified_in_this_run": false,
+    "unknown_or_last_success_preserved": true
+  }
+}

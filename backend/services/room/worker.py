@@ -42,17 +42,22 @@ async def control_tick(app):
         }[row["type"]]
         await saga(app.state.database, app.state.service_client).advance(row, principal)
     except ApiError as error:
-        await update(app.state.database, row, error=error.code, state="reconciling", release=True)
+        await update(app.state.database, row, error=error.code, state="reconciling", release=True,
+                     delay=30 if row["type"] == "unbind_room" else 5)
     return True
 
 
-async def room_tick(app):
+async def room_tick(app, *, stop=None, hub=None):
     from .query_worker import query_tick
 
-    controls = await control_tick(app)
+    if stop and stop.is_set():
+        return False
     synced = await sync_tick(app)
-    queried = await query_tick(app)
+    if stop and stop.is_set():
+        return synced
+    queried = await query_tick(app, stop=stop)
     from .wakeups import drain
 
-    await drain(app)
-    return controls or synced or queried
+    if not stop or not stop.is_set():
+        await drain(app, hub=hub)
+    return synced or queried

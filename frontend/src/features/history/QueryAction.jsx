@@ -3,10 +3,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useOperation } from '../../hooks/useOperation.js'
 import { useRequestIntent } from '../../hooks/useRequestIntent.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
+import { PollingNotice } from '../../components/feedback/PollingNotice.jsx'
 import { useSession } from '../auth/SessionProvider.jsx'
+import { RefreshCw } from 'lucide-react'
 
-/** @param {{path: string, body?: import('../../api/intents.js').SafeBody, label: string, operationId?: string}} props */
-export function QueryAction({ path, body = {}, label, operationId }) {
+/** @param {{path: string, body?: import('../../api/intents.js').SafeBody, label: string, operationId?: string, compact?: boolean}} props */
+export function QueryAction({ path, body = {}, label, operationId, compact = false }) {
   const { user } = useSession()
   const cache = useQueryClient()
   const { controller, submit, busy } = useRequestIntent()
@@ -23,6 +25,7 @@ export function QueryAction({ path, body = {}, label, operationId }) {
     if (value.state === 'failed') setError('本次查询未完成，已保留最近成功数据。')
   })
   const running = intent && (!intent.id || !['succeeded', 'failed', 'cancelled'].includes(operation.data?.state ?? ''))
+  const refreshing = busy || !!intent?.id && !!running && !operation.pollingPaused
   async function start() {
     if (!controller || busy) return
     const next = running && intent ? intent : controller.create(path, body)
@@ -31,10 +34,11 @@ export function QueryAction({ path, body = {}, label, operationId }) {
     catch (cause) { setError(cause instanceof Error ? cause.message : '查询受理未确认，请查询原操作。') }
   }
   return <div className="query-action">
-    <button className="quiet" disabled={busy || !!intent?.id && !!running} onClick={() => { void start() }}>{busy ? '正在受理…' : running ? intent?.id ? '查询已受理，等待结果' : '查询原请求的受理结果' : label}</button>
-    {operation.data && <p role="status">{({ accepted: '查询已受理', running: '正在从学校读取', succeeded: '查询已完成', failed: '查询失败，保留已有数据', cancelled: '查询已取消', reconciling: '结果确认中', unknown: '查询结果尚未确认' })[operation.data.state] ?? operation.data.state}</p>}
-    {running && intent?.body.start_date && <p className="muted">本次同步范围：{intent.body.start_date} 至 {intent.body.end_date}</p>}
+    <button className="quiet" title={compact ? label : undefined} aria-busy={refreshing} disabled={busy || !!intent?.id && !!running} onClick={() => { void start() }}><RefreshCw className={refreshing ? 'refresh-spinning' : undefined} size={14} aria-hidden="true" /><span className={compact ? 'sr-only' : undefined}>{!busy && running && !intent?.id ? '查询原请求的受理结果' : label}</span></button>
+    {refreshing && <span className="sr-only" role="status">正在刷新</span>}
+    {operation.data?.state === 'unknown' && <p role="status">查询结果尚未确认</p>}
+    {operation.data?.state === 'cancelled' && <p role="status">查询已取消</p>}
     {(error || operation.error) && <StatusBlock title={error || operation.error?.message || '查询未完成'} error />}
-    {running && intent?.id && <button className="quiet" onClick={() => { void operation.refresh() }}>查询最新进度</button>}
+    <PollingNotice paused={operation.pollingPaused} busy={operation.isFetching} onResume={() => { void operation.refresh() }} />
   </div>
 }

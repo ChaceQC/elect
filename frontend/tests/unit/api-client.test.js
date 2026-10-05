@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiClient, ApiError } from '../../src/api/client.js'
+import { OperationController } from '../../src/api/intents.js'
 
 const meta = { request_id: '0199a10c-0000-7000-8000-000000000001' }
 /** @param {unknown} data @param {number} [status] */
@@ -7,6 +8,22 @@ const success = (data, status = 200) => Response.json({ data, meta }, { status }
 afterEach(() => vi.useRealTimers())
 
 describe('API 客户端', () => {
+  it('私网HTTP没有randomUUID时，登录请求与原幂等意图仍能使用安全随机ID', async () => {
+    const getRandomValues = crypto.getRandomValues.bind(crypto)
+    vi.stubGlobal('crypto', { getRandomValues })
+    try {
+      const fetcher = vi.fn().mockResolvedValue(success({ version: 'test' }))
+      const client = new ApiClient(fetcher)
+      await client.request('/auth/agreement')
+      const requestId = fetcher.mock.calls[0][1].headers.get('X-Request-ID')
+      expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+      const controller = new OperationController(meta.request_id, client, null)
+      const intent = controller.create('/payment-orders', { binding_id: meta.request_id, amount: '1.00' }, 'order')
+      expect(intent.key).not.toBe(requestId)
+      expect(controller.restore()[0].key).toBe(intent.key)
+    } finally { vi.unstubAllGlobals() }
+  })
+
   it('使用同源 Cookie、内存 CSRF，正确处理 204 和响应信封', async () => {
     const fetcher = vi.fn().mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(success({ value: null }))

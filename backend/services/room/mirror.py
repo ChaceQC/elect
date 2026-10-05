@@ -77,7 +77,7 @@ async def mirror_bindings(conn, owner, records):
     for binding in missing:
         await execute(
             conn,
-            "UPDATE room_bindings SET status='rechecking',updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
+            "UPDATE room_bindings SET status='inactive',updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
             id=binding,
         )
         await execute(
@@ -86,4 +86,4 @@ async def mirror_bindings(conn, owner, records):
             "binding_id=:id",
             id=binding,
         )
-    return "stale" if missing else "ready" if records else "empty"
+    return "ready" if records else "empty"

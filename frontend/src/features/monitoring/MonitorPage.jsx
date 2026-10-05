@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { useSession } from '../auth/SessionProvider.jsx'
-import { draftFrom, parseDraft } from './draft.js'
+import { draftFrom, DraftValidationError, parseDraft } from './draft.js'
 import { RunControls } from './RunControls.jsx'
 import { NotificationStatus } from './NotificationStatus.jsx'
+import { Bell, Check, Home, Mail } from 'lucide-react'
+import { PageHeading } from '../../components/layout/PageHeading.jsx'
+import { useBindings } from '../rooms/useBindings.js'
 
 /** @typedef {import('./draft.js').Monitor} Monitor */
 /** @typedef {{draft: import('./draft.js').Draft, baseline: import('./draft.js').Draft,
@@ -19,6 +22,7 @@ const when = value => value ? new Date(value).toLocaleString('zh-CN', { timeZone
 export function MonitorPage() {
   const { user } = useSession()
   const cache = useQueryClient()
+  const bindings = useBindings({ pageSize: 100 })
   const draftKey = ['monitor-draft', user?.id]
   const query = useQuery({ queryKey: ['monitor', user?.id], enabled: !!user,
     queryFn: async ({ signal }) => /** @type {Monitor} */ ((await apiClient.request('/monitor', { signal })).data),
@@ -26,11 +30,13 @@ export function MonitorPage() {
   const [editor, setEditor] = useState(/** @type {Editor|null} */ (cache.getQueryData(draftKey) ?? null))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [invalidField, setInvalidField] = useState(/** @type {keyof import('./draft.js').Draft|null} */ (null))
+  const errorId = useId()
   const [notice, setNotice] = useState('')
   const writing = useRef(false)
   const dirty = !!editor && JSON.stringify(editor.draft) !== JSON.stringify(editor.baseline)
   useEffect(() => {
-    if (!query.data) return
+    if (!query.data || writing.current) return
     const saved = query.data
     setEditor(old => !old || JSON.stringify(old.draft) === JSON.stringify(old.baseline) && !old.review ? editorFrom(saved) : old)
   }, [query.data])
@@ -45,67 +51,87 @@ export function MonitorPage() {
   const current = query.data
   const review = !!editor && (!!editor.review || !!current && (editor.version !== current.version || editor.bindingId !== current.binding_id))
   /** @param {Partial<import('./draft.js').Draft>} values */
-  function edit(values) { setEditor(old => old ? { ...old, draft: { ...old.draft, ...values } } : old) }
-  /** @param {boolean} closeOnly */
-  async function save(closeOnly) {
+  function edit(values) {
+    if (writing.current) return
+    setEditor(old => old ? { ...old, draft: { ...old.draft, ...values } } : old)
+    if (invalidField && invalidField in values) { setInvalidField(null); setError('') }
+  }
+  async function save() {
     if (writing.current || !current || !editor) return
+    const closeOnly = current.config.enabled && !editor.draft.enabled
     let body
     try { body = closeOnly ? { enabled: false, expected_version: current.version } :
       { ...parseDraft(editor.draft), expected_version: editor.version } }
-    catch (cause) { setError(cause instanceof Error ? cause.message : '请核对设置。'); return }
+    catch (cause) { setError(cause instanceof Error ? cause.message : '请核对设置。')
+      setInvalidField(cause instanceof DraftValidationError ? cause.field : null); return }
     if (!closeOnly && review) { setError('请先核对当前设置和目标，再提交草稿。'); return }
-    writing.current = true; setBusy(true); setError(''); setNotice('')
+    writing.current = true; setBusy(true); setError(''); setInvalidField(null); setNotice('')
     try {
+      await cache.cancelQueries({ queryKey: ['monitor', user?.id] })
       const result = await apiClient.request('/monitor', { method: 'PATCH', body })
       const saved = /** @type {Monitor} */ (result.data)
       cache.setQueryData(['monitor', user?.id], saved)
       setEditor(closeOnly ? { ...editorFrom(saved), draft: { ...editor.draft, enabled: false } } : editorFrom(saved))
-      setNotice(closeOnly ? '关闭意图已保存。' : '监控设置已保存。')
+      setNotice(closeOnly ? saved.cancel_pending ? '正在关闭监控，后台任务正在停止。其他修改请另行保存。'
+        : '监控已关闭。其他修改请另行保存。' : '监控设置已保存。')
     } catch (cause) {
-      setError(cause instanceof ApiError && cause.status === 409 ? '设置已变化，草稿已保留，请核对当前值。'
-        : cause instanceof ApiError && ['NETWORK_ERROR', 'REQUEST_TIMEOUT'].includes(cause.code)
+      const code = cause instanceof ApiError ? cause.code : ''
+      const needsReview = ['VERSION_CONFLICT', 'NETWORK_ERROR', 'REQUEST_TIMEOUT'].includes(code)
+      setError(code === 'VERSION_CONFLICT' ? '设置已变化，草稿已保留，请核对当前值。'
+        : code === 'SCHOOL_REAUTH_REQUIRED' ? '请在“我的账户”中重新学校认证，完成后再保存监控设置。'
+        : code === 'OPERATION_IN_PROGRESS' ? '寝室或学校认证正在更新，请等待完成后再保存。草稿已保留。'
+        : ['NETWORK_ERROR', 'REQUEST_TIMEOUT'].includes(code)
           ? '保存结果尚未确认，请核对已保存设置后决定。' : cause instanceof Error ? cause.message : '保存未完成。')
-      setEditor(old => old ? { ...old, review: true } : old)
+      if (needsReview) setEditor(old => old ? { ...old, review: true } : old)
       await query.refetch()
     } finally { writing.current = false; setBusy(false) }
   }
   const states = { active: '已启用', disabled: '已关闭', requires_reauth: '需要修复学校认证', blocked_room: '需要有效默认寝室', retargeting: '默认寝室切换中' }
   const health = { healthy: '正常', degraded: '部分异常', unavailable: '当前不可用' }
-  return <><p className="eyebrow">我的寝室生活</p><h1>监控提醒</h1>
-    <p className="page-description">设置跟随默认寝室，关闭监控会保留历史。退出网页与撤回学校授权具有不同作用。</p>
-    <StatusBlock title="后台采集与邮件提醒"><p>监控按已保存设置在后台采集余额，余额严格低于阈值时提醒；总次数包含第一封。关闭后保留历史，退出应用不会关闭监控。</p>
-      {current && !current.notification.delivery_enabled && <p>当前邮件发送未启用，可保存设置；启用后的投递结果会显示在下方。</p>}
-    </StatusBlock>
+  const room = bindings.data?.items.find(item => item.id === current?.binding_id)
+  return <><PageHeading title="监控与预警" />
     {query.isPending && <StatusBlock title="正在读取监控设置…" />}
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '重新读取', onClick: () => { void query.refetch() } }} />}
-    {error && <StatusBlock title={error} error />}{notice && <p role="status">{notice}</p>}
-    {current && <section className="monitor-summary" aria-labelledby="saved-title"><h2 id="saved-title">已保存设置</h2>
+    {error && <div id={errorId}><StatusBlock title={error} error /></div>}{notice && <p className="save-notice" role="status">{notice}</p>}
+    {current && <section className="monitor-room"><span className="room-icon"><Home size={24} /></span><div><p className="muted">当前监控的默认寝室</p>
+      <h3>{room?.display_name ?? (current.binding_id ? bindings.isPending ? '正在读取寝室信息' : '寝室信息暂不可用' : '尚未设置默认寝室')}</h3></div><span className="pill">跟随默认寝室</span></section>}
+    {editor && <form className="monitor-form" noValidate onSubmit={event => { event.preventDefault(); void save() }}>
+      {dirty && <p className="draft-notice">有未保存的修改。</p>}
+      {review && current && <StatusBlock title={editor.bindingId !== current.binding_id ? '默认寝室已变化，请确认新目标' : '请核对最新保存的设置'}>
+        <p>下方显示当前已保存值，编辑中的草稿已保留。</p>
+        <button type="button" className="quiet" disabled={busy} onClick={() => setEditor(editorFrom(current))}>采用当前设置，丢弃草稿</button>
+        <button type="button" className="quiet" disabled={busy} onClick={() => setEditor({ ...editor, baseline: draftFrom(current),
+          version: current.version, bindingId: current.binding_id, review: false })}>按最新设置继续保存草稿</button>
+      </StatusBlock>}
+      <div className="monitor-grid"><section className="card"><div className="card-heading"><h2><Mail size={18} />邮箱与预警</h2></div>
+        {current && !current.notification.delivery_enabled && <p role="status" className="field-hint">邮件发送未启用：可保存设置并采集余额，但目前不会发送邮件提醒。</p>}
+        <label>提醒邮箱<input disabled={busy} type="email" placeholder="请输入接收提醒的邮箱" value={editor.draft.email} aria-invalid={invalidField === 'email'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ email: event.target.value })} /></label>
+        <label>低余额阈值（元）<input disabled={busy} inputMode="decimal" value={editor.draft.threshold} aria-invalid={invalidField === 'threshold'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ threshold: event.target.value })} /></label>
+      </section><section className="card"><div className="card-heading"><h2><Bell size={18} />监控设置</h2>
+        <label className="switch"><input disabled={busy} aria-label="启用监控" aria-describedby="monitor-switch-help" type="checkbox" checked={editor.draft.enabled} onChange={event => edit({ enabled: event.target.checked })} /><span /></label></div>
+        <p id="monitor-switch-help" className="field-hint">开启或关闭后均需保存。当前：{current?.cancel_pending ? '正在停止后台任务' : current ? states[current.state] : '读取中'}。</p>
+        <label>采集间隔（整数分钟）<input disabled={busy} inputMode="numeric" value={editor.draft.interval_minutes} aria-invalid={invalidField === 'interval_minutes'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ interval_minutes: event.target.value })} /></label>
+        <label>提醒总次数（包含第一次）<select disabled={busy} value={editor.draft.repeat_limit} aria-invalid={invalidField === 'repeat_limit'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ repeat_limit: event.target.value })}>{[1, 2, 3, 4, 5].map(count => <option key={count} value={String(count)}>{count} 次</option>)}</select></label>
+      </section></div><div className="save-row"><button disabled={busy || review && !(current?.config.enabled && !editor.draft.enabled)}><Check size={17} />{busy ? '正在保存…' : '保存设置'}</button></div>
+    </form>}
+    {current && <div className="monitor-alerts">
+      {current.state !== 'active' && current.state !== 'disabled' && <p role="alert">{states[current.state]}</p>}
+      {current.health !== 'healthy' && current.config.enabled && <p role="status">采集{health[current.health]}{current.last_error_code ? `：${current.last_error_code}` : ''}</p>}
+      {current.cancel_pending && <p role="status">正在停止后台任务，已经开始发送的邮件仍可能完成。</p>}
+      {(current.failed_cycles ?? 0) > 3 && <p role="alert">已连续 {current.failed_cycles} 个采集周期失败，请修复最近采集错误；该故障不消耗低余额提醒次数。</p>}
+      {(current.notification.state === 'email_failed' || current.notification.delivery_unknown_count > 0) && <NotificationStatus notification={current.notification} />}
+    </div>}
+    {current && <details className="monitor-details" open={review || undefined}><summary>运行与提醒状态<span>{states[current.state]}</span></summary><div className="monitor-runtime"><section className="card monitor-summary" aria-labelledby="saved-title"><div className="card-heading"><h2 id="saved-title">已保存设置</h2></div>
       <p>控制状态：{states[current.state]} · 采集健康：{health[current.health]}</p>
       <p>采集间隔 {current.config.interval_minutes} 分钟 · 提醒总次数 {current.config.repeat_limit}（包含第一次）· 阈值 {current.config.threshold} 元</p>
-      <p>提醒邮箱：{current.config.email ?? '未设置'} · 最近成功采集：{when(current.last_success_at)} · 下一计划时间：{when(current.next_run_at)}</p>
+      <p>提醒邮箱：{current.config.email ?? '未设置'}</p><p>最近成功采集：{when(current.last_success_at)} · 下一计划时间：{when(current.next_run_at)}</p>
       <NotificationStatus notification={current.notification} />
-      <p>在途工作 {current.in_flight_count} 项</p>
+      <p>正在处理的任务 {current.in_flight_count} 项</p>
       {current.last_error_code && <p>最近采集错误：{current.last_error_code}</p>}
-      {(current.failed_cycles ?? 0) > 3 && <p role="alert">已连续 {current.failed_cycles} 个采集周期失败，请修复最近采集错误；该故障不消耗低余额提醒次数。</p>}
-      {current.cancel_pending && <p>取消正在确认；已获发送许可的在途邮件可能完成。</p>}
-      <button className="quiet" disabled={busy} onClick={() => { void save(true) }}>关闭监控</button>
-      <button className="quiet" disabled={busy || query.isFetching} onClick={() => { void query.refetch() }}>读取最新设置</button>
-    </section>}
-    {current && <RunControls monitor={current} />}
-    {editor && <form className="monitor-form" noValidate onSubmit={event => { event.preventDefault(); void save(false) }}><h2>编辑设置</h2>
-      {dirty && <p className="muted">有未保存的草稿。离开页面后，本次会话会保留草稿；刷新前请保存。</p>}
-      {review && current && <StatusBlock title={editor.bindingId !== current.binding_id ? '默认寝室已变化，请确认新目标' : '请核对当前服务端设置'}>
-        <p>上方显示当前已保存值，草稿保留在下方。</p>
-        <button type="button" className="quiet" onClick={() => setEditor(editorFrom(current))}>采用当前设置，丢弃草稿</button>
-        <button type="button" className="quiet" onClick={() => setEditor({ ...editor, baseline: draftFrom(current),
-          version: current.version, bindingId: current.binding_id, review: false })}>确认当前目标和版本，保留草稿</button>
-      </StatusBlock>}
-      <label className="checkbox-label"><input type="checkbox" checked={editor.draft.enabled} onChange={event => edit({ enabled: event.target.checked })} />启用监控</label>
-      <label>采集间隔（整数分钟）<input inputMode="numeric" value={editor.draft.interval_minutes} onChange={event => edit({ interval_minutes: event.target.value })} /></label>
-      <label>提醒总次数（包含第一次）<input inputMode="numeric" value={editor.draft.repeat_limit} onChange={event => edit({ repeat_limit: event.target.value })} /></label>
-      <label>低余额阈值（元）<input inputMode="decimal" value={editor.draft.threshold} onChange={event => edit({ threshold: event.target.value })} /></label>
-      <label>提醒邮箱<input type="email" value={editor.draft.email} onChange={event => edit({ email: event.target.value })} /></label>
-      <button disabled={busy || review}>{busy ? '正在保存…' : '保存设置'}</button>
-    </form>}
+      {current.cancel_pending && <p>正在停止后台任务，已经开始发送的邮件仍可能完成。</p>}
+      <div className="actions"><button className="quiet" disabled={busy || query.isFetching} onClick={() => { void query.refetch() }}>读取最新设置</button></div>
+      {!current.notification.delivery_enabled && <p className="muted">邮件发送未启用。</p>}
+      <p className="muted">退出应用不关闭监控；关闭监控保留历史。</p>
+    </section><RunControls monitor={current} /></div></details>}
   </>
 }

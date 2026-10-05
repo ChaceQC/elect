@@ -11,6 +11,17 @@ const user = '0199a10c-0000-7000-8000-000000000001'
 const order = '0199a10c-0000-7000-8000-000000000002'
 beforeEach(() => sessionStorage.clear())
 
+it.each(['FEATURE_DISABLED', 'DEPENDENCY_UNAVAILABLE'])('503 %s按受理事实区分拒绝与未知', async code => {
+  const fetcher = vi.fn().mockResolvedValue(Response.json({ error: { code, message: 'test' },
+    meta: { request_id: user } }, { status: 503 }))
+  const controller = new OperationController(user, new ApiClient(fetcher))
+  const intent = controller.create('/room-bindings', { candidate_id: 'synthetic-candidate' })
+  await expect(controller.submit(intent)).rejects.toMatchObject({ code })
+  const restored = new OperationController(user, controller.client).restore()
+  if (code === 'FEATURE_DISABLED') expect(restored).toEqual([])
+  else expect(restored.map(value => value.key)).toEqual([intent.key])
+})
+
 it('删除恢复保持DELETE方法与原幂等键，网络响应丢失不生成新目标', async () => {
   const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('network'))
     .mockResolvedValue(Response.json({ data: { operation_id: order, state: 'accepted', poll_url: `/api/v1/operations/${order}` },
@@ -58,11 +69,19 @@ it('恢复信息拒绝凭据/嵌套字段，服务端摘要只用于查询既有
   expect(sessionStorage.getItem(`elect.intent.${user}.${recovered[0].key}`)).not.toContain('csrf')
 })
 
-it('隐藏暂停轮询，unknown 保持未解决，两分钟后手动查，二维码不当成付款', () => {
+it('支付和解绑持续每两秒更新，其他操作两分钟暂停，二维码不当成付款', () => {
   expect(pollInterval('operation', 'unknown', 10_000, true)).toBe(2000)
   expect(pollInterval('run', 'running', 30_000, true)).toBe(5000)
-  expect(pollInterval('order', 'awaiting_payment', 90_000, true)).toBe(10_000)
-  expect(pollInterval('order', 'submit_unknown', 120_000, true)).toBe(false)
+  expect(pollInterval('order', 'awaiting_payment', 90_000, true)).toBe(2000)
+  expect(pollInterval('order', 'submit_unknown', 120_000, true)).toBe(2000)
+  expect(pollInterval('order', 'status_unknown', 600_000, true)).toBe(2000)
+  expect(pollInterval('order', 'status_unknown', 3600_000, true)).toBe(2000)
+  expect(pollInterval('order', 'status_unknown', 0, false)).toBe(false)
+  expect(pollInterval('order', 'paid_confirmed', 0, true)).toBe(false)
+  expect(pollInterval('operation', 'unknown', 120_000, true)).toBe(false)
+  expect(pollInterval('operation', 'unknown', 120_000, true, 'unbind_room')).toBe(2000)
+  expect(pollInterval('operation', 'reconciling', 600_000, true, 'unbind_room')).toBe(2000)
+  expect(pollInterval('operation', 'succeeded', 120_000, true, 'unbind_room')).toBe(false)
   expect(pollInterval('run', 'running', 0, false)).toBe(false)
   expect(isTerminal('order', 'awaiting_payment')).toBe(false)
   expect(isTerminal('order', 'paid_confirmed')).toBe(true)
@@ -95,4 +114,18 @@ it('用户/日期/快照隔离缓存，金额用十进制，日期按上海', ()
   expect(validDateRange('2026-02-30', '2026-03-01')).toBe(false)
   expect(validDateRange('2026-01-01', '2027-01-01')).toBe(true)
   expect(validDateRange('2026-01-01', '2027-01-02')).toBe(false)
+})
+
+
+it('一个组件完成或取消订单后，另一个组件不从旧内存复活原引用', () => {
+  sessionStorage.clear()
+  const first = new OperationController(user)
+  const intent = first.create('/payment-orders', { binding_id: order, amount: '1.00' }, 'order')
+  const second = new OperationController(user)
+  expect(second.restore()).toHaveLength(1)
+  second.forget(intent.key)
+  expect(first.restore()).toEqual([])
+  const memory = new OperationController(user, undefined, null)
+  memory.create('/payment-orders', { binding_id: order, amount: '1.00' }, 'order')
+  expect(memory.restore()).toHaveLength(1)
 })

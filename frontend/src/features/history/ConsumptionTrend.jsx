@@ -22,13 +22,14 @@ export function ConsumptionTrend({ buckets }) {
     return () => { observer?.disconnect(); window.removeEventListener('resize', resize); instance.dispose(); chart.current = null }
   }, [])
   useEffect(() => {
-    chart.current?.setOption({ animation: false, aria: { enabled: true, label: { description: '学校消费记录趋势，未知日期保留断点' } }, grid: { left: 45, right: 18, top: 24, bottom: 45 },
+    chart.current?.setOption({ animation: false, textStyle: { fontFamily: 'Inter, Segoe UI, Microsoft YaHei, sans-serif', color: '#85958f' }, aria: { enabled: true, label: { description: '学校消费记录趋势，未知日期保留断点' } }, grid: { left: 42, right: 20, top: 36, bottom: 30 },
       tooltip: { trigger: 'axis', formatter: (/** @type {any} */ params) => {
         const bucket = buckets[Array.isArray(params) ? params[0]?.dataIndex : params.dataIndex]
         return bucket ? `${bucket.start_date} 至 ${bucket.end_date}<br/>学校记录金额：${moneyLabel(bucket.amount)}<br/>已知 ${bucket.known_days}/${bucket.expected_days} 天${bucket.complete ? '' : '（部分数据）'}` : ''
-      } }, xAxis: { type: 'category', data: buckets.map(b => b.start_date), axisLabel: { hideOverlap: true } },
-      yAxis: { type: 'value', name: '元', min: 'dataMin' }, series: [{ type: 'line', connectNulls: false, showSymbol: true,
-        symbolSize: 7, lineStyle: { width: 3, color: '#3493bc' }, itemStyle: { color: '#3493bc' },
+      } }, xAxis: { type: 'category', boundaryGap: false, data: buckets.map(b => b.start_date), axisLabel: { hideOverlap: true, fontSize: 10, formatter: (/** @type {string} */ value) => value.slice(5).replace('-', '/') }, axisLine: { lineStyle: { color: '#e5ebe7' } }, axisTick: { show: false } },
+      yAxis: { type: 'value', name: '消费 / 元', min: (/** @type {{min: number}} */ value) => Math.min(0, value.min), axisLabel: { fontSize: 11 }, splitLine: { lineStyle: { type: 'dashed', color: '#eaf0ed' } } }, series: [{ type: 'line', smooth: true, connectNulls: false, showSymbol: buckets.length <= 14,
+        symbolSize: 6, lineStyle: { width: 3, color: '#579ed6' }, itemStyle: { color: '#579ed6' },
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#b9ddf5aa' }, { offset: 1, color: '#f4f9ff00' }]) },
         data: buckets.map(b => b.amount === null ? null : Number(b.amount)) }] }, { notMerge: true })
   }, [buckets])
   return <><div ref={element} className="consumption-chart" role="img" aria-label="学校消费记录趋势，未知日期保留断点" />

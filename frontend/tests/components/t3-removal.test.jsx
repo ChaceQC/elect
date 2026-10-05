@@ -39,7 +39,7 @@ it('删除目标冻结，明确确认后只发一次DELETE，默认边界可见'
   await waitFor(() => expect(accepted).toHaveBeenCalledWith(id))
 })
 
-it('未知删除只查询进度，确认解除与清空默认分开显示', async () => {
+it('未知删除自动查询进度，确认解除与清空默认分开显示', async () => {
   let done = false
   server.use(http.get(`/api/v1/operations/${id}`, () => HttpResponse.json(envelope({ id, type: 'unbind_room',
     state: done ? 'succeeded' : 'unknown', binding_status: done ? 'removed' : 'unknown',
@@ -48,7 +48,7 @@ it('未知删除只查询进度，确认解除与清空默认分开显示', asyn
   await screen.findByText('学校解绑：结果尚未确认')
   expect(screen.getByText(/请勿重复提交/)).toBeInTheDocument()
   done = true
-  fireEvent.click(screen.getByRole('button', { name: '查询最新进度' }))
-  await screen.findByText('解绑状态：学校已解除绑定')
+  expect(screen.queryByRole('button', { name: '查询最新进度' })).not.toBeInTheDocument()
+  await screen.findByText('解绑状态：学校已解除绑定', {}, { timeout: 4000 })
   expect(screen.getByText('默认状态：已清空默认，监控等待新目标')).toBeInTheDocument()
 })

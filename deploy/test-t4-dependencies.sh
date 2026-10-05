@@ -9,8 +9,7 @@ task_fault="$task_dir/t4-fault"
 # 保留宿主机属主；容器通过 GID 10001 写状态，Runner 仍可写日志/检查就绪文件。
 mkdir -m 770 "$task_fault"
 compose() {
-  docker compose --env-file "$task_dir/stack.env" -f "$task_root/deploy/compose.yaml" \
-    -f "$task_root/deploy/compose.test.yaml" -p "$task_project" "$@"
+  sh "$task_root/deploy/compose.sh" "$task_dir/stack.env" "$task_project" --test "$@"
 }
 fault() {
   compose run --rm --no-deps -e ELECT_TEST_DEBUG_FRAMES=1 \
@@ -20,7 +19,13 @@ fault() {
 }
 compose run --rm --no-deps --user 0:0 --cap-add CHOWN --cap-add DAC_OVERRIDE \
   --entrypoint sh -v "$task_fault:/run/fault" smoke -c 'chgrp 10001 /run/fault'
-compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay
+task_monitor=monitor-worker
+if ! compose config --services | grep -qx monitor-worker; then task_monitor=monitoring; fi
+if [ "$task_monitor" = monitoring ]; then
+  compose stop identity school-adapter room monitoring notification payment audit notification-worker
+else
+  compose stop identity-recovery room-sync-worker monitor-scheduler monitor-worker monitor-recovery monitoring-relay monitor-alerts notification-worker notification-recovery notification-relay
+fi
 fault prepare
 compose stop redis
 fault redis-down
@@ -39,8 +44,12 @@ compose up -d --no-build --no-deps --wait --wait-timeout 90 mysql
 fault recover
 compose stop rabbitmq
 # MQ断开期间真实Worker仍连接MySQL并报告有效扫描心跳，配置/历史不依赖MQ。
-compose up -d --no-build --no-deps --wait --wait-timeout 60 monitor-worker
-compose exec -T monitor-worker python -m services.common.healthcheck worker
-compose stop monitor-worker
+compose up -d --no-build --no-deps --wait --wait-timeout 60 "$task_monitor"
+if [ "$task_monitor" = monitoring ]; then
+  compose exec -T monitoring python -m services.common.healthcheck
+else
+  compose exec -T monitor-worker python -m services.common.healthcheck worker
+fi
+compose stop "$task_monitor"
 compose up -d --no-build --no-deps --wait --wait-timeout 90 rabbitmq
 echo 'T4真实Redis/MySQL中断恢复和MQ断开数据库扫描通过；合成监控已关闭。'

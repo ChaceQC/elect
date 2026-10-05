@@ -1,0 +1,6 @@
+# 核心组合的开发机build覆盖，发布模式不加载。
+services:
+  core:
+    build: {context: ../backend, dockerfile: Dockerfile}
+  mail-worker:
+    build: {context: ../backend, dockerfile: Dockerfile}

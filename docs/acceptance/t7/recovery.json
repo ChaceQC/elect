@@ -1,0 +1,1 @@
+{"scope": "隔离合成数据、实际MySQL加密快照恢复；不代表生产异机灾备", "table_counts_preserved": true, "tables": 62, "rpo_seconds": 4.795, "rto_seconds": 62, "rpo_target_seconds": 900, "rto_target_seconds": 7200, "rpo_target_met_in_drill": true, "rto_target_met_in_drill": true, "post_snapshot_effects_held_unknown": true, "restored_real_egress": false, "automatic_outbox_replay": false}

@@ -23,7 +23,8 @@ class DefaultSaga:
             await execute(
                 conn,
                 "UPDATE room_preferences SET "
-                "state='ready',switch_operation_id=NULL,updated_at=UTC_TIMESTAMP(6) "
+                "state=IF(default_binding_id IS NULL,'blocked','ready'),"
+                "switch_operation_id=NULL,updated_at=UTC_TIMESTAMP(6) "
                 "WHERE owner_user_id=:owner AND switch_operation_id=:operation",
                 owner=current["owner_user_id"],
                 operation=current["id"],
@@ -47,13 +48,17 @@ class DefaultSaga:
                 actor=UUID(bytes=current["owner_user_id"]),
                 result="failed" if compensated else "succeeded",
             )
+            from .sync_defaults import realign_after_switch
+
+            await realign_after_switch(conn, UUID(bytes=current["owner_user_id"]), request_id)
 
     async def advance(self, row, principal):
         command = {
             "owner_user_id": str(principal.user_id),
             "request_id": str(principal.request_id),
             "operation_id": str(UUID(bytes=row["id"])),
-            "target_binding_id": str(UUID(bytes=row["target_binding_id"])),
+            "target_binding_id": str(UUID(bytes=row["target_binding_id"]))
+            if row["target_binding_id"] else None,
             "expected_preference_version": row["expected_preference_version"],
         }
         if row["saga_step"] == "compensating":

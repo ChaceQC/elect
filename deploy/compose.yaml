@@ -6,7 +6,6 @@ x-logging: &logging
 
 x-python: &python
   image: ${ELECT_IMAGE:?set-backend-image}
-  build: {context: ../backend, dockerfile: Dockerfile}
   init: true
   restart: unless-stopped
   read_only: true
@@ -16,7 +15,11 @@ x-python: &python
   networks: [app, data]
   environment: &runtime-env
     ELECT_RUNTIME_FILE: /run/secrets/runtime
-    ELECT_PUBLIC_ORIGIN: https://${ELECT_DOMAIN:?set-domain}
+    ELECT_BACKGROUND_ENABLED: ${ELECT_BACKGROUND_ENABLED:-true}
+    ELECT_PUBLIC_ORIGIN: ${ELECT_PUBLIC_ORIGIN:-https://${ELECT_DOMAIN:-}}
+    ELECT_ALLOW_LOCAL_HTTP: ${ELECT_ALLOW_LOCAL_HTTP:-false}
+    ELECT_HTTP_BIND: ${ELECT_HTTP_BIND:-}
+    ELECT_HTTP_PORT: ${ELECT_HTTP_PORT:-}
     ELECT_ALLOW_SCHOOL_BINDING_WRITES: ${ELECT_ALLOW_SCHOOL_BINDING_WRITES:-false}
     ELECT_ALLOW_PAYMENT_ORDER_WRITES: ${ELECT_ALLOW_PAYMENT_ORDER_WRITES:-false}
     ELECT_ALLOW_PAYMENT_FORM_WRITES: ${ELECT_ALLOW_PAYMENT_FORM_WRITES:-false}
@@ -51,7 +54,6 @@ x-job: &job
 services:
   nginx:
     image: ${ELECT_WEB_IMAGE:?set-frontend-image}
-    build: {context: ../frontend, dockerfile: Dockerfile}
     restart: unless-stopped
     ports: ["80:80", "443:443"]
     networks: [edge, app]
@@ -59,13 +61,15 @@ services:
     tmpfs: [/etc/nginx/conf.d, /var/cache/nginx, /var/run, /tmp]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
-    cap_add: [NET_BIND_SERVICE, SETUID, SETGID, CHOWN]
+    # CA沿用应用UID的0400文件；Nginx主进程仅需跨UID读取已有证书。
+    cap_add: [NET_BIND_SERVICE, SETUID, SETGID, CHOWN, DAC_READ_SEARCH]
     environment:
-      ELECT_DOMAIN: ${ELECT_DOMAIN:?set-domain}
-      NGINX_ENVSUBST_FILTER: "^ELECT_DOMAIN$$"
+      ELECT_DOMAIN: ${ELECT_DOMAIN:-}
+      ELECT_GATEWAY_URL: http://gateway:8000
+      NGINX_ENVSUBST_FILTER: "^ELECT_(DOMAIN|GATEWAY_URL)$$"
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-    secrets: [tls_cert, tls_key]
+    secrets: [tls_cert, tls_key, internal_ca]
     depends_on:
       gateway: {condition: service_healthy}
       tls-check: {condition: service_completed_successfully}
@@ -81,7 +85,6 @@ services:
 
   tls-check:
     image: ${ELECT_IMAGE:?set-backend-image}
-    build: {context: ../backend, dockerfile: Dockerfile}
     restart: "no"
     network_mode: none
     read_only: true
@@ -91,7 +94,7 @@ services:
     cpus: 0.5
     logging: *logging
     user: "0:0"
-    environment: {ELECT_DOMAIN: "${ELECT_DOMAIN:?set-domain}"}
+    environment: {ELECT_DOMAIN: "${ELECT_DOMAIN:-}"}
     secrets: [tls_cert, tls_key]
     command: [python, -m, services.deployment.check_tls]
 
@@ -298,8 +301,27 @@ services:
       test: [CMD, python, -m, services.common.healthcheck, worker]
   payment:
     <<: *python
-    secrets: [{source: payment_runtime, target: runtime}]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: payment_runtime, target: runtime}, internal_ca]
     command: [python, -m, services.payment]
+  payment-worker:
+    <<: *job
+    networks: [app, data]
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: payment_runtime, target: runtime}, internal_ca]
+    command: [python, -m, services.payment.process, --role, worker]
+    stop_grace_period: 180s
+  payment-recovery:
+    <<: *job
+    environment:
+      <<: *runtime-env
+      ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
+    secrets: [{source: payment_runtime, target: runtime}, internal_ca]
+    command: [python, -m, services.payment.process, --role, recovery]
   audit:
     <<: *python
     secrets: [{source: audit_runtime, target: runtime}]
@@ -393,8 +415,8 @@ secrets:
   redis_probe: {file: "${ELECT_SECRETS_DIR}/redis_probe"}
   rabbitmq_conf: {file: "${ELECT_SECRETS_DIR}/rabbitmq.conf"}
   rabbitmq_definitions: {file: "${ELECT_SECRETS_DIR}/rabbitmq_definitions.json"}
-  tls_cert: {file: "${ELECT_TLS_CERT_FILE:?set-fullchain-path}"}
-  tls_key: {file: "${ELECT_TLS_KEY_FILE:?set-private-key-path}"}
+  tls_cert: {file: "${ELECT_TLS_CERT_FILE:-/dev/null}"}
+  tls_key: {file: "${ELECT_TLS_KEY_FILE:-/dev/null}"}
   internal_ca: {file: "${ELECT_SECRETS_DIR}/internal_ca.pem"}
   identity_tls_cert: {file: "${ELECT_SECRETS_DIR}/identity_tls_cert.pem"}
   identity_tls_key: {file: "${ELECT_SECRETS_DIR}/identity_tls_key.pem"}

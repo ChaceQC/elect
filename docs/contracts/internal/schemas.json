@@ -40,6 +40,7 @@
           "type": "boolean"
         },
         "credential_use_allowed": {
+          "const": true,
           "title": "Credential Use Allowed",
           "type": "boolean"
         }
@@ -1390,6 +1391,20 @@
           "title": "Request Id",
           "type": "string"
         },
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "lease_owner": {
+          "title": "Lease Owner",
+          "type": "string"
+        },
         "upstream_operation_id": {
           "format": "uuid",
           "title": "Upstream Operation Id",
@@ -1424,6 +1439,9 @@
       "required": [
         "owner_user_id",
         "request_id",
+        "order_id",
+        "operation_id",
+        "lease_owner",
         "upstream_operation_id",
         "credential_ref",
         "credential_version",
@@ -1704,6 +1722,15 @@
           ],
           "title": "Step",
           "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "lease_owner": {
+          "title": "Lease Owner",
+          "type": "string"
         }
       },
       "required": [
@@ -1711,9 +1738,236 @@
         "request_id",
         "order_id",
         "upstream_operation_id",
-        "step"
+        "step",
+        "operation_id",
+        "lease_owner"
       ],
       "title": "PaymentSessionCommand",
+      "type": "object"
+    },
+    "OrderQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_id"
+      ],
+      "title": "OrderQuery",
+      "type": "object"
+    },
+    "PaymentProofQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "lease_owner": {
+          "title": "Lease Owner",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_id",
+        "operation_id",
+        "lease_owner"
+      ],
+      "title": "PaymentProofQuery",
+      "type": "object"
+    },
+    "SchoolOrderResult": {
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "prepared",
+            "dispatched",
+            "confirmed",
+            "rejected",
+            "reconciling",
+            "unknown"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "order_state": {
+          "anyOf": [
+            {
+              "enum": [
+                "created",
+                "submitting",
+                "awaiting_payment",
+                "paid_confirmed",
+                "submit_unknown",
+                "status_unknown",
+                "rejected",
+                "expired_confirmed",
+                "closed_confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Order State"
+        }
+      },
+      "required": [
+        "state",
+        "upstream_operation_id",
+        "error_code"
+      ],
+      "title": "SchoolOrderResult",
+      "type": "object"
+    },
+    "SchoolQRResult": {
+      "additionalProperties": false,
+      "properties": {
+        "qr_status": {
+          "enum": [
+            "not_requested",
+            "generating",
+            "ready",
+            "failed",
+            "unknown",
+            "expired_confirmed"
+          ],
+          "title": "Qr Status",
+          "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        }
+      },
+      "required": [
+        "qr_status",
+        "error_code"
+      ],
+      "title": "SchoolQRResult",
+      "type": "object"
+    },
+    "PaymentImage": {
+      "additionalProperties": false,
+      "properties": {
+        "image_base64": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Image Base64"
+        },
+        "mime": {
+          "anyOf": [
+            {
+              "enum": [
+                "image/png",
+                "image/jpeg"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mime"
+        }
+      },
+      "required": [
+        "image_base64",
+        "mime"
+      ],
+      "title": "PaymentImage",
+      "type": "object"
+    },
+    "PaymentDispatchProof": {
+      "additionalProperties": false,
+      "properties": {
+        "can_dispatch": {
+          "title": "Can Dispatch",
+          "type": "boolean"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "upstream_operation_id": {
+          "format": "uuid",
+          "title": "Upstream Operation Id",
+          "type": "string"
+        },
+        "credential_ref": {
+          "format": "uuid",
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "credential_version": {
+          "minimum": 1,
+          "title": "Credential Version",
+          "type": "integer"
+        },
+        "amount": {
+          "pattern": "^(0|[1-9]\\d{0,11})\\.\\d{2}$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "const": "CNY",
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "can_dispatch",
+        "binding_id",
+        "upstream_operation_id",
+        "credential_ref",
+        "credential_version",
+        "amount",
+        "currency"
+      ],
+      "title": "PaymentDispatchProof",
       "type": "object"
     },
     "SessionIntrospection": {

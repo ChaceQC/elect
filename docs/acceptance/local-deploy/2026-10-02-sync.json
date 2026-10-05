@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-02",
+  "timezone": "Asia/Shanghai",
+  "version": "0.13.1",
+  "policy": {
+    "successful_snapshot_authoritative": true,
+    "keep_valid_default": true,
+    "missing_default": "first item in school response order",
+    "successful_empty_snapshot": "clear bindings/default/monitor target",
+    "failed_request": "preserve last successful data",
+    "history_retained": true,
+    "unknown_school_writes_retained": true
+  },
+  "isolated_mysql_synthetic_school": {
+    "school_order": "passed",
+    "valid_default_preserved": "passed",
+    "missing_default_fallback": "passed",
+    "history_retained": "passed",
+    "monitor_follows": "passed",
+    "query_failure_preserves": "passed",
+    "successful_empty_clears": "passed",
+    "restore_after_empty": "passed",
+    "in_flight_default_compensation": "passed"
+  },
+  "regressions": {
+    "T2": "passed",
+    "T3_default": "passed",
+    "T3_binding": "passed",
+    "T3_removal": "passed"
+  },
+  "browser": {
+    "source": "production HTTP/Nginx/backend/own real school read-only",
+    "result": "passed",
+    "authentication": "passed",
+    "authoritative_school_sync": "passed",
+    "synced_rooms": 1,
+    "default_policy": "preserved",
+    "manual_balance_refresh": "passed",
+    "page_reads": 8,
+    "viewport_widths": [
+      1440,
+      375
+    ],
+    "origin_csrf": "passed",
+    "session_restore": "passed",
+    "local_retry_stop": "passed",
+    "cross_tab_logout": "passed",
+    "page_errors": 0,
+    "school_write_requests": 0,
+    "sensitive_browser_storage": false
+  },
+  "unit_tests": {
+    "backend_passed": 166,
+    "backend_skipped": 1,
+    "frontend_passed": 47
+  },
+  "public_payments_enabled": false,
+  "mail_message_sent_in_this_check": false
+}

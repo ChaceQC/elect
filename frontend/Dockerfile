@@ -16,6 +16,11 @@ FROM test AS build
 RUN npm run build
 
 FROM nginx:stable-alpine@sha256:ef8676b33d681f272ba429b27658bdd7e640963279714c96bddf1dc76307f7b6 AS runtime
+ARG ELECT_BUILD_VERSION=dev
+ARG ELECT_BUILD_REVISION=unknown
+LABEL org.opencontainers.image.source="https://github.com/ChaceQC/elect" \
+      org.opencontainers.image.version=$ELECT_BUILD_VERSION \
+      org.opencontainers.image.revision=$ELECT_BUILD_REVISION
 COPY --from=build /app/dist /usr/share/nginx/html
 # 官方 entrypoint 渲染 deploy 挂载的模板，再由 nginx 校验配置/证书。
 CMD ["nginx", "-g", "daemon off;"]

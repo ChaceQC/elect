@@ -29,9 +29,12 @@ class RemoveCommand(BindingQuery, SyncCommand):
 
 @router.post("/bindings")
 async def bindings(command: RoomQuery, request: Request, principal: Browser):
-    return await RoomRepository(request.app.state.database).list(
+    result = await RoomRepository(request.app.state.database).list(
         principal.user_id, command.q, command.page, command.page_size
     )
+    return result.model_copy(update={
+        "binding_write_enabled": request.app.state.side_effect_policy.school_binding_writes
+    })
 
 
 @router.post("/binding")

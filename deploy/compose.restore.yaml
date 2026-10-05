@@ -1,0 +1,88 @@
+# 恢复隔离覆盖：不提供外部出口，不自动运行后台；必须显式采用本文件。
+x-recovery-env: &recovery-env
+  ELECT_BACKGROUND_ENABLED: "false"
+  ELECT_ALLOW_SCHOOL_BINDING_WRITES: "false"
+  ELECT_ALLOW_PAYMENT_ORDER_WRITES: "false"
+  ELECT_ALLOW_PAYMENT_FORM_WRITES: "false"
+  ELECT_ALLOW_REAL_SMTP: "false"
+  ELECT_PAYMENT_ACCEPTANCE_PASSED: "false"
+services:
+  recovery-guard:
+    environment: {ELECT_RECOVERY_ISOLATED: "1"}
+  nginx:
+    profiles: [reconciled]
+    ports: !reset []
+    networks: !override
+      app: {aliases: ["${ELECT_DOMAIN:-elect-recovery.invalid}"]}
+  gateway:
+    environment: *recovery-env
+  identity:
+    environment: *recovery-env
+  school-adapter:
+    environment: *recovery-env
+    networks: !override [app, data]
+  room:
+    environment: *recovery-env
+  monitoring:
+    environment: *recovery-env
+  notification:
+    environment: *recovery-env
+  notification-worker:
+    environment: *recovery-env
+    networks: !override [app, data]
+    profiles: [reconciled]
+  notification-recovery:
+    environment: *recovery-env
+    profiles: [reconciled]
+  monitor-alerts:
+    environment: *recovery-env
+    profiles: [reconciled]
+  monitor-scheduler:
+    environment: *recovery-env
+    profiles: [reconciled]
+  monitor-worker:
+    environment: *recovery-env
+    profiles: [reconciled]
+  monitor-recovery:
+    environment: *recovery-env
+    profiles: [reconciled]
+  payment:
+    environment: *recovery-env
+  payment-worker:
+    environment: *recovery-env
+    profiles: [reconciled]
+  payment-recovery:
+    environment: *recovery-env
+    profiles: [reconciled]
+  audit:
+    environment: *recovery-env
+  identity-relay:
+    environment: *recovery-env
+    profiles: [reconciled]
+  school-relay:
+    environment: *recovery-env
+    profiles: [reconciled]
+  room-relay:
+    environment: *recovery-env
+    profiles: [reconciled]
+  monitoring-relay:
+    environment: *recovery-env
+    profiles: [reconciled]
+  notification-relay:
+    environment: *recovery-env
+    profiles: [reconciled]
+  payment-relay:
+    environment: *recovery-env
+    profiles: [reconciled]
+  audit-worker:
+    environment: *recovery-env
+    profiles: [reconciled]
+  identity-recovery:
+    environment: *recovery-env
+    profiles: [reconciled]
+  room-sync-worker:
+    environment: *recovery-env
+    profiles: [reconciled]
+  school-maintenance:
+    environment: *recovery-env
+    profiles: [reconciled]

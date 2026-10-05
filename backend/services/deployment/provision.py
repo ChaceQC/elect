@@ -60,6 +60,7 @@ def keys_and_trust():
                     "captcha:create",
                     "room:browser",
                     "monitor:browser",
+                    "payment:browser",
                 ],
                 "identity": [
                     "credential:authenticate",
@@ -88,8 +89,15 @@ def keys_and_trust():
                     "room:remove-read",
                     "room:query",
                     "room:balance-commit",
+                    "payment:proof",
                 ],
                 "notification": ["monitor:authorize-send", "monitor:alert-read"],
+                "payment": [
+                    "room:browser",
+                    "room:query",
+                    "credential:control-read",
+                    "school:payment",
+                ],
             }.get(service, []),
         }
     return private, trust
@@ -168,7 +176,8 @@ def provision_transport(directory):
         directory,
         "rabbitmq.conf",
         "listeners.tcp.default = 5672\n"
-        "management.load_definitions = /run/secrets/rabbitmq_definitions\n"
+        "definitions.import_backend = local_filesystem\n"
+        "definitions.local.path = /run/secrets/rabbitmq_definitions\n"
         "loopback_users.guest = true\n",
         100,
     )

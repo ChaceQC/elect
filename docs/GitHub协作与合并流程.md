@@ -53,3 +53,9 @@ gh api repos/ChaceQC/elect/branches/main/protection
 ```
 
 main 预期 `required_status_checks.strict=true`、必需 `checks` 中含 `context=check`/`app_id=15368`，`required_pull_request_reviews` 存在且审批数为 0，`enforce_admins.enabled=true`，强推与删除均为 false。dev 的 `required_status_checks` 和 `required_pull_request_reviews` 均为 null，强推与删除仍为 false。仓库权限或 GitHub 套餐不支持时，如实记录未启用，不宣称已有保护；继续遵守 main 的 PR 与 Actions 合并规则。
+
+## 开发版镜像发布
+
+0.18.0起，版本标签vX.Y.Z触发同一完整check。所有本次验证通过后，才将本次实际受测runtime发布至GHCR，保存固定摘要/源提交清单与仅deploy包，并创建标记为prerelease的GitHub开发版资产。标签必须匹配前后端版本；已有不同镜像的版本拒绝覆盖。标签发布不合并main、不表示T8或2核2GB容量验收，具体见[固定镜像手册](runbooks/固定镜像发布与启动.md)。
+
+普通分支/PR不进入发布步骤。发布作业声明packages/contents写权限，registry和release认证使用本次GITHUB_TOKEN；该token不写入镜像、env模板或仓库。目标机使用已记录的摘要，不跟随latest。

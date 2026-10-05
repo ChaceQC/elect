@@ -1,4 +1,6 @@
 let serverOffset = 0
+/** @param {number} [now] */
+export const serverNow = (now = Date.now()) => now + serverOffset
 /** @param {string|undefined} timestamp */
 export function calibrateTime(timestamp) {
   if (timestamp && Number.isFinite(Date.parse(timestamp))) serverOffset = Date.parse(timestamp) - Date.now()

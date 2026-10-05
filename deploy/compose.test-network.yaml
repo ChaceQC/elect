@@ -1,0 +1,7 @@
+# 仅一次性测试按未占用的10.x前缀隔离，不清历史网络或改Docker全局地址池。
+networks:
+  edge: {ipam: {config: [{subnet: "${ELECT_TEST_NETWORK_PREFIX}.0.0/24"}]}}
+  app: {ipam: {config: [{subnet: "${ELECT_TEST_NETWORK_PREFIX}.1.0/24"}]}}
+  data: {ipam: {config: [{subnet: "${ELECT_TEST_NETWORK_PREFIX}.2.0/24"}]}}
+  school_egress: {ipam: {config: [{subnet: "${ELECT_TEST_NETWORK_PREFIX}.3.0/24"}]}}
+  notification_egress: {ipam: {config: [{subnet: "${ELECT_TEST_NETWORK_PREFIX}.4.0/24"}]}}

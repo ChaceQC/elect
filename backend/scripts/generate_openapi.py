@@ -150,7 +150,7 @@ def build_contract():
         "openapi": "3.1.0",
         "info": {
             "title": "寝室电费学生端 API",
-            "version": "0.9.0",
+            "version": "0.19.0",
             "description": "T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，"
             "时间戳带时区。202 仅表示持久受理。业务服务按 x-stage 实现。",
         },
@@ -162,7 +162,9 @@ def build_contract():
                     "type": "apiKey",
                     "in": "cookie",
                     "name": "__Host-elect_session",
-                    "description": "Secure; HttpOnly; SameSite=Lax; Path=/；不设置 Domain",
+                    "description": "HTTPS：Secure; HttpOnly; SameSite=Lax; Path=/；不设置 Domain。"
+                    "显式私网 HTTP 部署使用 elect_session_local（HttpOnly/SameSite=Lax/Path=/），"
+                    "Cookie 模式只由服务端可信 Origin 决定。",
                 }
             },
             "parameters": {

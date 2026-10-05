@@ -1,6 +1,7 @@
 """仅从受限文件读取本服务配置；禁止通过环境变量传递凭据。"""
 
 import os
+from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Literal
 
@@ -8,8 +9,8 @@ from pydantic import SecretStr, model_validator
 from sqlalchemy.engine import make_url
 
 from .config_contract import DeploymentConfig, SideEffectPolicy
+from .domains import DATABASES
 from .dto import DTO
-from .migration_runtime import DATABASES
 
 SERVICES = (*DATABASES, "gateway")
 
@@ -65,9 +66,9 @@ def read_secret(path: str | Path) -> str:
     return candidate.read_text(encoding="utf-8").strip()
 
 
-def load_runtime(expected_service: str) -> Runtime:
+def load_runtime(expected_service: str, *, path=None) -> Runtime:
     try:
-        runtime = Runtime.model_validate_json(read_secret(os.environ["ELECT_RUNTIME_FILE"]))
+        runtime = Runtime.model_validate_json(read_secret(path or os.environ["ELECT_RUNTIME_FILE"]))
         if runtime.service != expected_service:
             raise ValueError("服务身份不匹配")
         return runtime
@@ -78,6 +79,21 @@ def load_runtime(expected_service: str) -> Runtime:
 
 def public_origin() -> str:
     origin = os.environ["ELECT_PUBLIC_ORIGIN"]
+    local_http = os.environ.get("ELECT_ALLOW_LOCAL_HTTP", "false")
+    if local_http not in {"true", "false"}:
+        raise RuntimeError("本机 HTTP 开关只允许 true/false")
+    if local_http == "true":
+        try:
+            address = IPv4Address(os.environ["ELECT_HTTP_BIND"])
+            port = int(os.environ["ELECT_HTTP_PORT"])
+            if (
+                not address.is_private or address.is_unspecified or address.is_reserved
+                or not 1 <= port <= 65535 or origin != f"http://{address}:{port}"
+            ):
+                raise ValueError()
+        except (KeyError, ValueError):
+            raise RuntimeError("本机 HTTP 来源必须匹配指定的私网 IPv4 和端口") from None
+        return origin
     domain = origin.removeprefix("https://")
     config = DeploymentConfig(
         domain=domain,

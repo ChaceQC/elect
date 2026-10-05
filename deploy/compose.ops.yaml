@@ -1,0 +1,29 @@
+# 显式一次性运维作业，不在普通 up 时执行；只依赖 Docker。
+services:
+  backup-crypto:
+    image: ${ELECT_IMAGE:?set-backend-image}
+    profiles: [ops]
+    restart: "no"
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    entrypoint: [python, -m, services.deployment.backup_crypto]
+  recovery-guard:
+    image: ${ELECT_IMAGE:?set-backend-image}
+    profiles: [ops]
+    restart: "no"
+    networks: [data]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      ELECT_RUNTIME_FILE: /run/secrets/migration_runtime
+    secrets: [migration_runtime]
+    mem_limit: 128m
+    entrypoint: [python, -m, services.deployment.recovery_guard]
+  operations-status:
+    extends: {service: recovery-guard}
+    entrypoint: [python, -m, services.deployment.operations_status]

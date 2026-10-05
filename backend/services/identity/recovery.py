@@ -6,11 +6,13 @@ from services.common.ids import new_id
 from services.common.sql import execute
 
 
-async def recover_tick(app):
+async def recover_tick(app, *, stop=None):
     from .revocation import recover_revocation
 
     if await recover_revocation(app):
         return True
+    if stop and stop.is_set():
+        return False
     async with app.state.database.begin() as conn:
         await execute(
             conn,
@@ -34,6 +36,8 @@ async def recover_tick(app):
         )
     saga = app.state.login_saga
     for item in rows:
+        if stop and stop.is_set():
+            break
         attempt_id = UUID(bytes=item["id"])
         try:
             async with saga.locked(attempt_id):

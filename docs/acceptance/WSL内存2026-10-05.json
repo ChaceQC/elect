@@ -1,0 +1,779 @@
+{
+  "date": "2026-10-05",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "aa7c5ad72c98b28f918dc29a8441a70ff76fd589",
+  "version": "0.18.3",
+  "environment": {
+    "distribution": "Ubuntu-24.04",
+    "docker": "29.1.3",
+    "compose": "2.40.3",
+    "project": "elect-wsl",
+    "deployment_mode": "combined",
+    "container_count": 13,
+    "entry": "http://172.23.107.48:6874",
+    "windows_wsl_working_set_mib": 3977.37
+  },
+  "method": {
+    "metric": "docker stats Linux CLI working set (inactive file cache excluded)",
+    "interval_seconds": 10,
+    "sample_count": 7,
+    "workload": "Fresh deployment; no active monitors, payment orders or mail jobs; no login/OCR/concurrency workload",
+    "excludes": [
+      "WSL virtual machine",
+      "Docker daemon",
+      "image build processes",
+      "other projects"
+    ],
+    "note": "Interval is a 10-second wait plus command duration. Peak is only the maximum of these samples."
+  },
+  "summary": {
+    "min_mib": 1332.312,
+    "max_mib": 1339.836,
+    "mean_mib": 1336.079
+  },
+  "enabled": {
+    "school_binding_writes": true,
+    "payment_order_writes": true,
+    "payment_form_writes": true,
+    "payment_acceptance_gate": true,
+    "real_smtp": true
+  },
+  "smtp": {
+    "credentials_imported": true,
+    "connection": "failed",
+    "failure_class": "ConnectionResetError",
+    "phase": "connect",
+    "paths_checked": [
+      "notification worker direct connection",
+      "existing DoH plus eth0 direct connection"
+    ],
+    "tls_auth_verified": false,
+    "message_sent": false
+  },
+  "http": [
+    {
+      "type": "http",
+      "path": "/healthz",
+      "status": 200,
+      "bytes": 6
+    },
+    {
+      "type": "http",
+      "path": "/",
+      "status": 200,
+      "bytes": 471
+    },
+    {
+      "type": "http",
+      "path": "/api/v1/auth/agreement",
+      "status": 200,
+      "bytes": 2141
+    }
+  ],
+  "samples": [
+    {
+      "type": "memory_sample",
+      "index": 1,
+      "at_utc": "2026-10-04T17:23:56.023253+00:00",
+      "total_mib": 1336.578,
+      "containers": [
+        {
+          "name": "elect-wsl-nginx-1",
+          "memory_mib": 15.45,
+          "cpu_percent": 0,
+          "pids": 17
+        },
+        {
+          "name": "elect-wsl-notification-worker-1",
+          "memory_mib": 78.11,
+          "cpu_percent": 0.24,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-gateway-1",
+          "memory_mib": 91.84,
+          "cpu_percent": 0.16,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-audit-1",
+          "memory_mib": 81.42,
+          "cpu_percent": 0.18,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-payment-1",
+          "memory_mib": 84.63,
+          "cpu_percent": 0.75,
+          "pids": 5
+        },
+        {
+          "name": "elect-wsl-notification-1",
+          "memory_mib": 82.41,
+          "cpu_percent": 0.15,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-room-1",
+          "memory_mib": 85.91,
+          "cpu_percent": 0.98,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-identity-1",
+          "memory_mib": 84.06,
+          "cpu_percent": 0.57,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-monitoring-1",
+          "memory_mib": 86.38,
+          "cpu_percent": 0.19,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-school-adapter-1",
+          "memory_mib": 106.5,
+          "cpu_percent": 0.18,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-rabbitmq-1",
+          "memory_mib": 109.9,
+          "cpu_percent": 0.22,
+          "pids": 16
+        },
+        {
+          "name": "elect-wsl-redis-1",
+          "memory_mib": 5.668,
+          "cpu_percent": 0.38,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-mysql-1",
+          "memory_mib": 424.3,
+          "cpu_percent": 2.12,
+          "pids": 54
+        }
+      ]
+    },
+    {
+      "type": "memory_sample",
+      "index": 2,
+      "at_utc": "2026-10-04T17:24:06.531951+00:00",
+      "total_mib": 1332.312,
+      "containers": [
+        {
+          "name": "elect-wsl-nginx-1",
+          "memory_mib": 15.45,
+          "cpu_percent": 0,
+          "pids": 17
+        },
+        {
+          "name": "elect-wsl-notification-worker-1",
+          "memory_mib": 77.9,
+          "cpu_percent": 0,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-gateway-1",
+          "memory_mib": 91.85,
+          "cpu_percent": 0.2,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-audit-1",
+          "memory_mib": 81.42,
+          "cpu_percent": 0.17,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-payment-1",
+          "memory_mib": 84.41,
+          "cpu_percent": 0.79,
+          "pids": 5
+        },
+        {
+          "name": "elect-wsl-notification-1",
+          "memory_mib": 82.41,
+          "cpu_percent": 0.18,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-room-1",
+          "memory_mib": 85.9,
+          "cpu_percent": 0.86,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-identity-1",
+          "memory_mib": 83.73,
+          "cpu_percent": 0.58,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-monitoring-1",
+          "memory_mib": 85.97,
+          "cpu_percent": 0.16,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-school-adapter-1",
+          "memory_mib": 106.5,
+          "cpu_percent": 0.16,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-rabbitmq-1",
+          "memory_mib": 107.7,
+          "cpu_percent": 0.22,
+          "pids": 16
+        },
+        {
+          "name": "elect-wsl-redis-1",
+          "memory_mib": 5.172,
+          "cpu_percent": 0.34,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-mysql-1",
+          "memory_mib": 423.9,
+          "cpu_percent": 2.76,
+          "pids": 54
+        }
+      ]
+    },
+    {
+      "type": "memory_sample",
+      "index": 3,
+      "at_utc": "2026-10-04T17:24:20.702430+00:00",
+      "total_mib": 1333.238,
+      "containers": [
+        {
+          "name": "elect-wsl-nginx-1",
+          "memory_mib": 15.54,
+          "cpu_percent": 0,
+          "pids": 17
+        },
+        {
+          "name": "elect-wsl-notification-worker-1",
+          "memory_mib": 77.71,
+          "cpu_percent": 0,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-gateway-1",
+          "memory_mib": 91.78,
+          "cpu_percent": 0.22,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-audit-1",
+          "memory_mib": 81.19,
+          "cpu_percent": 0.2,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-payment-1",
+          "memory_mib": 83.77,
+          "cpu_percent": 0.78,
+          "pids": 5
+        },
+        {
+          "name": "elect-wsl-notification-1",
+          "memory_mib": 81.96,
+          "cpu_percent": 0.17,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-room-1",
+          "memory_mib": 85.79,
+          "cpu_percent": 1.05,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-identity-1",
+          "memory_mib": 83.86,
+          "cpu_percent": 0.73,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-monitoring-1",
+          "memory_mib": 85.7,
+          "cpu_percent": 0.21,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-school-adapter-1",
+          "memory_mib": 106.7,
+          "cpu_percent": 0.71,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-rabbitmq-1",
+          "memory_mib": 105.4,
+          "cpu_percent": 0.18,
+          "pids": 16
+        },
+        {
+          "name": "elect-wsl-redis-1",
+          "memory_mib": 7.438,
+          "cpu_percent": 0.41,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-mysql-1",
+          "memory_mib": 426.4,
+          "cpu_percent": 2.74,
+          "pids": 54
+        }
+      ]
+    },
+    {
+      "type": "memory_sample",
+      "index": 4,
+      "at_utc": "2026-10-04T17:24:33.023680+00:00",
+      "total_mib": 1334.868,
+      "containers": [
+        {
+          "name": "elect-wsl-nginx-1",
+          "memory_mib": 15.79,
+          "cpu_percent": 0,
+          "pids": 17
+        },
+        {
+          "name": "elect-wsl-notification-worker-1",
+          "memory_mib": 77.89,
+          "cpu_percent": 0,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-gateway-1",
+          "memory_mib": 91.78,
+          "cpu_percent": 0.17,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-audit-1",
+          "memory_mib": 81.42,
+          "cpu_percent": 0.18,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-payment-1",
+          "memory_mib": 83.99,
+          "cpu_percent": 0.97,
+          "pids": 5
+        },
+        {
+          "name": "elect-wsl-notification-1",
+          "memory_mib": 82.13,
+          "cpu_percent": 0.15,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-room-1",
+          "memory_mib": 85.74,
+          "cpu_percent": 0.79,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-identity-1",
+          "memory_mib": 83.6,
+          "cpu_percent": 0.75,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-monitoring-1",
+          "memory_mib": 85.69,
+          "cpu_percent": 0.86,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-school-adapter-1",
+          "memory_mib": 106.6,
+          "cpu_percent": 0.19,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-rabbitmq-1",
+          "memory_mib": 105.5,
+          "cpu_percent": 0.38,
+          "pids": 16
+        },
+        {
+          "name": "elect-wsl-redis-1",
+          "memory_mib": 7.438,
+          "cpu_percent": 0.37,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-mysql-1",
+          "memory_mib": 427.3,
+          "cpu_percent": 2.58,
+          "pids": 54
+        }
+      ]
+    },
+    {
+      "type": "memory_sample",
+      "index": 5,
+      "at_utc": "2026-10-04T17:24:45.350350+00:00",
+      "total_mib": 1337.763,
+      "containers": [
+        {
+          "name": "elect-wsl-nginx-1",
+          "memory_mib": 16.49,
+          "cpu_percent": 0,
+          "pids": 17
+        },
+        {
+          "name": "elect-wsl-notification-worker-1",
+          "memory_mib": 78.18,
+          "cpu_percent": 0,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-gateway-1",
+          "memory_mib": 91.78,
+          "cpu_percent": 0.18,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-audit-1",
+          "memory_mib": 81.43,
+          "cpu_percent": 0.16,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-payment-1",
+          "memory_mib": 83.78,
+          "cpu_percent": 0.75,
+          "pids": 5
+        },
+        {
+          "name": "elect-wsl-notification-1",
+          "memory_mib": 82.41,
+          "cpu_percent": 0.16,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-room-1",
+          "memory_mib": 85.65,
+          "cpu_percent": 1.06,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-identity-1",
+          "memory_mib": 83.66,
+          "cpu_percent": 0.56,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-monitoring-1",
+          "memory_mib": 86.12,
+          "cpu_percent": 0.19,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-school-adapter-1",
+          "memory_mib": 106.7,
+          "cpu_percent": 0.19,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-rabbitmq-1",
+          "memory_mib": 106.2,
+          "cpu_percent": 0.18,
+          "pids": 16
+        },
+        {
+          "name": "elect-wsl-redis-1",
+          "memory_mib": 7.863,
+          "cpu_percent": 0.35,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-mysql-1",
+          "memory_mib": 427.5,
+          "cpu_percent": 2.61,
+          "pids": 53
+        }
+      ]
+    },
+    {
+      "type": "memory_sample",
+      "index": 6,
+      "at_utc": "2026-10-04T17:24:59.750603+00:00",
+      "total_mib": 1337.957,
+      "containers": [
+        {
+          "name": "elect-wsl-nginx-1",
+          "memory_mib": 15.38,
+          "cpu_percent": 0,
+          "pids": 17
+        },
+        {
+          "name": "elect-wsl-notification-worker-1",
+          "memory_mib": 78.34,
+          "cpu_percent": 0,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-gateway-1",
+          "memory_mib": 91.6,
+          "cpu_percent": 0.15,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-audit-1",
+          "memory_mib": 81.67,
+          "cpu_percent": 0.15,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-payment-1",
+          "memory_mib": 84.12,
+          "cpu_percent": 0.71,
+          "pids": 5
+        },
+        {
+          "name": "elect-wsl-notification-1",
+          "memory_mib": 82.89,
+          "cpu_percent": 0.15,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-room-1",
+          "memory_mib": 86.09,
+          "cpu_percent": 0.8,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-identity-1",
+          "memory_mib": 84.12,
+          "cpu_percent": 0.51,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-monitoring-1",
+          "memory_mib": 85.73,
+          "cpu_percent": 0.48,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-school-adapter-1",
+          "memory_mib": 106.7,
+          "cpu_percent": 0.18,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-rabbitmq-1",
+          "memory_mib": 106,
+          "cpu_percent": 0.4,
+          "pids": 16
+        },
+        {
+          "name": "elect-wsl-redis-1",
+          "memory_mib": 8.117,
+          "cpu_percent": 0.4,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-mysql-1",
+          "memory_mib": 427.2,
+          "cpu_percent": 1.85,
+          "pids": 53
+        }
+      ]
+    },
+    {
+      "type": "memory_sample",
+      "index": 7,
+      "at_utc": "2026-10-04T17:25:12.042684+00:00",
+      "total_mib": 1339.836,
+      "containers": [
+        {
+          "name": "elect-wsl-nginx-1",
+          "memory_mib": 18.01,
+          "cpu_percent": 1.57,
+          "pids": 17
+        },
+        {
+          "name": "elect-wsl-notification-worker-1",
+          "memory_mib": 78.05,
+          "cpu_percent": 0,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-gateway-1",
+          "memory_mib": 91.6,
+          "cpu_percent": 0.16,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-audit-1",
+          "memory_mib": 81.66,
+          "cpu_percent": 0.17,
+          "pids": 3
+        },
+        {
+          "name": "elect-wsl-payment-1",
+          "memory_mib": 84.07,
+          "cpu_percent": 0.71,
+          "pids": 5
+        },
+        {
+          "name": "elect-wsl-notification-1",
+          "memory_mib": 82.62,
+          "cpu_percent": 0.14,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-room-1",
+          "memory_mib": 85.76,
+          "cpu_percent": 0.84,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-identity-1",
+          "memory_mib": 83.99,
+          "cpu_percent": 0.44,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-monitoring-1",
+          "memory_mib": 85.7,
+          "cpu_percent": 0.4,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-school-adapter-1",
+          "memory_mib": 106.9,
+          "cpu_percent": 0.17,
+          "pids": 4
+        },
+        {
+          "name": "elect-wsl-rabbitmq-1",
+          "memory_mib": 105.7,
+          "cpu_percent": 0.22,
+          "pids": 16
+        },
+        {
+          "name": "elect-wsl-redis-1",
+          "memory_mib": 8.176,
+          "cpu_percent": 2.37,
+          "pids": 6
+        },
+        {
+          "name": "elect-wsl-mysql-1",
+          "memory_mib": 427.6,
+          "cpu_percent": 1.69,
+          "pids": 53
+        }
+      ]
+    }
+  ],
+  "final_health": [
+    {
+      "name": "/elect-wsl-nginx-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.042411585Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-notification-worker-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:33.953616712Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-gateway-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:33.979220902Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-audit-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:33.968484987Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-payment-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:33.990398338Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-notification-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.002223395Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-room-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.014969739Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-identity-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.023870669Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-monitoring-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.034023453Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-school-adapter-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:33.943483758Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-rabbitmq-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.049281788Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-redis-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.038736406Z",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/elect-wsl-mysql-1",
+      "health": "healthy",
+      "started_at": "2026-10-04T17:23:34.055108505Z",
+      "restart_count": 0,
+      "oom_killed": false
+    }
+  ],
+  "linux_memory": {
+    "type": "host_memory",
+    "free_bytes": "               total        used        free      shared  buff/cache   available\nMem:      7897513984  2090307584  4044537856    21184512  1959620608  5807206400\nSwap:     2147483648           0  2147483648\n"
+  },
+  "limits": [
+    "Idle baseline, not production peak or 2-core/2-GB capacity acceptance",
+    "SMTP enabled but connectivity unresolved",
+    "WSL kept alive by authorized hidden wsl.exe session; not a boot-time service"
+  ]
+}
