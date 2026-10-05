@@ -1,3 +1,31 @@
+## 2026-10-05 · 0.19.2 主分支合并准备
+
+### 已完成
+
+- 按用户要求执行docs/GitHub协作与合并流程.md，核对dev/ac7b7a6、origin/dev一致，工作区干净，dev已包含最新origin/main/65ce8eb；待合并4个提交包含安全审计、SEC-03/SEC-05修复及登录协议交互，版本0.19.2。
+- 已确认[0.19.1完整Actions](https://github.com/ChaceQC/elect/actions/runs/37259006403)与[0.19.2完整Actions](https://github.com/ChaceQC/elect/actions/runs/37260965336)均success。main实际保护为严格必需check/App15368、要求PR、管理员受约束、禁止强推/删除；dev无PR/状态检查要求并禁止强推/删除。
+- 检查全量待合并差异、受影响文档和git diff --check；本次仅补进度，README/AGENTS/子目录README无新产品、架构、启动或流程规则变化，无需重复修改，仓库无AGENT.md。不重复运行本地业务/浏览器测试。
+
+### 进行中
+
+- 当前dev提交推送后创建dev→main PR，等待该PR最新提交全部Actions成功；合并时匹配head SHA并使用merge commit，不能用此前提交的绿色结果替代新检查。
+
+### 阻塞与风险
+
+- 无已知合并阻塞；PR检查运行中/失败/取消/跳过均不允许合并。SEC-01/SEC-02/SEC-04保持用户指定忽略，现有部署、真实学校/SMTP/支付及目标机长期容量不由源码合并视为完成。
+
+### 下一步
+
+- PR最新提交检查全部成功且包含最新main后合并，核对main push检查，再将合并提交同步回dev；本轮不打标签、不发布镜像、不升级elect-wsl。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md；实际合并范围为安全审计、Room/Monitoring受理与迁移、登录协议前端及0.19.2相关文档/版本。
+
+### 验证
+
+- Git状态/祖先关系、待合并差异、两次完整Actions和服务器分支保护已核对；最终PR与main检查结果以GitHub记录为准。
+
 ## 2026-10-05 · 登录协议提示与浏览器阅读记忆
 
 ### 已完成
