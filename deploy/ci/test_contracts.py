@@ -12,6 +12,40 @@ import images
 
 
 class GateTests(unittest.TestCase):
+    def test_trigger_scenarios(self):
+        for branch in ["dev", "main", "feature/ci"]:
+            self.assertFalse(gate.requires_full("push", "refs/heads/" + branch))
+        self.assertTrue(gate.requires_full("pull_request", "refs/pull/6/merge", "quick"))
+        self.assertTrue(gate.requires_full("push", "refs/tags/v0.19.2", "quick"))
+        self.assertTrue(gate.requires_full("workflow_dispatch", "refs/heads/dev"))
+        self.assertFalse(gate.requires_full("workflow_dispatch", "refs/heads/dev", "quick"))
+        self.assertTrue(gate.requires_full("workflow_dispatch", "refs/tags/v0.19.2", "quick"))
+        for event, ref, mode in [("schedule", "refs/heads/dev", "full"),
+                                 ("push", "refs/tags/latest", "full"),
+                                 ("push", "refs/tags/v1.2", "full"),
+                                 ("workflow_dispatch", "refs/heads/dev", "typo")]:
+            with self.subTest(event=event, ref=ref, mode=mode), self.assertRaises(ValueError):
+                gate.requires_full(event, ref, mode)
+
+    def test_quick_results(self):
+        complete = {name: {"result": "success" if name in gate.QUICK else "skipped"}
+                    for name in gate.REQUIRED}
+        gate.verify(complete, full=False)
+        for name in gate.REQUIRED:
+            for result in ["failure", "cancelled", "", None,
+                           "skipped" if name in gate.QUICK else "success"]:
+                with self.subTest(name=name, result=result):
+                    changed = copy.deepcopy(complete)
+                    changed[name]["result"] = result
+                    with self.assertRaises(ValueError):
+                        gate.verify(changed, full=False)
+            missing = copy.deepcopy(complete)
+            del missing[name]
+            with self.assertRaises(ValueError):
+                gate.verify(missing, full=False)
+        with self.assertRaises(ValueError):
+            gate.verify(complete, full=True)
+
     def test_required_results(self):
         complete = {name: {"result": "success"} for name in gate.REQUIRED}
         gate.verify(complete)

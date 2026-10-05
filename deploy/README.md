@@ -1,6 +1,6 @@
 # Docker 部署入口
 
-CI第一轮使用[隔离并行验证](../docs/decisions/CI并行验证.md)：`test-prepare.sh`只创建一次性Secret/空库并完成迁移健康检查，`test-business.sh`执行完整业务，`test-ci-group.sh`分别编排business/compatibility/delivery。CI复用前后端作业提供的同提交镜像，恢复不再构建ops；`test-cleanup.sh`只删除标记的本次项目及其恢复目标的容器/卷/网络。所有现有触发仍跑完整检查；生产start/upgrade逐容器启动不变。
+CI使用[隔离并行验证与触发分层](../docs/decisions/CI并行验证.md)：非main分支push只跑前后端快速检查，main PR/版本标签及默认手动运行完整，手动分支可选quick。不做文档路径跳过，快速不导出镜像。`test-prepare.sh`只创建一次性Secret/空库并完成迁移健康检查，`test-business.sh`执行完整业务，`test-ci-group.sh`分别编排business/compatibility/delivery。完整CI复用前后端作业提供的同提交镜像，恢复不再构建ops；`test-cleanup.sh`只删除标记的本次项目及其恢复目标的容器/卷/网络。check按场景严格汇总，生产start/upgrade逐容器启动不变。 main push按用户追加要求不触发CI，PR合并后不重复运行。
 
 0.19.1升级需通过统一入口应用`monitoring_0006`、`room_0005`查询资源迁移；后台 recovery 每60秒小批清理过期快照，后台关闭时停止清理，见[查询资源规则](../docs/decisions/查询资源受理与快照清理.md)。沿用0.19.0的`ELECT_DEPLOYMENT_MODE=core`：core、school-adapter、mail-worker与四个基础/入口服务共7个常驻容器。原Secret/卷可沿用，combined为13容器回退；统一upgrade先停尽本项目旧角色。核心无跨库访问，Adapter/邮件通过原Identity证书与网络别名访问受认证TLS接口，Nginx校验证书。部署细节、目标与验证见[七容器方案](../docs/decisions/七容器核心组合.md)。
 

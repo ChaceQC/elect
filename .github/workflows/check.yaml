@@ -1,9 +1,17 @@
 name: 容器验证
 on:
   push:
+    branches: ['**', '!main']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      validation:
+        description: 验证范围（默认完整）
+        type: choice
+        default: full
+        options: [full, quick]
 permissions: {contents: read}
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -11,19 +19,26 @@ concurrency:
 jobs:
   backend:
     uses: ./.github/workflows/build-check.yaml
-    with: {part: backend}
+    with:
+      part: backend
+      export-images: ${{ github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.validation != 'quick') }}
   frontend:
     uses: ./.github/workflows/build-check.yaml
-    with: {part: frontend}
+    with:
+      part: frontend
+      export-images: ${{ github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.validation != 'quick') }}
   business:
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.validation != 'quick')
     needs: [backend, frontend]
     uses: ./.github/workflows/full-validation.yaml
     with: {group: business}
   compatibility:
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.validation != 'quick')
     needs: [backend, frontend]
     uses: ./.github/workflows/full-validation.yaml
     with: {group: compatibility}
   delivery:
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.validation != 'quick')
     needs: [backend, frontend]
     uses: ./.github/workflows/full-validation.yaml
     with: {group: delivery}
@@ -34,12 +49,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: 严格汇总五组结果
+      - name: 按触发场景严格汇总结果
         env:
           CI_NEEDS: ${{ toJSON(needs) }}
+          CI_VALIDATION: ${{ inputs.validation || 'full' }}
         run: python3 deploy/ci/gate.py
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [check]
     permissions: {contents: write, packages: write}
     runs-on: ubuntu-latest

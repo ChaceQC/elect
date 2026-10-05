@@ -5,6 +5,9 @@ on:
       part:
         required: true
         type: string
+      export-images:
+        type: boolean
+        default: true
 permissions: {contents: read}
 jobs:
   build:
@@ -62,10 +65,13 @@ jobs:
         if: inputs.part == 'backend'
         run: python3 -m unittest discover -s deploy/ci -p 'test_*.py'
       - name: 导出镜像并记录来源与打包耗时
+        if: inputs.export-images
         run: python3 deploy/ci/images.py pack --part "$CI_PART" --directory "$RUNNER_TEMP/images"
       - name: 记录上传开始
+        if: inputs.export-images
         run: echo "CI_TRANSFER_STARTED=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
+        if: inputs.export-images
         with:
           name: images-${{ inputs.part }}
           path: ${{ runner.temp }}/images/
@@ -73,4 +79,5 @@ jobs:
           retention-days: 3
           compression-level: 0
       - name: 记录上传耗时
+        if: inputs.export-images
         run: echo "- upload-$CI_PART seconds=$(($(date +%s) - CI_TRANSFER_STARTED))" >> "$GITHUB_STEP_SUMMARY"
