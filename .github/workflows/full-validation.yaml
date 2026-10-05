@@ -1,0 +1,39 @@
+name: 完整容器验证分组
+on:
+  workflow_call:
+    inputs:
+      group:
+        required: true
+        type: string
+permissions: {contents: read}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI_GROUP: ${{ inputs.group }}
+      CI_PROJECT: elect-test-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.group }}
+      CI_DIRECTORY: ${{ github.workspace }}/../elect-test-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.group }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 记录下载开始
+        run: echo "CI_TRANSFER_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: images-*
+          path: ${{ runner.temp }}/images
+      - name: 记录下载耗时
+        run: echo "- download seconds=$(($(date +%s) - CI_TRANSFER_STARTED))" >> "$GITHUB_STEP_SUMMARY"
+      - name: 校验并加载本次镜像
+        run: |
+          python3 deploy/ci/images.py load --part backend --directory "$RUNNER_TEMP/images/images-backend"
+          python3 deploy/ci/images.py load --part frontend --directory "$RUNNER_TEMP/images/images-frontend"
+      - name: 独立空库与本组完整验证
+        run: sh deploy/test-ci-group.sh "$CI_GROUP" "$CI_DIRECTORY" "$CI_PROJECT"
+      - name: 确认验证后镜像未被替换
+        run: |
+          python3 deploy/ci/images.py verify --part backend --directory "$RUNNER_TEMP/images/images-backend"
+          python3 deploy/ci/images.py verify --part frontend --directory "$RUNNER_TEMP/images/images-frontend"
+      - name: 清理本组及恢复目标的容器卷网络
+        if: always()
+        run: sh deploy/test-cleanup.sh "$CI_DIRECTORY" "$CI_PROJECT"

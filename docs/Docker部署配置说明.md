@@ -14,6 +14,8 @@
 
 ## 固定镜像交付（0.18.0）
 
+CI第一轮将前后端检查/构建和三组容器验证拆到独立运行器；每组各自创建Secret、数据库卷和网络，跨组只传带提交/版本/镜像ID/SHA-256的镜像包。环境准备可按依赖分组启动，无源码和原卷切换仍调用真实start/upgrade逐容器入口。标签发布依赖严格check，只加载本次受测runtime，恢复演练不重建ops。全部push/PR/标签仍完整验证，详见[CI并行验证](decisions/CI并行验证.md)。
+
 目标机使用开发版发布的摘要镜像和仅deploy包，不执行构建；首次/原卷升级用start.sh/upgrade.sh逐个等待基础服务、迁移、领域、后台和入口。发布与元数据/入口预检、私有registry登录及失败边界见[固定镜像手册](runbooks/固定镜像发布与启动.md)。第五步页面刷新/数据清理和2核2GB/50人24小时仍未完成。
 
 基础compose.yaml不再含build，开发机的ELECT_IMAGE_MODE=local通过compose.sh加载compose.build.yaml。下面源码构建命令只供开发机/历史升级参考；目标机以固定镜像手册为准。

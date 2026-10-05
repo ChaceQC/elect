@@ -47,6 +47,7 @@ email_auth.txt
 *.log
 
 # 运行期上传与备份
+*.tar.zst
 uploads/
 backups/
 *.bak

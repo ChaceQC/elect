@@ -6,6 +6,7 @@ task_dir=$1 task_project=$2
 case "$task_dir" in /*) ;; *) exit 2;; esac
 case "$task_project" in elect-test-*) ;; *) exit 2;; esac
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+sh "$task_root/deploy/test-state.sh" "$task_dir" "$task_project" combined
 task_bundle="$task_dir/deploy-only"
 [ ! -e "$task_bundle" ] || exit 2
 mkdir -m 700 "$task_bundle"

@@ -3,65 +3,80 @@ on:
   push:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 permissions: {contents: read}
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 jobs:
+  backend:
+    uses: ./.github/workflows/build-check.yaml
+    with: {part: backend}
+  frontend:
+    uses: ./.github/workflows/build-check.yaml
+    with: {part: frontend}
+  business:
+    needs: [backend, frontend]
+    uses: ./.github/workflows/full-validation.yaml
+    with: {group: business}
+  compatibility:
+    needs: [backend, frontend]
+    uses: ./.github/workflows/full-validation.yaml
+    with: {group: compatibility}
+  delivery:
+    needs: [backend, frontend]
+    uses: ./.github/workflows/full-validation.yaml
+    with: {group: delivery}
   check:
-    permissions: {contents: write, packages: write}
+    if: always()
+    needs: [backend, frontend, business, compatibility, delivery]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: 单元契约构建与浏览器
-        run: sh deploy/check.sh
-      - name: 查询受理配额与快照清理
-        run: sh deploy/test-query-resources.sh
-      - name: 空库与可靠事件容器集成
-        run: sh deploy/test-stack.sh "$RUNNER_TEMP/elect-t1" elect-test-ci combined
-      - name: 无源码发布包与已有卷分阶段启动
-        run: sh deploy/test-image-delivery.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
-      - name: 七域轻量组合与退出恢复升级
-        run: sh deploy/test-low-resource.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
-      - name: 共享连接池与基础服务资源参数
-        run: sh deploy/test-resource-parameters.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
-      - name: 提交后唤醒与推送消费并发取消
-        run: sh deploy/test-execution-efficiency.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
-      - name: 加密备份与隔离恢复
-        run: sh deploy/test-t7-recovery.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
-      - name: 七容器核心调用与原卷双向切换
-        run: sh deploy/test-core.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
-      - name: 模拟容量与生产前端容器联调
+      - name: 严格汇总五组结果
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 deploy/ci/gate.py
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check]
+    permissions: {contents: write, packages: write}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: 记录下载开始
+        run: echo "CI_TRANSFER_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: images-*
+          path: ${{ runner.temp }}/images
+      - name: 记录下载耗时
+        run: echo "- publish-download seconds=$(($(date +%s) - CI_TRANSFER_STARTED))" >> "$GITHUB_STEP_SUMMARY"
+      - name: 只加载本次受测runtime
         run: |
-          # 核心回退检查会恢复13个容器，独立合成驱动前先停止全部应用/profile角色。
-          task_apps=$(docker ps --filter label=com.docker.compose.project=elect-test-ci --format '{{.ID}} {{.Label "com.docker.compose.service"}}' | awk '$2 != "mysql" && $2 != "redis" && $2 != "rabbitmq" {print $1}')
-          if [ -n "$task_apps" ]; then docker stop $task_apps > /dev/null; fi
-          ELECT_TEST_IMAGE=elect-backend-smoke:ops sh deploy/compose.sh "$RUNNER_TEMP/elect-t1/stack.env" elect-test-ci --test run -T --rm --no-deps -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1 smoke python -m scripts.t7_capacity --plans 100 --workers 8
-          ELECT_TEST_IMAGE=elect-backend-smoke:ops sh deploy/test-t7-browser.sh "$RUNNER_TEMP/elect-t1" elect-test-ci
+          python3 deploy/ci/images.py load --part backend --directory "$RUNNER_TEMP/images/images-backend" --runtime-only
+          python3 deploy/ci/images.py load --part frontend --directory "$RUNNER_TEMP/images/images-frontend" --runtime-only
       - name: 登录镜像仓库
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: 发布本次已验收镜像与摘要清单
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           registry="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
           sh deploy/publish.sh "$RELEASE_TAG" "$registry" "$RUNNER_TEMP/elect-release"
       - name: 保存固定摘要与目标机部署包
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: elect-${{ github.ref_name }}
           path: ${{ runner.temp }}/elect-release/
           if-no-files-found: error
       - name: 保存开发版发布资产
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
@@ -72,12 +87,3 @@ jobs:
           2核2GB/50人24小时容量、真实支付D02映射和生产异机/PITR仍未验收。页面刷新与数据清理是第五步后续事项；默认学校写、SMTP和支付能力保持关闭。
           EOF
           gh release create "$RELEASE_TAG" "$RUNNER_TEMP/elect-release/release.env" "$RUNNER_TEMP/elect-release/release.json" "$RUNNER_TEMP/elect-release/deploy-$RELEASE_TAG.tar.gz" --verify-tag --prerelease --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/elect-release/notes.md"
-      - name: 清理本次测试容器
-        if: always()
-        run: |
-          if [ -f "$RUNNER_TEMP/elect-t1/stack.env" ]; then
-            sh deploy/compose.sh "$RUNNER_TEMP/elect-t1/stack.env" elect-test-ci --test --browser --restore --profile '*' down
-          fi
-          if [ -f "$RUNNER_TEMP/elect-t1/recovery/restore.env" ]; then
-            sh deploy/compose.sh "$RUNNER_TEMP/elect-t1/recovery/restore.env" elect-restore-elect-test-ci --restore --profile '*' down
-          fi

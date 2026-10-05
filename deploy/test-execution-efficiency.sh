@@ -1,11 +1,12 @@
 #!/bin/sh
-# 已完成test-stack的隔离项目；第四步回归，不作为2GB容量验收。
+# 健康combined隔离项目；停止应用后由本脚本生成合成数据。
 set -eu
 if [ "$#" -ne 2 ]; then echo '用法：test-execution-efficiency.sh /absolute/test-dir elect-test-name' >&2; exit 2; fi
 task_dir=$1 task_project=$2
 case "$task_dir" in /*) ;; *) exit 2;; esac
 case "$task_project" in elect-test-*) ;; *) exit 2;; esac
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+sh "$task_root/deploy/test-state.sh" "$task_dir" "$task_project" combined
 compose() {
   ELECT_DEPLOYMENT_MODE=combined sh "$task_root/deploy/compose.sh" "$task_dir/stack.env" \
     "$task_project" --test "$@"

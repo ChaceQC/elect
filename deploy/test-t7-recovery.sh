@@ -1,5 +1,5 @@
 #!/bin/sh
-# 使用已通过test-stack的明确一次性项目；不触及其他项目/卷。
+# 使用健康combined的一次性项目；合成恢复数据由本脚本独立生成。
 set -eu
 if [ "$#" -ne 2 ]; then echo '用法：sh deploy/test-t7-recovery.sh /absolute/test-dir elect-test-project' >&2; exit 2; fi
 task_dir=$1 task_project=$2
@@ -11,9 +11,17 @@ task_restore_project="elect-restore-$task_project"
 [ ! -e "$task_recovery" ] || { echo '恢复演练目录已存在，拒绝覆盖' >&2; exit 2; }
 mkdir -m 700 "$task_recovery" "$task_recovery/secrets"
 cd "$task_root"
-docker build -t elect-backend:ops backend
-docker build --target test -t elect-backend-smoke:ops backend
-export ELECT_IMAGE=elect-backend:ops ELECT_TEST_IMAGE=elect-backend-smoke:ops
+sh deploy/test-state.sh "$task_dir" "$task_project" combined
+# 复用本次受测镜像，不创建另一份ops构建。
+export ELECT_IMAGE=elect-backend:test ELECT_TEST_IMAGE=elect-backend-smoke:test
+[ -z "$(docker ps -aq --filter "label=com.docker.compose.project=$task_restore_project")" ] || {
+  echo '隔离恢复目标已有容器，拒绝覆盖' >&2; exit 1;
+}
+for task_kind in volume network; do
+  [ -z "$(docker "$task_kind" ls -q --filter "label=com.docker.compose.project=$task_restore_project")" ] || {
+    echo '隔离恢复目标已有资源，拒绝覆盖' >&2; exit 1;
+  }
+done
 source_compose() {
   sh deploy/compose.sh "$task_dir/stack.env" "$task_project" --test "$@"
 }
@@ -30,6 +38,7 @@ probe() {
 }
 # 冻结本测试项目写进程，再由同进程模拟学校和SMTP；没有真实出口。
 source_compose stop
+sh deploy/test-state.sh "$task_dir" "$task_project" stopped
 source_compose up -d --no-build --wait --wait-timeout 90 mysql redis rabbitmq
 probe source_compose seed
 source_compose run -T --rm --no-deps recovery-guard inventory > "$task_recovery/before.json"
@@ -47,7 +56,7 @@ source_compose run -T --rm --no-deps --user "$(id -u):$(id -g)" \
   --file /backup/logs.binlogbackup --kind mysql_binlogs > /dev/null
 # Secret独立传递，仅用于本次合成隔离；加密快照自身不包含密钥。
 docker run --rm --network none --user 0:0 -v "$task_dir/secrets:/source:ro" \
-  -v "$task_recovery/secrets:/target" elect-backend:ops sh -c 'cp -a /source/. /target/'
+  -v "$task_recovery/secrets:/target" "$ELECT_IMAGE" sh -c 'cp -a /source/. /target/'
 sed "s|$task_dir/secrets|$task_recovery/secrets|g" "$task_dir/stack.env" > "$task_recovery/restore.env"
 task_started=$(date +%s)
 ELECT_TEST_NETWORK_PREFIX=${ELECT_TEST_RESTORE_NETWORK_PREFIX:-} \

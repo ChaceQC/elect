@@ -1,11 +1,12 @@
 #!/bin/sh
-# 已完成test-stack的隔离项目；仅验证第二步，不作为2GB容量验收。
+# 已准备健康combined的独立空库；合成数据由本脚本生成，不作为2GB容量验收。
 set -eu
 if [ "$#" -ne 2 ]; then echo '用法：sh deploy/test-low-resource.sh /absolute/test-dir elect-test-project' >&2; exit 2; fi
 task_dir=$1 task_project=$2
 case "$task_dir" in /*) ;; *) exit 2;; esac
 case "$task_project" in elect-test-*) ;; *) exit 2;; esac
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+sh "$task_root/deploy/test-state.sh" "$task_dir" "$task_project" combined
 compose() {
   ELECT_DEPLOYMENT_MODE=combined sh "$task_root/deploy/compose.sh" \
     "$task_dir/stack.env" "$task_project" --test "$@"
