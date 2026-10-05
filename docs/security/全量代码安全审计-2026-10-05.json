@@ -4,6 +4,8 @@
   "baseline_branch": "dev",
   "baseline_commit": "65ce8eb2cae5be3be900aa0f0a6f0d0109456ff9",
   "version": "0.19.0",
+  "disposition_updated_at": "2026-10-05",
+  "open_finding_ids": ["SEC-02", "SEC-03", "SEC-05"],
   "scope": {
     "tracked_files": 814,
     "source_script_config_style_files": 548,
@@ -13,11 +15,11 @@
     "backend_lock_pypi_packages": 66
   },
   "findings": [
-    {"id": "SEC-01", "priority": "P1", "subject": "payment_http_and_downgrade", "evidence": "mock_transport_and_source"},
-    {"id": "SEC-02", "priority": "P1", "subject": "captcha_nonce_rate_bypass", "evidence": "in_memory_redis_model_and_source"},
-    {"id": "SEC-03", "priority": "P1", "subject": "snapshot_persistent_write_amplification", "evidence": "sqlite_memory_adapter_and_source"},
-    {"id": "SEC-04", "priority": "P2", "subject": "invalid_challenge_consumes_account_budget", "evidence": "in_memory_redis_model_and_source"},
-    {"id": "SEC-05", "priority": "P2", "subject": "history_queue_admission_unbounded", "evidence": "source_only"}
+    {"id": "SEC-01", "priority": null, "original_priority": "P1", "status": "ignored_upstream_constraint", "decision": "用户确认无法解决，忽略，不安排整改", "subject": "payment_http_and_downgrade", "evidence": "mock_transport_and_source"},
+    {"id": "SEC-02", "priority": "P1", "status": "open", "subject": "captcha_nonce_rate_bypass", "evidence": "in_memory_redis_model_and_source"},
+    {"id": "SEC-03", "priority": "P1", "status": "open", "decision": "本轮补充解释，尚未实施修复", "subject": "snapshot_persistent_write_amplification", "evidence": "sqlite_memory_adapter_and_source"},
+    {"id": "SEC-04", "priority": null, "original_priority": "P2", "status": "expected_behavior", "decision": "用户确认属于正常账号限流行为，忽略，不安排整改", "subject": "invalid_challenge_consumes_account_budget", "evidence": "in_memory_redis_model_and_source"},
+    {"id": "SEC-05", "priority": "P2", "status": "open", "subject": "history_queue_admission_unbounded", "evidence": "source_only"}
   ],
   "bandit_all_backend": {"loc": 30823, "high": 0, "medium": 22, "low": 1053, "parse_errors": 0},
   "bandit_services": {"loc": 18918, "high": 0, "medium": 7, "low": 7, "parse_errors": 0},
