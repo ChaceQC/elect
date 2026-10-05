@@ -34,4 +34,4 @@ BuildKit GHA 缓存按前后端/目标分开，只缓存构建层；每次重新
 
 只增加针对汇总失败处理和镜像一致性拒绝路径的定向检查，使用 actionlint、shell 语法检查与一轮实际完整 PR Actions 验收，不在本机重复全套容器演练。
 
-旧 PR 完整运行 [37263178521](https://github.com/ChaceQC/elect/actions/runs/37263178521) 为 success，作业耗时 30 分 55 秒；13／30 兼容步骤 11 分 29 秒。第一轮结果记录在 PROJECT_PROGRESS.md，并保留 Actions 分组与传输计时。若仍由兼容组决定下限，第二轮再基于实际数据优化。2～5 分钟快速检查和 12～18 分钟完整检查均为设计目标，本轮不承诺达成。
+旧 PR 完整运行 [37263178521](https://github.com/ChaceQC/elect/actions/runs/37263178521) 为 success，作业耗时 30 分 55 秒、工作流 30 分 59 秒；13／30 兼容步骤 11 分 29 秒。第一轮[完整PR](https://github.com/ChaceQC/elect/actions/runs/37266567115)已success，工作流15分46秒、较旧流程减少约49.1%，三组及镜像传输明细见[验收记录](../acceptance/CI并行验证第一轮.md)。兼容组10分45秒仍决定下限，第二轮根据实际数据优化。2～5 分钟快速检查和 12～18 分钟完整检查是设计目标，本次结果不构成未来运行耗时保证。

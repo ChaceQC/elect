@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-05",
+  "timezone": "Asia/Shanghai",
+  "scope": "CI并行验证第一轮",
+  "application_version": "0.19.2",
+  "pr": "https://github.com/ChaceQC/elect/pull/6",
+  "source_head": "955eb9bf70519d36fd3721035ba0bebdfbbc4c68",
+  "tested_merge": "ceea079dfc52cb7bb89e69113fae8df6c9e13594",
+  "baseline": {
+    "run_url": "https://github.com/ChaceQC/elect/actions/runs/37263178521",
+    "workflow_seconds": 1859,
+    "check_job_seconds": 1855
+  },
+  "measured": {
+    "run_url": "https://github.com/ChaceQC/elect/actions/runs/37266567115",
+    "conclusion": "success",
+    "created_at": "2026-10-05T05:10:05Z",
+    "updated_at": "2026-10-05T05:25:51Z",
+    "workflow_seconds": 946,
+    "jobs": [
+      {
+        "name": "frontend / build",
+        "conclusion": "success",
+        "seconds": 288,
+        "transfer_steps": [
+          {
+            "name": "导出镜像并记录来源与打包耗时",
+            "seconds": 11
+          },
+          {
+            "name": "Run actions/upload-artifact@v4",
+            "seconds": 8
+          }
+        ]
+      },
+      {
+        "name": "backend / build",
+        "conclusion": "success",
+        "seconds": 208,
+        "transfer_steps": [
+          {
+            "name": "导出镜像并记录来源与打包耗时",
+            "seconds": 9
+          },
+          {
+            "name": "Run actions/upload-artifact@v4",
+            "seconds": 7
+          }
+        ]
+      },
+      {
+        "name": "delivery / validate",
+        "conclusion": "success",
+        "seconds": 532,
+        "transfer_steps": [
+          {
+            "name": "Run actions/download-artifact@v4",
+            "seconds": 9
+          },
+          {
+            "name": "校验并加载本次镜像",
+            "seconds": 36
+          }
+        ]
+      },
+      {
+        "name": "business / validate",
+        "conclusion": "success",
+        "seconds": 368,
+        "transfer_steps": [
+          {
+            "name": "Run actions/download-artifact@v4",
+            "seconds": 17
+          },
+          {
+            "name": "校验并加载本次镜像",
+            "seconds": 52
+          }
+        ]
+      },
+      {
+        "name": "compatibility / validate",
+        "conclusion": "success",
+        "seconds": 645,
+        "transfer_steps": [
+          {
+            "name": "Run actions/download-artifact@v4",
+            "seconds": 43
+          },
+          {
+            "name": "校验并加载本次镜像",
+            "seconds": 50
+          }
+        ]
+      },
+      {
+        "name": "check",
+        "conclusion": "success",
+        "seconds": 5,
+        "transfer_steps": []
+      },
+      {
+        "name": "publish",
+        "conclusion": "skipped",
+        "seconds": 0,
+        "transfer_steps": []
+      }
+    ]
+  },
+  "artifacts": {
+    "backend_bytes": 640815092,
+    "frontend_bytes": 760243205,
+    "retention_days": 3
+  },
+  "local_checks": [
+    "actionlint",
+    "deploy shell syntax",
+    "5 CI gate/image contract tests",
+    "git diff --check"
+  ],
+  "assertions": {
+    "all_five_required_jobs_success": true,
+    "all_three_cleanup_steps_success": true,
+    "publish_skipped_for_pr": true,
+    "three_groups_use_independent_empty_databases": true,
+    "ops_rebuilt": false,
+    "production_start_changed": false,
+    "application_code_changed": false
+  },
+  "limitations": [
+    "无实际标签发布，未推送GHCR",
+    "未验证2核2GB真实长期容量",
+    "耗时为本次GitHub托管运行器实测，不保证后续每次相同",
+    "第二轮push快速检查未实施"
+  ]
+}
