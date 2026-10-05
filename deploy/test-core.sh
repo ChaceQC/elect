@@ -6,6 +6,7 @@ task_dir=$1 task_project=$2
 case "$task_dir" in /*) ;; *) exit 2;; esac
 case "$task_project" in elect-test-*) ;; *) exit 2;; esac
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+sh "$task_root/deploy/test-state.sh" "$task_dir" "$task_project" combined
 compose() {
   ELECT_DEPLOYMENT_MODE=core sh "$task_root/deploy/compose.sh" \
     "$task_dir/stack.env" "$task_project" --test "$@"

@@ -1,0 +1,83 @@
+name: 构建与快速检查
+on:
+  workflow_call:
+    inputs:
+      part:
+        required: true
+        type: string
+      export-images:
+        type: boolean
+        default: true
+permissions: {contents: read}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ELECT_SKIP_BUILD: '1'
+      ELECT_QUERY_TEST_IMAGE: elect-backend-smoke:test
+      ELECT_BROWSER_IMAGE: elect-frontend-browser-check
+      CI_PART: ${{ inputs.part }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 本次检出提交与版本
+        id: source
+        run: python3 deploy/ci/images.py metadata >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - name: 构建唯一runtime
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.part }}
+          target: runtime
+          platforms: linux/amd64
+          load: true
+          provenance: false
+          tags: elect-${{ inputs.part }}:test
+          build-args: |
+            ELECT_BUILD_VERSION=${{ steps.source.outputs.version }}
+            ELECT_BUILD_REVISION=${{ steps.source.outputs.revision }}
+          cache-from: |
+            type=gha,scope=ci-${{ inputs.part }}-runtime
+            type=gha,scope=ci-${{ inputs.part }}-test
+          cache-to: type=gha,mode=max,scope=ci-${{ inputs.part }}-runtime
+      - name: 构建唯一测试镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.part }}
+          target: ${{ inputs.part == 'backend' && 'test' || 'browser-test' }}
+          platforms: linux/amd64
+          load: true
+          provenance: false
+          tags: ${{ inputs.part == 'backend' && 'elect-backend-smoke:test' || 'elect-frontend-browser-check' }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.source.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.source.outputs.revision }}
+          cache-from: |
+            type=gha,scope=ci-${{ inputs.part }}-test
+            type=gha,scope=ci-${{ inputs.part }}-runtime
+          cache-to: type=gha,mode=max,scope=ci-${{ inputs.part }}-test
+      - name: 规则单元契约构建与浏览器
+        run: sh "deploy/check-$CI_PART.sh"
+      - name: 查询受理配额与快照清理
+        if: inputs.part == 'backend'
+        run: sh deploy/test-query-resources.sh
+      - name: CI失败门禁与镜像传递定向检查
+        if: inputs.part == 'backend'
+        run: python3 -m unittest discover -s deploy/ci -p 'test_*.py'
+      - name: 导出镜像并记录来源与打包耗时
+        if: inputs.export-images
+        run: python3 deploy/ci/images.py pack --part "$CI_PART" --directory "$RUNNER_TEMP/images"
+      - name: 记录上传开始
+        if: inputs.export-images
+        run: echo "CI_TRANSFER_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: inputs.export-images
+        with:
+          name: images-${{ inputs.part }}
+          path: ${{ runner.temp }}/images/
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - name: 记录上传耗时
+        if: inputs.export-images
+        run: echo "- upload-$CI_PART seconds=$(($(date +%s) - CI_TRANSFER_STARTED))" >> "$GITHUB_STEP_SUMMARY"

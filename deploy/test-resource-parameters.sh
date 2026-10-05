@@ -1,11 +1,12 @@
 #!/bin/sh
-# 已完成test-stack的combined隔离项目；资源参数回归，不是2GB容量验收。
+# 健康combined隔离项目；资源探针自建事件，不是2GB容量验收。
 set -eu
 if [ "$#" -ne 2 ]; then echo '用法：test-resource-parameters.sh /absolute/test-dir elect-test-name' >&2; exit 2; fi
 task_dir=$1 task_project=$2
 case "$task_dir" in /*) ;; *) exit 2;; esac
 case "$task_project" in elect-test-*) ;; *) exit 2;; esac
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+sh "$task_root/deploy/test-state.sh" "$task_dir" "$task_project" combined
 compose() {
   ELECT_DEPLOYMENT_MODE=combined sh "$task_root/deploy/compose.sh" "$task_dir/stack.env" \
     "$task_project" --test "$@"

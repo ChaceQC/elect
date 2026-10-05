@@ -1,6 +1,6 @@
 # GitHub 协作与合并流程
 
-更新日期：2026-10-01。适用于源码、文档、配置、修复和分支同步。
+更新日期：2026-10-05。适用于源码、文档、配置、修复和分支同步。
 
 ## 分支与 PR
 
@@ -22,7 +22,9 @@ gh pr create --base main --head dev --title 'fix: 本次修复的中文说明' -
 
 ## Actions 合并条件
 
-`.github/workflows/check.yaml` 对所有分支 push 和目标为 `main` 的 PR 执行。稳定作业名 `check` 包含单元、契约、规则、类型、构建、浏览器和实际容器集成，界面显示为 `容器验证 / check`；不按文件路径跳过文档改动。同一 PR 的新提交取消旧运行。
+`.github/workflows/check.yaml` 对非main分支push执行前后端快速检查与构建（含查询配额数据库和浏览器），对目标为main的PR及vX.Y.Z标签push执行完整验证；手动默认full，分支可选quick，标签手动运行始终完整且不发布。不按文件路径跳过文档。前后端并行；完整场景镜像就绪后，业务消息、13/30兼容、七容器交付恢复三组使用独立运行器和空库并行。快速场景不导出/上传镜像。稳定作业check以always()独立判定场景：快速要求两组success及三组skipped，完整要求五组success；失败、取消、缺失或意外跳过均拒绝。界面仍为`容器验证 / check`，push快速成功不能替代PR完整门禁。覆盖、镜像清单与计时见[CI决策](decisions/CI并行验证.md)。 main push按用户追加要求不触发CI，PR合并后不重复运行。
+
+分支、PR按事件和ref分别取消过时运行；标签独立分组且不自动取消正在发布的同标签运行。普通验证仅contents读取，标签发布作为独立作业依赖check成功，才获得contents/packages写权限。PR的构建和验证统一使用默认检出的合并结果，不混用源分支镜像。
 
 合并到 `main` 必须同时满足：
 
@@ -30,7 +32,7 @@ gh pr create --base main --head dev --title 'fix: 本次修复的中文说明' -
 - PR 分支已包含目标分支最新提交，GitHub 严格检查通过且没有冲突。
 - 已检查本次差异，文档、进度及相关本地验证完成。
 
-失败、运行中、取消、跳过、没有检查都不能视为通过。旧提交的绿色结果、本地测试通过或历史阶段验收不能替代当前 PR 的结果；新提交、冲突解决或更新分支后重新等待检查。
+PR必需的五组验证失败、运行中、取消、跳过或没有检查都不能视为通过；普通PR的发布作业按设计跳过，不属于必需验证。旧提交的绿色结果、本地测试通过、同提交push快速检查或历史阶段验收不能替代当前PR的完整结果；新提交、冲突解决或更新分支后重新等待检查。
 
 ```sh
 gh pr checks <PR编号> --watch --interval 10
@@ -39,7 +41,7 @@ gh pr view <PR编号> --json headRefOid,mergeStateStatus,statusCheckRollup
 gh pr merge <PR编号> --merge --match-head-commit <最新headRefOid>
 ```
 
-不使用 `--admin` 或绕过主分支保护。检查失败时查看 `gh run view <运行ID> --log-failed`，在当前开发分支修复、提交并推送，让 PR 重新检查。合并后保留 main 的 push 检查；若失败，在开发分支直接提交修复，再通过新的 PR 合入 main。
+不使用 `--admin` 或绕过主分支保护。检查失败时查看 `gh run view <运行ID> --log-failed`，在当前开发分支修复、提交并推送，让 PR 重新检查。main push不触发CI，合并后不重复运行；合并前必须通过当前PR完整门禁。后续修复仍在开发分支提交推送，再通过新的PR合入main。
 
 ## GitHub 分支保护
 
