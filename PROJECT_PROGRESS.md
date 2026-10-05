@@ -11,7 +11,7 @@
 
 ### 进行中
 
-- 代码、定向验证、实际7容器运行与回退、内存和50合成监控交付已完成；本次dev提交由[容器验证](https://github.com/ChaceQC/elect/actions/workflows/check.yaml?query=branch%3Adev)执行完整门禁，最终交付核对最新提交结果。
+- 代码、定向验证、实际7容器运行与回退、内存和50合成监控交付已完成；源码提交8460c27的完整CI已成功。按用户要求准备dev→main PR，合并前仍须等待PR最新提交全部Actions成功。
 
 ### 阻塞与风险
 
@@ -20,7 +20,7 @@
 
 ### 下一步
 
-- 最新提交CI通过后，后续在指定真实环境采用core时，按同一upgrade入口切换并实测完整Adapter首轮OCR、集中监控和支付/SMTP恢复峰值；原elect-wsl本轮继续保留13容器供用户使用。
+- 先按GitHub协作流程完成dev→main PR最新提交检查，以merge commit合入main并核对主分支push检查。后续在指定真实环境采用core时，按同一upgrade入口切换并实测完整Adapter首轮OCR、集中监控和支付/SMTP恢复峰值；原elect-wsl本轮继续保留13容器供用户使用。
 
 ### 主要文件或模块
 
@@ -39,6 +39,7 @@
 - 本轮elect-test-core-local的所有profile容器与测试网络已清理，保留隔离Secret/命名卷供复查；没有删除原业务卷。原elect-wsl仍为13个健康容器，运行已持续6小时，本轮未停止或升级它。
 - bcd2371的CI已通过全部前后端、数据库/消息、资源、备份恢复和新增7容器/50监控门禁；最后旧100计划容量用例失败，定位为新增回退步骤恢复13容器后，后台Worker与独立合成驱动争抢同一任务。修正CI串接：按本测试项目标签停尽应用/profile角色，再以统一compose入口和2+1池运行容量及隔离前端联调；不改业务领取/租约逻辑。
 - 上述修复已用保留的隔离卷定向验证：100计划/8并发、100个签名唤醒与Inbox、每run唯一样本通过；真实生产前端/Nginx/领域容器8页面读取、无模拟路由、跨来源/CSRF/越权拒绝、跨标签退出和会话吊销均通过、页面错误0。再次清理全部测试容器/网络；原elect-wsl13容器仍健康、运行持续7小时。
+- 2026-10-05核对[8460c27完整CI](https://github.com/ChaceQC/elect/actions/runs/37246348924)为success，check于北京时间08:35:21完成。合并准备时dev已包含origin/main（4ac0127），工作区干净，全部待合并差异git diff --check通过；main严格必需check/App15368、PR及管理员保护、禁止强推/删除均由GitHub API确认。本次仅补齐进度记录，README、AGENTS、前后端及deploy README无总览、规则或启动方式变化，无需修改，仓库无AGENT.md；不重复执行本地全量测试，合并结果以PR和main的实际Actions状态为准。
 
 ## 2026-10-05 · WSL 部署与内存采样（0.18.3）
 
