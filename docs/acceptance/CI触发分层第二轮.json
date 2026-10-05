@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-05",
+  "timezone": "Asia/Shanghai",
+  "implementation_commit": "4bddd30b08305dcc9243a832024435ffa2a57cff",
+  "pull_request": "https://github.com/ChaceQC/elect/pull/6",
+  "quick": {
+    "run_id": 37269750437,
+    "url": "https://github.com/ChaceQC/elect/actions/runs/37269750437",
+    "conclusion": "success",
+    "duration_seconds": 248,
+    "required_success": [
+      "backend / build",
+      "frontend / build",
+      "check"
+    ],
+    "expected_skipped": [
+      "business",
+      "compatibility",
+      "delivery",
+      "publish"
+    ],
+    "image_artifacts": [],
+    "build_record_artifact_count": 4
+  },
+  "full": {
+    "run_id": 37269753792,
+    "url": "https://github.com/ChaceQC/elect/actions/runs/37269753792",
+    "conclusion": "success",
+    "duration_seconds": 988,
+    "jobs": [
+      {
+        "name": "frontend / build",
+        "conclusion": "success",
+        "started_at": "2026-10-05T05:53:14Z",
+        "completed_at": "2026-10-05T05:57:27Z"
+      },
+      {
+        "name": "backend / build",
+        "conclusion": "success",
+        "started_at": "2026-10-05T05:53:14Z",
+        "completed_at": "2026-10-05T05:56:08Z"
+      },
+      {
+        "name": "compatibility / validate",
+        "conclusion": "success",
+        "started_at": "2026-10-05T05:57:30Z",
+        "completed_at": "2026-10-05T06:09:31Z"
+      },
+      {
+        "name": "business / validate",
+        "conclusion": "success",
+        "started_at": "2026-10-05T05:57:30Z",
+        "completed_at": "2026-10-05T06:04:28Z"
+      },
+      {
+        "name": "delivery / validate",
+        "conclusion": "success",
+        "started_at": "2026-10-05T05:57:29Z",
+        "completed_at": "2026-10-05T06:06:14Z"
+      },
+      {
+        "name": "check",
+        "conclusion": "success",
+        "started_at": "2026-10-05T06:09:34Z",
+        "completed_at": "2026-10-05T06:09:38Z"
+      },
+      {
+        "name": "publish",
+        "conclusion": "skipped",
+        "started_at": "2026-10-05T06:09:39Z",
+        "completed_at": "2026-10-05T06:09:38Z"
+      }
+    ]
+  },
+  "local_validation": {
+    "contract_tests": 7,
+    "actionlint": "passed",
+    "diff_check": "passed"
+  },
+  "limits": [
+    "main push exclusion verified statically; no merge performed",
+    "manual choice and tag paths covered by focused tests; no dispatch or tag publication performed",
+    "documentation follow-up triggers fresh checks; implementation run does not replace latest PR gate"
+  ]
+}
