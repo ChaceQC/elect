@@ -829,6 +829,10 @@ Authorization: Bearer <SDGL_TOKEN>
 
 本轮只读核对学校公开 `pages-topUpPayment-CN-details.0ae21658.js`：`wxZF()` 的企业微信分支使用 MWEB/mwebUrl，但该文件的“确认支付”按钮绑定 `quzhifu()`，实际走 phonePay；MWEB 回跳域名还写为 `sdgl.hzau.edu.cn`，不能据这段静态分支认定本校 H5 已接通。微信官方[Native 常见问题](https://pay.wechatpay.cn/doc/v3/partner/4013352076)明确不支持点击 code_url 调起支付；增加手机一键付款按钮须先取得有效的[H5 链接及支付域名配置](https://pay.wechatpay.cn/doc/v3/merchant/4012791835)，或由学校提供微信内 JSAPI 所需参数。当前正式二维码和自动查单行为不变。
 
+**2026-10-05 用户要求继续后的补充**：经同一账号认证、目标匹配和待支付查询，再请求一次 `/api/wx/pay` 的 MWEB，实际返回 HTTP 404，没有链接；前后待支付列表仍为空。随后对同一指定寝室、1.00 元执行一次学校当前使用的 D01/phonePay，HTTP/业务码均为 200，取得原支付 URL；E02、E03 各一次后成功取得并在内存解码原生 `weixin://wxpay/` 二维码。对该原单 E01 分别使用安卓、iPhone、微信、企业微信 User-Agent 只读访问，均为 HTTP 200/扫码流程，没有发现 JSAPI 或 H5 参数；这只是请求标识对照，不是真机验收。原生 scheme 和 [Android Intent](https://developer.chrome.com/docs/android/intents) 两种按钮已放入仅本机 WLAN 可访问的临时诊断页，复用同一二维码、不再建单，等待用户手机实测。Intent 只尝试把相同 URI 交给微信，不保证微信支持该付款方式。本次学校票据、页面与会话均仅保留在 Git 忽略目录的 Windows 用户级 DPAPI 密文中；未付款，未接入正式页面。最初超时的 MWEB 结果仍为 unknown，不因 D01 成功而消除。
+
+**本次安卓真机反馈**：用户在安卓系统浏览器/Chrome 点击付款按钮，出现打开微信确认，但确认后没有打开；同一页面新增 `weixin://` 不带订单的对照按钮后，用户确认能正常打开微信，服务端仅分类记录为 Android/Chrome family。已在内存核对网页实际 href 与二维码解码内容完全一致，Intent 保留原 URI，未引入空白或 fragment；因此基本排除当前 IP 页面阻断全部外部跳转和测试页地址编码错误，问题集中在 Native 付款 URI 的处理。本次未走 H5，不能把该现象归因为商户 H5 支付域名配置；没有取得可用收银台，不作为手机支付成功验收。
+
 <a id="d04"></a>
 ### D04 查询学校电费订单列表
 

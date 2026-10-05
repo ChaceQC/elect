@@ -1,6 +1,6 @@
 {
   "date": "2026-10-05",
-  "scope": "user_requested_single_mobile_payment_probe",
+  "scope": "initial_mweb_probe_with_user_requested_continuation",
   "runtime": "Windows uv Python 3.12.10",
   "authentication_source": "project_auth_file_in_memory",
   "authentication": "passed",
@@ -28,5 +28,62 @@
   "binding_writes": false,
   "smtp_calls": false,
   "production_changes": false,
-  "secret_or_ticket_material_in_record": false
+  "secret_or_ticket_material_in_record": false,
+  "user_requested_continuation": {
+    "direct_mweb": {
+      "method": "GET",
+      "path": "/api/wx/pay",
+      "requests": 1,
+      "http_status": 404,
+      "mweb_url_received": false,
+      "pending_before_total": 0,
+      "pending_after_total": 0
+    },
+    "school_active_payment_flow": {
+      "method": "POST",
+      "path": "/api/base/order/phonePay",
+      "requests": 1,
+      "amount": "1.00",
+      "target": "same_user_selected_binding",
+      "http_status": 200,
+      "business_code": 200,
+      "original_payment_url_received": true,
+      "e02_submissions": 1,
+      "e03_submissions": 1,
+      "original_qr_image_received": true,
+      "qr_decoded_in_memory": true,
+      "qr_uri_family": "weixin://wxpay/",
+      "payment_performed_by_probe": false,
+      "new_order_for_each_launch_method": false
+    },
+    "same_order_readonly_user_agent_comparison": {
+      "variants": ["android_browser", "iphone_safari", "wechat", "work_wechat"],
+      "requests": 4,
+      "all_http_status_200": true,
+      "jsapi_or_h5_parameters_found": false,
+      "real_device_test": false
+    },
+    "temporary_mobile_page": {
+      "launch_methods": ["native_scheme_anchor", "android_intent_anchor", "open_wechat_without_order_control"],
+      "same_original_order": true,
+      "lan_interface_only": true,
+      "random_access_path": true,
+      "no_store": true,
+      "raw_access_logs": false,
+      "school_credentials_exposed": false,
+      "payment_ticket_storage": "local_user_dpapi_ignored_directory",
+      "page_http_status": 200,
+      "qr_http_status": 200,
+      "expires_at": "2026-10-05T23:04:01+08:00",
+      "phone_launch_result": "android_user_reports_external_app_prompt_without_launch",
+      "baseline_open_wechat_result": "user_confirmed_wechat_opens",
+      "observed_device": "android_chrome_family",
+      "direct_href_equals_decoded_qr": true,
+      "intent_preserves_decoded_qr": true,
+      "payment_uri_whitespace_or_fragment": false,
+      "merchant_h5_domain_validation_used": false,
+      "payment_cashier_opened": false,
+      "conclusion": "generic_app_launch_works_payment_uri_launch_not_established"
+    }
+  }
 }
