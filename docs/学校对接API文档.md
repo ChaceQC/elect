@@ -825,6 +825,10 @@ Authorization: Bearer <SDGL_TOKEN>
 
 **结论**：2026-09-30 未能取得此备用接口的二维码。D01 + E01–E04 是另一条支付链路，其二维码成功不能作为 D03 可用的证明。
 
+**2026-10-05 MWEB 定向试验**：按用户指定的本人绑定寝室、1.00 元，通过项目 `auth.txt` 的正式学校认证/验证码协议取得身份；B02 返回两条绑定，按用户指定目标唯一匹配。调用前 D04 待支付查询（2026-09-30 至 2026-10-05）为空，只请求一次学校前端声明的 `GET /api/api/wx/pay`，传入 `tradeType=MWEB`、本人 userId/目标 buildId、电费和微信参数。采用 Android 浏览器 User-Agent 与学校 mobile Referer，保留 TLS 校验、固定学校出口和零重试；等待响应 30 秒后 `ReadTimeout`，未获得 HTTP 状态、业务响应或 `mwebUrl`。随后的 D04 待支付记录仍为空，不能证明未建单；本次结果保留 unknown，不再尝试另一条路径、NATIVE 或 D01。没有发起付款，也未进行真机唤起。分类记录见[移动支付试验](acceptance/school/2026-10-05-mobile-payment.json)。
+
+本轮只读核对学校公开 `pages-topUpPayment-CN-details.0ae21658.js`：`wxZF()` 的企业微信分支使用 MWEB/mwebUrl，但该文件的“确认支付”按钮绑定 `quzhifu()`，实际走 phonePay；MWEB 回跳域名还写为 `sdgl.hzau.edu.cn`，不能据这段静态分支认定本校 H5 已接通。微信官方[Native 常见问题](https://pay.wechatpay.cn/doc/v3/partner/4013352076)明确不支持点击 code_url 调起支付；增加手机一键付款按钮须先取得有效的[H5 链接及支付域名配置](https://pay.wechatpay.cn/doc/v3/merchant/4012791835)，或由学校提供微信内 JSAPI 所需参数。当前正式二维码和自动查单行为不变。
+
 <a id="d04"></a>
 ### D04 查询学校电费订单列表
 
