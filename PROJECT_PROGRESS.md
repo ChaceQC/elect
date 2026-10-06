@@ -1,3 +1,31 @@
+## 2026-10-06 · R1源码与隔离验收完成，待提交CI
+
+### 已完成
+
+- 0.19.3修复AUD-10/AUD-11：历史直接根关系传播全部窗口终态，提供默认dry-run/分批apply/游标续扫；Identity上下文持锁执行门1+2/250ms、后台繁忙跳过、获取/释放异常连接失效。
+- 同步前后端工程/锁文件、OpenAPI版本及生成器、README、AGENTS、架构/契约/执行计划、维护手册与R1验收台账。无新增迁移，未改依赖；不存在AGENT.md。
+
+### 进行中
+
+- 本地专项已通过；提交前最终契约/文档差异核对及push后最新CI待完成，阶段暂不标完成。
+
+### 阻塞与风险
+
+- 无实施阻塞；现有部署未升级、业务存量未apply，真实学校/SMTP/支付未调用。R2—R7未开始。
+
+### 下一步
+
+- 提交push并确认R1最新提交快速CI/check成功，再补记纯Markdown验收收口；下一业务工作包为R2.1 OCR真实计算执行槽，本轮不提前实施。
+
+### 主要文件或模块
+
+- backend/services/room/、backend/services/identity/、backend/tests/、deploy/test-query-resources.sh、版本/契约文件、docs/acceptance/审计修复/和docs/runbooks/历史合并修复与登录执行门.md。
+
+### 验证
+
+- 真实一次性MySQL8.4.6：34 passed（31.86秒），覆盖多窗口/失败/配额/存量、生产2+1池、慢调用时会话读取、取消/释放异常和双进程锁；无业务Secret/卷/学校请求。
+- 执行门/维护CLI/后台定向单元20 passed，core生命周期4 passed；改动文件ruff通过，git diff --check通过，容器已清理。OpenAPI检查发现生成器版本仍旧，已同步修正后复核；完整业务回归交给要求的CI门禁。
+
 ## 2026-10-06 · R0完成与纯Markdown CI验收
 
 ### 已完成

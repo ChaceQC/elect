@@ -37,11 +37,13 @@ def migrate(connection, domain, revision="head"):
 
 
 @asynccontextmanager
-async def database(domain):
+async def database(domain, *, production_pool=False):
     url = root_url()
     name = "elect_query_test_" + uuid4().hex
     root = create_async_engine(url, hide_parameters=True)
-    engine = create_async_engine(
+    from services.common.database import create_database
+
+    engine = create_database(url.set(database=name)) if production_pool else create_async_engine(
         url.set(database=name), hide_parameters=True, isolation_level="READ COMMITTED",
         pool_size=8, max_overflow=0,
     )

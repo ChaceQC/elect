@@ -15,11 +15,13 @@ from services.common.internal_dto import StagedCredential
 from services.common.sql import aware, execute, first
 
 from ..agreement import agreement
+from .login_gate import LoginGate, busy
 
 
 class LoginSaga:
     def __init__(self, engine, client, sessions):
         self.engine, self.client, self.sessions = engine, client, sessions
+        self.gate = LoginGate()
 
     async def attempt(self, login, nonce_hash, current_user):
         digest = self.sessions.digest(login.model_dump_json() + nonce_hash, purpose="login")
@@ -90,22 +92,29 @@ class LoginSaga:
             )
 
     @asynccontextmanager
-    async def locked(self, attempt_id):
-        async with self.engine.connect() as conn:
+    async def locked(self, attempt_id, *, background=False):
+        async with self.gate.enter(background=background), self.engine.connect() as conn:
             name = f"identity:login:{attempt_id}"
-            acquired = await first(conn, "SELECT GET_LOCK(:name,0) AS acquired", name=name)
+            try:
+                acquired = await first(conn, "SELECT GET_LOCK(:name,0) AS acquired", name=name)
+            except BaseException:
+                # 获取结果丢失时也不能将可能持锁的连接放回池。
+                await conn.invalidate()
+                raise
             if not acquired["acquired"]:
-                raise ApiError(
-                    429,
-                    ErrorCode.RATE_LIMITED,
-                    "登录正在处理，请稍后查询结果",
-                    True,
-                    retry_after_seconds=3,
-                )
+                raise busy()
             try:
                 yield
             finally:
-                await execute(conn, "SELECT RELEASE_LOCK(:name)", name=name)
+                try:
+                    released = await first(
+                        conn, "SELECT RELEASE_LOCK(:name) AS released", name=name,
+                    )
+                    if released["released"] != 1:
+                        await conn.invalidate()
+                except BaseException:
+                    await conn.invalidate()
+                    raise
 
     async def identity_commit(self, row, staged):
         async with self.engine.begin() as conn:

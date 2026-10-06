@@ -9,8 +9,13 @@ from services.common.sql import execute
 async def recover_tick(app, *, stop=None):
     from .revocation import recover_revocation
 
-    if await recover_revocation(app):
-        return True
+    try:
+        if await recover_revocation(app):
+            return True
+    except ApiError as error:
+        if error.code != ErrorCode.RATE_LIMITED:
+            raise
+        return False
     if stop and stop.is_set():
         return False
     async with app.state.database.begin() as conn:
@@ -40,7 +45,7 @@ async def recover_tick(app, *, stop=None):
             break
         attempt_id = UUID(bytes=item["id"])
         try:
-            async with saga.locked(attempt_id):
+            async with saga.locked(attempt_id, background=True):
                 row = await saga.read(attempt_id)
                 if row["state"] not in {
                     "authenticating",

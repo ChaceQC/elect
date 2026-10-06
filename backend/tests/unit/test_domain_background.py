@@ -159,7 +159,7 @@ def test_identity_stop_between_attempts_does_not_start_next_attempt(monkeypatch)
         monkeypatch.setattr(revocation, "recover_revocation", AsyncMock(return_value=False))
 
         @asynccontextmanager
-        async def scope(*args):
+        async def scope(*args, **kwargs):
             yield object()
 
         async def advance(*args):
