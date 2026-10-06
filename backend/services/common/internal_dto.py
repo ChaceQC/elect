@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, SecretStr, model_validator
 
-from services.identity.dto import LoginRequest
+from services.identity.dto import LocalSession, LoginRequest  # noqa: F401 -- 内部响应契约导出
 from services.payment.dto import OrderState, QRStatus
 
 from .dto import DTO, Count, DateRange, Money, PositiveMoney, Timestamp, Version

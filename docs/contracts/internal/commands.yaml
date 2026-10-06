@@ -252,6 +252,7 @@ t2_routes:
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/agreement, request: 无, response: '../openapi.yaml#/components/schemas/Agreement'}
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/login, request: 'schemas.json#/$defs/BrowserLogin', response: TLS-only会话token与LoginResult，Gateway仅置安全Cookie}
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/me, request: 'schemas.json#/$defs/BrowserSession', response: '../openapi.yaml#/components/schemas/Me'}
+  - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/session, request: 'schemas.json#/$defs/BrowserSession', response: 'schemas.json#/$defs/LocalSession', notes: 真实token及本库用户状态/版本/有效期验证；不调用Adapter；失效401、数据库故障503；可选签名user上下文必须与会话一致}
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/logout, request: 'schemas.json#/$defs/BrowserSession', response: 当前会话吊销确认}
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/bindings, request: 'schemas.json#/$defs/RoomQuery', response: '../openapi.yaml#/components/schemas/Bindings'}
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/sync, request: idempotency_key（16..128）, response: '../openapi.yaml#/components/schemas/AcceptedOperation'}

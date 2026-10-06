@@ -78,6 +78,7 @@ ENDPOINTS = (
         anonymous=True,
     ),
     Endpoint("get", "/auth/me", "get_me", "identity", "T2", "Me"),
+    Endpoint("get", "/auth/session", "get_session", "identity", "R6", "LocalSession"),
     Endpoint("post", "/auth/logout", "logout", "identity", "T2", None, statuses=(204,)),
     Endpoint(
         "delete",

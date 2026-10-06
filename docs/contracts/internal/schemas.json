@@ -1,6 +1,68 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "Consent": {
+      "additionalProperties": false,
+      "properties": {
+        "agreement_version": {
+          "title": "Agreement Version",
+          "type": "string"
+        },
+        "accepted_at": {
+          "format": "date-time",
+          "title": "Accepted At",
+          "type": "string"
+        },
+        "credential_use_allowed": {
+          "title": "Credential Use Allowed",
+          "type": "boolean"
+        },
+        "revoked_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Revoked At"
+        }
+      },
+      "required": [
+        "agreement_version",
+        "accepted_at",
+        "credential_use_allowed",
+        "revoked_at"
+      ],
+      "title": "Consent",
+      "type": "object"
+    },
+    "LocalSession": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "consent": {
+          "$ref": "#/$defs/Consent"
+        },
+        "csrf_token": {
+          "title": "Csrf Token",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "consent",
+        "csrf_token"
+      ],
+      "title": "LocalSession",
+      "type": "object"
+    },
     "LoginRequest": {
       "additionalProperties": false,
       "properties": {

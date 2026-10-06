@@ -16,10 +16,34 @@ from services.common.security import Principal, authorize_owner, require_princip
 from services.common.sql import aware, first
 
 from .agreement import agreement
-from .dto import Me
+from .dto import LocalSession, Me
 
 router = APIRouter(prefix="/internal/v1")
 Browser = Annotated[Principal, Depends(require_principal("identity:browser"))]
+
+
+async def current_session(app, row):
+    user_id = UUID(bytes=row["user_id"])
+    async with app.state.database.connect() as conn:
+        consent = await first(
+            conn,
+            "SELECT * FROM consents WHERE user_id=:id ORDER BY accepted_at DESC,id DESC LIMIT 1",
+            id=user_id.bytes,
+        )
+    if not consent:
+        raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE, "授权记录暂时不可用", True)
+    return LocalSession(
+        id=user_id,
+        csrf_token=row["csrf_token"],
+        consent={
+            "agreement_version": consent["agreement_version"],
+            "accepted_at": aware(consent["accepted_at"]),
+            "credential_use_allowed": bool(
+                consent["credential_use_allowed"] and not consent["revoked_at"]
+            ),
+            "revoked_at": aware(consent["revoked_at"]),
+        },
+    )
 
 
 async def current_me(app, row, principal):
@@ -33,11 +57,6 @@ async def current_me(app, row, principal):
         principal=context,
     )
     async with app.state.database.connect() as conn:
-        consent = await first(
-            conn,
-            "SELECT * FROM consents WHERE user_id=:id ORDER BY accepted_at DESC,id DESC LIMIT 1",
-            id=user_id.bytes,
-        )
         revoke = await first(
             conn,
             "SELECT * FROM credential_operations WHERE owner_user_id=:id "
@@ -45,12 +64,10 @@ async def current_me(app, row, principal):
             "ORDER BY created_at DESC LIMIT 1",
             id=user_id.bytes,
         )
-    if not consent:
-        raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE, "授权记录暂时不可用", True)
+    local = await current_session(app, row)
     return Me(
-        id=user_id,
+        **local.model_dump(),
         **{**view, **({"credential_status": "revoking"} if revoke else {})},
-        csrf_token=row["csrf_token"],
         credential_revoke_operation={
             "id": UUID(bytes=revoke["id"]),
             "type": "credential_revoke",
@@ -60,14 +77,6 @@ async def current_me(app, row, principal):
         }
         if revoke
         else None,
-        consent={
-            "agreement_version": consent["agreement_version"],
-            "accepted_at": aware(consent["accepted_at"]),
-            "credential_use_allowed": bool(
-                consent["credential_use_allowed"] and not consent["revoked_at"]
-            ),
-            "revoked_at": aware(consent["revoked_at"]),
-        },
     )
 
 
@@ -113,6 +122,14 @@ async def login(command: BrowserLogin, request: Request, principal: Browser):
             },
         },
     }
+
+
+@router.post("/browser/session", response_model=LocalSession)
+async def local_session(command: BrowserSession, request: Request, principal: Browser):
+    row = await request.app.state.app_sessions.context(command.session_token.get_secret_value())
+    if principal.user_id is not None:
+        authorize_owner(principal, UUID(bytes=row["user_id"]))
+    return await current_session(request.app, row)
 
 
 @router.post("/browser/me")

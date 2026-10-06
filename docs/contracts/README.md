@@ -1,5 +1,7 @@
 # API 契约
 
+R6新增`GET /auth/session`及`LocalSession`，仅返回Identity本库用户ID、CSRF和同意记录；旧`/auth/me`及登录完整Me保持兼容。当前公开35个方法/路径，内部54个静态路由。失效401/依赖503与前端兼容规则见[本地会话与学校资料](../runbooks/本地会话与学校资料.md)。
+
 R5.1公开DTO不变：会话每请求权威校验，续期每60秒合并（12小时滑动最多60秒粒度差异、7天绝对上限）。`/auth/me`在Identity一次校验，内部`/browser/me`允许已签名Gateway不携带用户上下文，由会话自行建立；若携带上下文仍检查归属。monitor GET返回独立一致性快照，规则见[读取与有界调度](../runbooks/读取与有界调度.md)。
 
 0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
@@ -20,7 +22,7 @@ core模式公开API和领域DTO不变。核心内部52个接口直接复用原�
 
 ## 公开 API
 
-[openapi.yaml](openapi.yaml)包含全部 34 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
+[openapi.yaml](openapi.yaml)包含全部 35 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
 
 - 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。显式私网 HTTP 模式使用 elect_session_local/elect_browser_local（HttpOnly/SameSite=Lax/Path=/、不设 Domain）；模式由服务端校验的 Origin 决定，Origin/CSRF 与归属校验保留。
 - 匿名验证码/登录使用浏览器 nonce、Origin 与限流；已有会话的重认证还要校验当前会话与 CSRF，登录接口不得静默切账号，账号不同返回 `409 REAUTH_ACCOUNT_MISMATCH`。

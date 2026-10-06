@@ -1,5 +1,7 @@
 # 后端工程
 
+R6新增Identity本库会话接口`/auth/session`，与依赖Adapter的旧`/auth/me`分开；旧Me和登录响应保持兼容。无新增数据库迁移或Secret；协议和回退见[本地会话与学校资料](../docs/runbooks/本地会话与学校资料.md)。
+
 0.19.7读取优化：会话每60秒条件续期、monitor GET无写一致性读、样本重复索引、Payment回查和Room三类读取各两个公平执行槽。连接池与学校预算不变；升级须monitoring_0010。实现/回退规则见[读取与有界调度](../docs/runbooks/读取与有界调度.md)，验证见[R5专项](../docs/acceptance/审计修复/R5读取与调度优化.md)。
 
 0.19.6增加三域请求预算、支付系统来源验证、公平快照回收及冷热归档/去重，升级须七域新增迁移；[受理与保留规则](../docs/runbooks/请求预算与保留归档.md)记录参数、默认dry-run维护入口与回退限制。既有分派诊断、后台健康与三模式fatal/drain见[后台健康与协调退出](../docs/runbooks/后台健康与协调退出.md)。

@@ -985,6 +985,107 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
       x-cache-control: no-store
+  /auth/session:
+    get:
+      operationId: get_session
+      tags:
+      - identity
+      summary: get_session
+      x-owner: identity
+      x-stage: R6
+      security:
+      - SessionCookie: []
+      parameters: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LocalSession'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
   /auth/logout:
     post:
       operationId: logout
@@ -4464,6 +4565,24 @@ components:
       - credential_use_allowed
       - revoked_at
       title: Consent
+      type: object
+    LocalSession:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        consent:
+          $ref: '#/components/schemas/Consent'
+        csrf_token:
+          title: Csrf Token
+          type: string
+      required:
+      - id
+      - consent
+      - csrf_token
+      title: LocalSession
       type: object
     Me:
       additionalProperties: false

@@ -43,6 +43,12 @@ class Consent(DTO):
     revoked_at: Timestamp | None
 
 
+class LocalSession(DTO):
+    id: UUID
+    consent: Consent
+    csrf_token: str
+
+
 class Me(DTO):
     id: UUID
     student_id: str
