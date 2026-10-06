@@ -1,6 +1,7 @@
 """前台队列严格有界，取消/异常/超时均归还执行门。"""
 
 import asyncio
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -54,4 +55,5 @@ def test_revocation_gate_contention_skips_recovery_tick(monkeypatch):
         raise busy()
 
     monkeypatch.setattr(revocation, "recover_revocation", unavailable)
+    monkeypatch.setattr(recovery, "require_healthy_recovery", AsyncMock())
     assert asyncio.run(recovery.recover_tick(object())) is False

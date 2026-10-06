@@ -158,6 +158,7 @@ def test_identity_stop_between_attempts_does_not_start_next_attempt(monkeypatch)
         ]))
         monkeypatch.setattr(recovery, "execute", AsyncMock(return_value=rows))
         monkeypatch.setattr(revocation, "recover_revocation", AsyncMock(return_value=False))
+        monkeypatch.setattr(recovery, "require_healthy_recovery", AsyncMock())
 
         @asynccontextmanager
         async def scope(*args, **kwargs):

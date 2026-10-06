@@ -73,10 +73,11 @@ class LoginSaga:
         return row
 
     async def state(self, attempt_id, state, **values):
+        # 重试写入中间阶段不代表恢复成功；错误保留到终态后退出恢复健康统计。
         async with self.engine.begin() as conn:
             await execute(
                 conn,
-                "UPDATE login_attempts SET state=:state,error_code=:error,"
+                "UPDATE login_attempts SET state=:state,error_code=COALESCE(:error,error_code),"
                 "next_reconcile_at=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 5 SECOND),"
                 "updated_at=UTC_TIMESTAMP(6) WHERE id=:id AND state NOT IN "
                 "('session_issued','failed','expired')",

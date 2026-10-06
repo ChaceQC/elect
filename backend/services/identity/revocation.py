@@ -200,4 +200,5 @@ async def recover_revocation(app):
                     error=error.code,
                     id=row["id"],
                 )
+            raise
     return True

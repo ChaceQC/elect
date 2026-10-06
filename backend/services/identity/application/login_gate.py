@@ -7,9 +7,13 @@ from services.common.errors import ErrorCode
 from services.common.http import ApiError
 
 
+class LoginBusy(ApiError):
+    """仅标识本地执行门或命名锁繁忙，不代表下游限流。"""
+
+
 def busy():
-    return ApiError(429, ErrorCode.RATE_LIMITED, "登录正在处理，请稍后查询结果",
-                    True, retry_after_seconds=3)
+    return LoginBusy(429, ErrorCode.RATE_LIMITED, "登录正在处理，请稍后查询结果",
+                     True, retry_after_seconds=3)
 
 
 class LoginGate:
