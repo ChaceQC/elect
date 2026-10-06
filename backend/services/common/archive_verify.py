@@ -1,18 +1,18 @@
 """恢复门禁验证冷目录完整性；有界读取，任何损坏都拒绝解除隔离。"""
 
-from .archive_store import read, unpack
+from .archive_store import read
 from .sql import execute
 
 
 async def verify_archives(conn):
     after, count = b"", 0
     while True:
-        rows = (await execute(conn, "SELECT * FROM archive_records WHERE id>:after "
+        rows = (await execute(conn, "SELECT id FROM archive_records WHERE id>:after "
             "ORDER BY id LIMIT 200", after=after)).mappings().all()
         if not rows:
             return count
         for row in rows:
-            unpack(row)
+            await read(conn, row["id"])
             count += 1
         after = rows[-1]["id"]
 

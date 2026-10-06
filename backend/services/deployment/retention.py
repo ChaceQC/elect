@@ -11,7 +11,7 @@ from pathlib import Path
 
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from services.common.archive_store import unpack
+from services.common.archive_store import read
 from services.common.domains import DATABASES
 from services.common.retention import archive_transport
 from services.common.sql import execute
@@ -34,11 +34,11 @@ async def batch(engine, domain, kind, cutoff, *, apply=False, limit=200, after="
         return await module.cleanup(engine, apply=apply, limit=limit, cutoff=cutoff)
     async with engine.begin() as conn:
         if kind == "verify":
-            rows = (await execute(conn, "SELECT * FROM archive_records WHERE id>:after "
+            rows = (await execute(conn, "SELECT id FROM archive_records WHERE id>:after "
                 "ORDER BY id LIMIT :limit", after=bytes.fromhex(after),
                 limit=limit)).mappings().all()
             for row in rows:
-                unpack(row)
+                await read(conn, row["id"])
             return {"verified": len(rows), "candidates": len(rows),
                     "cursor": rows[-1]["id"].hex() if rows else after}
         if kind in {"outbox_events", "inbox_events"}:

@@ -22,11 +22,13 @@ async def archive_transport(conn, kind, cutoff, *, apply=False, limit=200, after
                  "published_at<=:cutoff AND publish_lease_owner IS NULL")
     columns = ("consumer_name", "event_id") if kind == "inbox_events" else ("event_id",)
     where, order, cursor_params = scan(columns, after, text_first=kind == "inbox_events")
-    rows = (await execute(conn, f"SELECT * FROM {kind} WHERE {condition} "
+    rows = (await execute(conn, f"SELECT {','.join(columns)} FROM {kind} WHERE {condition} "
         f"AND created_at<=:cutoff AND {where} ORDER BY {order} LIMIT :limit "
         "FOR UPDATE SKIP LOCKED", cutoff=boundary, limit=limit, **cursor_params)).mappings().all()
     if apply:
-        for row in rows:
+        for item in rows:
+            selector = " AND ".join(f"{field}=:{field}" for field in columns)
+            row = await first(conn, f"SELECT * FROM {kind} WHERE {selector}", **dict(item))
             key = row["event_id"].hex()
             if kind == "inbox_events":
                 key = row["consumer_name"] + ":" + key
