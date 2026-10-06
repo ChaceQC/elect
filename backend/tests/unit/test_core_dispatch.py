@@ -1,6 +1,9 @@
 """真实领域入口在进程内仍校验服务权限、用户和DTO，且不创建网络客户端。"""
 
 import asyncio
+import io
+import json
+import logging
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -82,3 +85,48 @@ def test_direct_does_not_trust_caller_principal_service_or_skip_user(runtime_fac
         assert caught.value.status == 503
 
     asyncio.run(verify())
+
+
+@pytest.mark.parametrize("database_error", [False, True])
+def test_domain_errors_correlate_in_both_modes_without_sensitive_parameters(
+    runtime_factory, monkeypatch, database_error,
+):
+    from sqlalchemy.exc import OperationalError
+
+    from services.common.logging import SafeFormatter, logger
+
+    direct, remote, dispatcher = clients(runtime_factory)
+    sentinel = "SENSITIVE_SENTINEL_password_cookie_jwt_ciphertext"
+    failure = (OperationalError("SELECT " + sentinel, {"password": sentinel},
+                                RuntimeError(1205, sentinel))
+               if database_error else ValueError(sentinel))
+    dispatcher.contexts["identity"].state.app_sessions.context.side_effect = failure
+    stream = io.StringIO()
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(SafeFormatter())
+    monkeypatch.setattr(logger, "handlers", [handler])
+    monkeypatch.setattr(logger, "level", logging.INFO)
+    logger.setLevel(logging.INFO)
+    request_id = uuid4()
+
+    async def verify():
+        for client in (direct, remote):
+            with pytest.raises(ApiError) as caught:
+                await client.call("identity", "/sessions/introspect", "session:introspect",
+                                  request_id, {"session_token": sentinel,
+                                               "request_id": str(request_id)})
+            assert caught.value.status == 503
+            assert sentinel not in caught.value.message
+        await remote.close()
+
+    asyncio.run(verify())
+    output = stream.getvalue()
+    assert sentinel not in output and "Bearer" not in output and "SELECT" not in output
+    records = [json.loads(line) for line in output.splitlines()]
+    failures = [entry for entry in records if entry["event"].endswith("_failed")]
+    assert len(failures) == 2  # 每个失败只在实际执行边界记录一次。
+    for entry in failures:
+        assert entry["domain"] == "identity" and entry["request_id"] == str(request_id)
+        assert entry["route"] and entry["duration_ms"] >= 0
+        assert entry["exception_type"] == ("OperationalError" if database_error else "ValueError")
+        assert entry["database_error"] == (1205 if database_error else None)

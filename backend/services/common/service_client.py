@@ -64,7 +64,8 @@ class ServiceClient:
             session_version=principal.session_version if principal else None,
         )
         if self.local is not None and receiver in self.local.contexts:
-            return await self.local.invoke(receiver, path, method, token, payload)
+            return await self.local.invoke(receiver, path, method, token, payload,
+                                           request_id=request_id)
         target = TARGETS[receiver]
         core_url = os.environ.get("ELECT_CORE_URL")
         if core_url and receiver != "school_adapter":
@@ -75,7 +76,7 @@ class ServiceClient:
             response = await self.client.request(
                 method,
                 target + "/internal/v1" + path,
-                headers={"Authorization": f"Bearer {token}"},
+                headers={"Authorization": f"Bearer {token}", "X-Request-ID": str(request_id)},
                 json=payload,
             )
         except httpx.HTTPError:

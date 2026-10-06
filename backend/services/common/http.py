@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException
 
 from .errors import ErrorCode
 from .ids import new_id
-from .logging import log
+from .logging import log, log_failure
 
 
 class ApiError(Exception):
@@ -72,13 +72,12 @@ def install_http(app, service: str):
         try:
             response = await call_next(request)
         except Exception as error:
-            original = getattr(error, "orig", None)
-            number = original.args[0] if original and original.args else None
-            log(
-                "request_failed",
-                service=service,
+            log_failure(
+                "request_failed", error,
+                service=service, domain=service,
+                route=getattr(request.scope.get("route"), "name", None),
                 request_id=request.state.request_id,
-                error_code=f"MYSQL_{number}" if type(number) is int else type(error).__name__,
+                duration_ms=round((time.monotonic() - started) * 1000),
             )
             response = error_response(
                 request,

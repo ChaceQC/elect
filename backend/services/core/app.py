@@ -65,7 +65,8 @@ def core_app():
         except ValueError:
             raise ApiError(422, ErrorCode.INVALID_ARGUMENT, "请求参数不正确") from None
         return await app.state.dispatcher.invoke(domain, "/" + path, request.method,
-                                                authorization[7:], payload)
+                                                authorization[7:], payload,
+                                                request_id=request.state.request_id)
 
     return app
 

@@ -1,7 +1,9 @@
 """直接调用既有领域入口，保留身份依赖和DTO；不经过HTTP或JSON字节往返。"""
 
 import asyncio
+import time
 from copy import deepcopy
+from uuid import UUID
 
 from fastapi import Request
 from fastapi.encoders import jsonable_encoder
@@ -12,6 +14,8 @@ from starlette.exceptions import HTTPException
 from services.common.business import routers
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
+from services.common.ids import new_id
+from services.common.logging import log_failure
 
 
 class Dispatcher:
@@ -39,7 +43,7 @@ class Dispatcher:
                 raise RuntimeError("核心内部路由重复")
             self.routes[key] = route
 
-    async def invoke(self, domain, path, method, token, payload):
+    async def invoke(self, domain, path, method, token, payload, *, request_id=None):
         route = self.routes.get((domain, method, path))
         if route is None:
             raise ApiError(404, ErrorCode.NOT_FOUND, "内部接口不存在")
@@ -47,6 +51,11 @@ class Dispatcher:
                            "method": method, "path": "/internal/v1" + path,
                            "headers": [(b"authorization", f"Bearer {token}".encode())],
                            "query_string": b""})
+        try:
+            request.state.request_id = str(UUID(str(request_id)))
+        except ValueError:
+            request.state.request_id = str(new_id())
+        started = time.monotonic()
         try:
             async with asyncio.timeout(100):
                 return await self.execute(route, request, payload)
@@ -56,7 +65,10 @@ class Dispatcher:
             # 与ServiceClient的HTTP认证错误处理一致；不泄露内部认证细节。
             raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE,
                            "内部服务响应异常", True) from error
-        except Exception:
+        except Exception as error:
+            log_failure("dispatch_failed", error, service="core", domain=domain,
+                        route=route.name, request_id=request.state.request_id,
+                        duration_ms=round((time.monotonic() - started) * 1000))
             raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE,
                            "内部服务暂时不可用，请稍后重试", True) from None
 
