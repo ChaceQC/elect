@@ -8,18 +8,20 @@ from services.common.http import ApiError
 from ..infrastructure.protocol import restore_cookies
 
 
-async def authenticate(protocol, solver, ocr_lock, payload, deadline):
+async def authenticate(protocol, executor, payload, deadline):
     challenge, submissions = None, 0
     async with asyncio.timeout(deadline.remaining()):
         for image_index in range(5):
             if challenge is None:
                 challenge = await protocol.challenge(deadline=deadline, pool="background")
-            async with ocr_lock:
-                try:
-                    answer = await asyncio.to_thread(solver, challenge.image)
-                except Exception:
-                    raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED,
-                                   "自动验证码识别不可用，请人工认证") from None
+            try:
+                answer = await executor.solve(challenge.image, deadline)
+            except (ApiError, TimeoutError):
+                raise
+            except Exception:
+                raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE,
+                               "自动验证码识别暂不可用，请稍后重试或人工认证", True) from None
+            deadline.remaining()
             if answer is not None:
                 submissions += 1
                 try:

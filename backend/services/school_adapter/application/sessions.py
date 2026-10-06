@@ -8,6 +8,7 @@ from services.common.http import ApiError
 
 from ..infrastructure.crypto import lookup_aliases
 from ..infrastructure.ocr import solve_image
+from ..infrastructure.ocr_executor import OcrExecutor
 from ..infrastructure.transport import Deadline
 from .token_cache import cache_token
 
@@ -20,13 +21,12 @@ class SchoolSessions:
             protocol,
             lookup,
         )
-        self.solver = solver
-        self.ocr_lock = asyncio.Lock()
+        self.ocr_executor = OcrExecutor(solver)
 
     async def background_auth(self, payload, deadline):
         from .background_auth import authenticate
 
-        return await authenticate(self.protocol, self.solver, self.ocr_lock, payload, deadline)
+        return await authenticate(self.protocol, self.ocr_executor, payload, deadline)
 
     async def token(self, owner, request_id, deadline, *, invalid_token=None, locked=False):
         row = await self.repository.current(owner)

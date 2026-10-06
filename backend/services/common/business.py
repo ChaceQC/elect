@@ -103,6 +103,8 @@ def secret_file(app, name):
 
 
 async def close(app):
+    if hasattr(app.state, "school_sessions"):
+        await app.state.school_sessions.ocr_executor.close()
     if getattr(app.state, "payment_broker", None):
         await app.state.payment_broker.close()
     if getattr(app.state, "history_broker", None):
