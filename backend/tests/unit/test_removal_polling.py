@@ -1,15 +1,19 @@
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
 
+from services.common import heartbeat as heartbeat_module
 from services.common.background_roles import roles
+from services.common.heartbeat import Heartbeat
 from services.common.ids import new_id
 from services.room import removal_saga, worker
 
 
-def test_room_control_progresses_while_history_is_blocked(monkeypatch):
+def test_room_control_progresses_while_history_is_blocked(monkeypatch, tmp_path):
+    monkeypatch.setattr(heartbeat_module, "HEARTBEAT_DIR", tmp_path / "health")
+
     async def verify():
         stop, entered, checked, release = (asyncio.Event() for _ in range(4))
         app = SimpleNamespace(state=SimpleNamespace())
@@ -29,13 +33,15 @@ def test_room_control_progresses_while_history_is_blocked(monkeypatch):
         monkeypatch.setattr(worker, "room_tick", history)
         monkeypatch.setattr(worker, "control_tick", checker)
         active = {role.name: role for role in roles("room")}
+        query_beat, control_beat = Heartbeat("room", "worker"), Heartbeat("room", "control")
         assert set(active) == {"relay", "worker", "control"}
         async with asyncio.timeout(1):
             async with asyncio.TaskGroup() as tasks:
-                query = tasks.create_task(active["worker"].run(app, stop, Mock(), None))
-                tasks.create_task(active["control"].run(app, stop, Mock(), None))
+                query = tasks.create_task(active["worker"].run(app, stop, query_beat, None))
+                tasks.create_task(active["control"].run(app, stop, control_beat, None))
                 await checked.wait()
                 assert not query.done()
+                assert query_beat.snapshot()["inflight"]
                 release.set()
         history.assert_awaited_once()
         checker.assert_awaited_once()
