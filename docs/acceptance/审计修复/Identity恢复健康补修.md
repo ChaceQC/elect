@@ -1,6 +1,6 @@
 # Identity恢复健康补修（AUD-14 / AUD-07）
 
-日期：2026-10-06（Asia/Shanghai）。输入：干净dev `03a99b1`；补修版本0.20.2。状态：源码与本地定向验证已完成，最新quick门禁待提交后登记；现有部署未升级。
+日期：2026-10-06（Asia/Shanghai）。输入：干净dev `03a99b1`；补修版本0.20.2。状态：本缺口源码、定向验证及最新quick/check已通过，补修完成；现有部署未升级。
 
 ## 缺口与结论修正
 
@@ -39,7 +39,9 @@ R3、R7原“全部闭合”结论因此需修正。[R7](R7集成兼容与恢复
 ## 门禁与下一步
 
 - 本地ruff已通过；版本0.20.2同步前后端包、锁文件及OpenAPI元数据，接口和依赖不变。
-- 最新源码提交和quick/check结果待提交后登记。未运行本版本full，不宣称R7已经对0.20.2重新执行完整验证。
+- 最终源码/测试提交`6a95627b4c1e99cc86ca8ef4bbac76eb3a9c6687`已push到origin/dev；[quick37485986038](https://github.com/ChaceQC/elect/actions/runs/37485986038)于2026-10-06 23:22:11（Asia/Shanghai）completed/success。backend / build、frontend / build和check均success，business/compatibility/delivery及publish按quick规则skipped，无发布。
+- 该SHA后端普通入口345 passed/102 skipped（119.79秒），一次性MySQL98 passed（136.95秒，包含本次11项恢复健康专项）；前端62项、浏览器46项（40.2秒）通过。跳过项不计通过，新增专项有独立MySQL执行证据。未运行本版本full，不宣称R7已经对0.20.2重新执行完整验证。
 - 首次提交768586ca8f1ed16cf6ebf2a6bf0b807c81cea726已push；[quick37483740551](https://github.com/ChaceQC/elect/actions/runs/37483740551)前端成功，后端344 passed/102 skipped/1 failed。失败来自OpenAPI生成脚本版本仍为0.20.1，与本次0.20.2公开契约不一致；补齐生成常量后重新验证，恢复源码保持不变，旧失败不作为成功门禁。
 - 生成版本修正后公开契约定向3 passed（2.35秒）；第一次本地调用缺少前端合成响应只读挂载，补全挂载后通过，未改动响应夹具或接口。
-- 门禁通过后，本缺口按源码/定向验证关闭；部署、真实目标、生产异机/PITR及长期容量仍独立待验收。若后续需要最新版本完整交付门禁，再针对最终候选运行full。
+- 本缺口按源码/定向验证和quick门禁关闭；R3/R7原结论以本页补修证据修正。部署、真实目标、生产异机/PITR及长期容量仍独立待验收。下一次完整交付先针对最终候选运行full，再核对目标模式、七域迁移、备份/维护窗口及回退镜像；本次不自动执行。
+- 最终收尾仅同步Markdown，检查UTF-8/链接和Git差异后提交推送；按当前workflow的paths-ignore不触发CI，不将文档提交记为额外受测业务SHA。
