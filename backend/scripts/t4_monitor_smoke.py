@@ -7,6 +7,7 @@ from uuid import UUID
 
 import httpx
 
+from scripts.fixture_time import next_request_minute
 from scripts.room_test_setup import select_default
 from scripts.t2_smoke import browser, fixture_apps, login, prepare
 from scripts.t4_query_smoke import QuerySchool
@@ -176,6 +177,8 @@ async def verify(apps, school):
         print(
             "余额差保留负号/首条null，缓存逐目标更新；固定成员分页拒绝迟到新增/范围不符/过期：通过"
         )
+        # 后续是另一组故障周期，推进分钟窗口；不放大R4每分钟6键预算。
+        await next_request_minute(engine, owner)
         failing = await run_request(client)
         for attempt in range(1, 4):
             execution = await claim_run(engine, failing)
