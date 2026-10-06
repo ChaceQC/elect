@@ -77,7 +77,6 @@ CI第二轮按事件分层：非main分支push只跑前后端快速检查；main
 - 每次完成可验证改动后必须在当前开发分支 commit，每次 commit 后必须 push 到 GitHub；push 不表示已经验收或可以合并到 main。
 - 提交前必须检查 `git status` 和本次差异，避免混入无关改动。
 - 提交前必须先检查本次改动是否影响 `README.md`、`PROJECT_PROGRESS.md`、`AGENTS.md`、`AGENT.md`（若存在）或子目录 README；受影响文档未同步时，不得先提交代码。
-- 本次交付的文档、进度与本地验证结果必须在提交前同步完成。push 后只核对该最新提交的 CI；CI 通过后仅在交付回复中报告提交 SHA、Actions 链接和结果，不再为回填 CI 成功、阶段完成状态或最终 SHA 更新文档、额外 commit/push，避免触发重复 CI。提交前的文档可注明远端结果以交付回复及对应 Actions 为准，不提前声称 CI 成功。CI 失败需要实际修复，或用户新增任务时，才进入新的修改与提交流程。
 - 必须维护 `.gitignore`，禁止提交 `.env`、密钥、证书私钥、依赖目录、构建产物、上传文件和备份文件；公开配置模板应使用占位值。
 - 应提交依赖锁文件，例如后端 `uv.lock`、前端 `package-lock.json`。
 - commit message 统一使用中文说明；可以保留 `docs:`、`feat:`、`fix:`、`refactor:`、`test:`、`chore:` 等英文类型前缀，但冒号后的说明必须为中文。

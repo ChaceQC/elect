@@ -1,3 +1,31 @@
+## 2026-10-06 · 更正为Actions跳过纯Markdown提交
+
+### 已完成
+
+- 按用户最终更正，撤回上一条新增的“CI通过后禁止回填文档”规则，AGENTS恢复本轮开始时内容；改在.github/workflows/check.yaml的push事件添加paths-ignore，仅所有变更均为.md时不触发workflow。
+- 含代码、配置、锁文件、契约JSON/YAML或图片仍运行；不整目录跳过docs。main PR、版本标签和手动完整门禁不变，避免PR必需check因路径跳过挂起。
+- 同步CI决策、GitHub流程、部署说明、审计修复计划和R0验收口径：纯文档收口记为未触发，保留最近业务/配置提交成功证据，不伪造success或掩盖失败。上一条文档冻结方案已被本条取代。
+
+### 进行中
+
+- R0专项已完成；本轮workflow配置变更需要定向静态检查及本次push快速CI，通过后用真实纯Markdown验收提交核对未触发行为并完成R0交付。
+
+### 阻塞与风险
+
+- 无实施阻塞；本次含workflow变更，不能按纯文档跳过自身CI。原16项业务修复仍未开始，版本和业务部署不变。
+
+### 下一步
+
+- 完成actionlint、现有CI门禁定向检查及本次配置提交的远端CI，再补记成功证据并核对纯Markdown提交无运行；随后下一业务工作包为R1.1，本轮不提前实施。
+
+### 主要文件或模块
+
+- .github/workflows/check.yaml、AGENTS.md（撤回本轮新增规则）、docs/decisions/CI并行验证.md、docs/GitHub协作与合并流程.md、docs/Docker部署配置说明.md、docs/审计修复执行计划-2026-10-06.md、docs/acceptance/审计修复/R0基线与验证边界.md、PROJECT_PROGRESS.md。
+
+### 验证
+
+- actionlint通过，现有CI门禁/镜像拒绝路径7项检查通过，git diff --check通过；AGENTS与98da28e基线无差异。不在本机重跑全量业务；当前WSL保持运行，启动后容器总数0，无其他项目容器需要关闭。
+
 ## 2026-10-06 · CI成功后停止文档回填
 
 ### 已完成
