@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -13,6 +13,7 @@ from services.common.internal_dto import BindingQuery
 from services.common.security import Principal
 from services.room.consumption import aggregate
 from services.school_adapter.infrastructure.history import records
+from services.school_adapter.infrastructure.rooms import bound_rooms
 from services.school_adapter.query_api import collect
 
 
@@ -98,6 +99,9 @@ async def check_collect_rooms(reverse):
     class Sessions:
         store = SimpleNamespace(get_secret=AsyncMock(return_value=None), put_secret=AsyncMock())
 
+        async def read_bound(self, *args, **kwargs):
+            return observed_bound(await self.read(*args, **kwargs))
+
         async def read(self, *args, **kwargs):
             rows = [
                 {"roomId": "school-a", "balance": "12.34"},
@@ -125,6 +129,9 @@ async def check_missing_room():
             return {"school_room_id": "missing-target"}
 
     class Sessions:
+        async def read_bound(self, *args, **kwargs):
+            return observed_bound(await self.read(*args, **kwargs))
+
         async def read(self, *args, **kwargs):
             return {"data": [{"roomId": "other-room", "balance": "98.76"}]}
 
@@ -139,3 +146,10 @@ async def check_missing_room():
             request,
             Principal("monitoring", new_id(), 1, new_id()),
         )
+
+
+def observed_bound(value):
+    return {"items": bound_rooms(value), "observation": {
+        "sequence": 1, "observed_at": datetime.now(UTC).isoformat(),
+        "request_id": str(new_id()), "source": "school_bound_rooms", "error_code": None,
+    }}

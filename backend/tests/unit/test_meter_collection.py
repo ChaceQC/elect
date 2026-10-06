@@ -15,6 +15,7 @@ from services.monitoring.samples import sample_view
 from services.school_adapter import query_api
 from services.school_adapter.application import meter_readings
 from services.school_adapter.infrastructure.history import records
+from services.school_adapter.infrastructure.rooms import bound_rooms
 
 DAY = date(2026, 10, 4)
 
@@ -61,6 +62,14 @@ def test_collect_meter_cache_is_scoped_and_c02_failure_keeps_balance(monkeypatch
         class Sessions:
             store = Store()
             fail = False
+
+            async def read_bound(self, owner, request_id, **options):
+                value = await self.read(owner, request_id, "selectRoomListByUserId", {}, **options)
+                return {"items": bound_rooms(value), "observation": {
+                    "sequence": 1, "observed_at": datetime.now(UTC).isoformat(),
+                    "request_id": str(request_id), "source": "school_bound_rooms",
+                    "error_code": None,
+                }}
 
             async def read(self, owner, request_id, path, params, **options):
                 if path.endswith("selectRoomListByUserId"):
