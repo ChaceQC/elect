@@ -1,5 +1,7 @@
 # Docker 部署入口
 
+0.20.1恢复apply增加观测水位校验；同一备份集的Adapter计数必须覆盖Room高水位，拒绝后保持禁后台和无外发。见[集成恢复手册](../docs/runbooks/审计修复集成与恢复.md)。
+
 0.20.0新增本地会话与学校资料分离，无新增迁移/Secret/容器；前后端兼容及优先回退前端见[本地会话与学校资料](../docs/runbooks/本地会话与学校资料.md)。既有部署未升级。此前R5的monitoring_0010及双槽升级边界仍见[读取与有界调度](../docs/runbooks/读取与有界调度.md)。
 
 0.19.5的后台持续失败会协调停止并非零退出，沿用`unless-stopped`恢复；原领域drain预算后最多再留5秒，standalone API/短任务40秒、Identity/Room任务135秒、Monitoring Worker110秒、Payment Worker190秒Compose宽限已对齐，邮件仍45秒。恢复false不启动监督或角色，无新增迁移/容器。隔离入口`test-r3-processes.sh`验证三模式自动重启与不重放，`test-r3-transport.sh`验证真实MQ降级65秒；前者纳入完整CI compatibility组。详见[运行手册](../docs/runbooks/后台健康与协调退出.md)，现有部署不自动升级。

@@ -1,5 +1,7 @@
 # 后端工程
 
+0.20.1恢复门禁增加跨库观测水位校验，缺失/倒退保持隔离并拒绝恢复完成；见[集成恢复手册](../docs/runbooks/审计修复集成与恢复.md)。
+
 R6新增Identity本库会话接口`/auth/session`，与依赖Adapter的旧`/auth/me`分开；旧Me和登录响应保持兼容。无新增数据库迁移或Secret；协议和回退见[本地会话与学校资料](../docs/runbooks/本地会话与学校资料.md)。
 
 0.19.7读取优化：会话每60秒条件续期、monitor GET无写一致性读、样本重复索引、Payment回查和Room三类读取各两个公平执行槽。连接池与学校预算不变；升级须monitoring_0010。实现/回退规则见[读取与有界调度](../docs/runbooks/读取与有界调度.md)，验证见[R5专项](../docs/acceptance/审计修复/R5读取与调度优化.md)。
