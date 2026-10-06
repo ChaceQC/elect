@@ -15,14 +15,21 @@ from services.identity.revocation import recover_revocation
 from services.monitoring.fences import fenced_transaction
 
 
-async def ready_revoke(identity, operation):
+async def ready_revoke(identity, operation, *, expect_failure=False):
     async with identity.state.database.begin() as conn:
         await execute(
             conn,
             "UPDATE credential_operations SET next_reconcile_at=UTC_TIMESTAMP(6) WHERE id=:id",
             id=UUID(operation).bytes,
         )
-    assert await recover_revocation(identity)
+    try:
+        activity = await recover_revocation(identity)
+    except ApiError as error:
+        if not expect_failure:
+            raise
+        assert error.status == 503 and error.code == ErrorCode.DEPENDENCY_UNAVAILABLE
+    else:
+        assert not expect_failure and activity
 
 
 async def verify(apps):
@@ -94,7 +101,7 @@ async def verify(apps):
             return await original_call(receiver, path, *args, **kwargs)
 
         identity.state.service_client.call = block_barrier
-        await ready_revoke(identity, operation)
+        await ready_revoke(identity, operation, expect_failure=True)
         row = await adapter.state.school_credentials.current(owner)
         assert row["status"] == "active" and row["ciphertext"]
 
@@ -107,7 +114,7 @@ async def verify(apps):
             return value
 
         identity.state.service_client.call = lose_revoke
-        await ready_revoke(identity, operation)
+        await ready_revoke(identity, operation, expect_failure=True)
         row = await adapter.state.school_credentials.current(owner)
         assert row["status"] == "revoked" and not row["ciphertext"] and not row["wrapped_dek"]
         assert not row["school_user_id_ciphertext"] and not row["use_allowed"]
