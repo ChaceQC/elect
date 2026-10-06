@@ -96,14 +96,15 @@ async def login(command: LoginRequest, request: Request):
 
 @router.get("/auth/me")
 async def me(request: Request):
-    principal, _ = await session(request)
+    token = get_cookie(request, SESSION_COOKIE)
+    if not token:
+        raise ApiError(401, ErrorCode.APP_SESSION_EXPIRED, "请先登录应用")
     value = await request.app.state.service_client.call(
         "identity",
         "/browser/me",
         "identity:browser",
-        principal.request_id,
-        {"session_token": get_cookie(request, SESSION_COOKIE)},
-        principal=principal,
+        UUID(request.state.request_id),
+        {"session_token": token},
     )
     return success(request, value)
 

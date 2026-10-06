@@ -24,9 +24,22 @@ class MonitorQueries:
         }
 
     async def get(self, owner):
+        value = await self.read(owner)
+        if value is not None:
+            return value
+        # 只有首次不存在时初始化；退出短写事务后重新取得完整读快照。
         async with self.engine.begin() as conn:
-            row = await lock_monitor(conn, owner)
-            return await self.view(conn, row)
+            await lock_monitor(conn, owner)
+        return await self.read(owner)
+
+    async def read(self, owner):
+        async with self.engine.connect() as conn:
+            await conn.execution_options(isolation_level="REPEATABLE READ")
+            async with conn.begin():
+                row = await first(
+                    conn, "SELECT * FROM monitors WHERE owner_user_id=:owner", owner=owner.bytes,
+                )
+                return await self.view(conn, row) if row else None
 
     async def view(self, conn, row):
         current = await first(

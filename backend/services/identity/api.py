@@ -118,7 +118,10 @@ async def login(command: BrowserLogin, request: Request, principal: Browser):
 @router.post("/browser/me")
 async def me(command: BrowserSession, request: Request, principal: Browser):
     row = await request.app.state.app_sessions.context(command.session_token.get_secret_value())
-    authorize_owner(principal, UUID(bytes=row["user_id"]))
+    # /auth/me直接由已签名Gateway调用，用户身份只取自刚验证的会话。
+    # 兼容总览/旧Gateway已经携带的用户上下文，仍核对其归属。
+    if principal.user_id is not None:
+        authorize_owner(principal, UUID(bytes=row["user_id"]))
     return await current_me(request.app, row, principal)
 
 
