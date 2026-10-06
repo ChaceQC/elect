@@ -1,6 +1,7 @@
 import asyncio
 import random
 from contextlib import nullcontext
+from datetime import UTC, datetime
 from uuid import UUID
 
 from services.common.errors import ErrorCode
@@ -78,7 +79,8 @@ class SchoolSessions:
             return token, school_user, row
 
     async def read(
-        self, owner, request_id, path, params, *, include_user=False, budget=25, read_timeout=12
+        self, owner, request_id, path, params, *, include_user=False, budget=25, read_timeout=12,
+        observer=None,
     ):
         deadline = Deadline(budget)
         try:
@@ -95,19 +97,36 @@ class SchoolSessions:
                         owner, request_id, deadline, locked=True
                     )
                     query = {**params, **({"userId": school_user} if include_user else {})}
-                    value, row = await self.read_attempts(
-                        owner, request_id, path, query, token, row, deadline, read_timeout
-                    )
+                    try:
+                        value, row = await self.read_attempts(
+                            owner, request_id, path, query, token, row, deadline, read_timeout
+                        )
+                    except ApiError as error:
+                        if observer:
+                            return await observer(None, error.code, datetime.now(UTC))
+                        raise
+                    observed_at = datetime.now(UTC)
                     latest = await self.repository.current(owner)
                     if latest["version"] != row["version"] or latest["status"] != "active":
                         raise ApiError(
                             409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化，请刷新后重试"
                         )
-                    return value
+                    return await observer(value, None, observed_at) if observer else value
         except TimeoutError:
             raise ApiError(
                 504, ErrorCode.SCHOOL_TIMEOUT, "学校查询超时，请稍后重试", True
             ) from None
+
+    async def read_bound(self, owner, request_id, *, budget=25, read_timeout=12):
+        from functools import partial
+
+        from ..infrastructure.balance_observations import observe
+
+        return await self.read(
+            owner, request_id, "/base/roomUser/selectRoomListByUserId", {}, include_user=True,
+            budget=budget, read_timeout=read_timeout,
+            observer=partial(observe, self.repository.engine, owner, request_id),
+        )
 
     async def read_attempts(
         self, owner, request_id, path, query, token, row, deadline, read_timeout

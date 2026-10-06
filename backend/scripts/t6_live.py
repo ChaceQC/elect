@@ -110,7 +110,7 @@ async def verify(args, record):
     adapter.school_protocol = adapter.school_auth.protocol = adapter.school_sessions.protocol = (
         protocol
     )
-    adapter.school_sessions.solver = solve_image
+    adapter.school_sessions.ocr_executor.solver = solve_image
     for app in apps.values():
         app.state.side_effect_policy = SideEffectPolicy()
     try:

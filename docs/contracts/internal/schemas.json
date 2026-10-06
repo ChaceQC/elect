@@ -488,29 +488,147 @@
       "title": "HistoryWindowQuery",
       "type": "object"
     },
+    "HistoryExecutionQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "start_date": {
+          "format": "date",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "format": "date",
+          "title": "End Date",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "budget_seconds": {
+          "default": 90,
+          "exclusiveMinimum": 0,
+          "maximum": 90,
+          "title": "Budget Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start_date",
+        "end_date",
+        "binding_id"
+      ],
+      "title": "HistoryExecutionQuery",
+      "type": "object"
+    },
+    "BalanceReading": {
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "maximum": 9223372036854775807,
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "source": {
+          "const": "school_bound_rooms",
+          "default": "school_bound_rooms",
+          "title": "Source",
+          "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        }
+      },
+      "required": [
+        "sequence",
+        "observed_at",
+        "request_id"
+      ],
+      "title": "BalanceReading",
+      "type": "object"
+    },
     "BalanceObservation": {
       "additionalProperties": false,
       "properties": {
+        "sequence": {
+          "maximum": 9223372036854775807,
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "source": {
+          "const": "school_bound_rooms",
+          "default": "school_bound_rooms",
+          "title": "Source",
+          "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        },
         "binding_id": {
           "format": "uuid",
           "title": "Binding Id",
           "type": "string"
         },
         "amount": {
-          "pattern": "^-?(0|[1-9]\\d{0,11})\\.\\d{2}$",
-          "title": "Amount",
-          "type": "string"
-        },
-        "fetched_at": {
-          "format": "date-time",
-          "title": "Fetched At",
-          "type": "string"
+          "anyOf": [
+            {
+              "pattern": "^-?(0|[1-9]\\d{0,11})\\.\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Amount"
         }
       },
       "required": [
+        "sequence",
+        "observed_at",
+        "request_id",
         "binding_id",
-        "amount",
-        "fetched_at"
+        "amount"
       ],
       "title": "BalanceObservation",
       "type": "object"
@@ -671,6 +789,17 @@
     "SchoolBindingRecord": {
       "additionalProperties": false,
       "properties": {
+        "balance_observation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BalanceReading"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "room_id": {
           "maxLength": 128,
           "minLength": 1,

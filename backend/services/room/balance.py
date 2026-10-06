@@ -34,6 +34,7 @@ async def get_balance(engine, owner, binding):
         fetched_at=fetched,
         school_observed_at=aware(row["school_observed_at"]) if row else None,
         stale=not fetched
+        or row["observation_sequence"] is None
         or row["quality"] != "fresh"
         or (datetime.now(UTC) - fetched).total_seconds() > 300,
         refresh_state="pending"
@@ -125,12 +126,12 @@ async def claim_refresh(engine):
         return {**row, "lease_owner": lease}
 
 
-async def finish_refresh(engine, row, records, error):
+async def finish_refresh(engine, row, records, error, observation=None):
     from .balance_store import finish_operations, update_balances
 
     async with engine.begin() as conn:
         if not await locked_operation(conn, row):
             return False
-        await update_balances(conn, row["owner_user_id"], records, error)
+        await update_balances(conn, row["owner_user_id"], records, error, observation)
         await finish_operations(conn, row["id"], records, error)
     return True

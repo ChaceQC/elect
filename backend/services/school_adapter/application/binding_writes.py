@@ -6,7 +6,6 @@ from services.common.errors import ErrorCode
 from services.common.http import ApiError
 
 from ..infrastructure.binding_ledger import BindingLedger, aad, result
-from ..infrastructure.rooms import bound_rooms
 from .binding_candidates import candidate
 
 
@@ -22,12 +21,15 @@ class BindingWrites:
         if row["state"] in {"confirmed", "rejected"}:
             return result(row)
         try:
-            value = await self.state.school_sessions.read(
-                owner, request_id, "/base/roomUser/selectRoomListByUserId", {}, include_user=True
-            )
+            value = await self.state.school_sessions.read_bound(owner, request_id)
+            if value["observation"]["error_code"]:
+                return await self.ledger.settle(owner, operation, request_id,
+                                               error=value["observation"]["error_code"])
             record = next(
-                (item for item in bound_rooms(value) if item["room_id"] == row["target_ref"]), None
+                (item for item in value["items"] if item["room_id"] == row["target_ref"]), None
             )
+            if record:
+                record = {**record, "balance_observation": value["observation"]}
             return await self.ledger.settle(owner, operation, request_id, record=record)
         except ApiError as error:
             return await self.ledger.settle(owner, operation, request_id, error=error.code)

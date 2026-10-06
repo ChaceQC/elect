@@ -4,31 +4,19 @@ from services.common.errors import ErrorCode
 from services.common.sql import execute
 
 
-async def update_balances(conn, owner, records, error):
-    await execute(
-        conn,
-        "UPDATE room_balance_cache c JOIN room_bindings b ON b.id=c.binding_id "
-        "SET c.quality='stale',c.error_code=:error WHERE b.owner_user_id=:owner",
-        owner=owner,
-        error=error or ErrorCode.SCHOOL_INVALID_RESPONSE,
-    )
-    if error:
+async def update_balances(conn, owner, records, error, observation=None):
+    from .balance_observations import apply_observation
+
+    if observation is None:
         return
-    for record in records:
-        if record["balance"] is None:
-            continue
-        await execute(
-            conn,
-            "INSERT INTO room_balance_cache (binding_id,balance,fetched_at,source,quality) "
-            "SELECT b.id,:balance,UTC_TIMESTAMP(6),'school_bound_rooms','fresh' "
-            "FROM room_bindings b JOIN rooms r ON r.id=b.room_id "
-            "WHERE b.owner_user_id=:owner AND b.status='active' AND r.school_room_id=:room "
-            "ON DUPLICATE KEY UPDATE balance=:balance,fetched_at=UTC_TIMESTAMP(6),"
-            "quality='fresh',error_code=NULL,updated_at=UTC_TIMESTAMP(6)",
-            owner=owner,
-            room=record["room_id"],
-            balance=record["balance"],
-        )
+    rows = (await execute(
+        conn, "SELECT b.id,b.status,r.school_room_id FROM room_bindings b "
+        "JOIN rooms r ON r.id=b.room_id WHERE b.owner_user_id=:owner", owner=owner,
+    )).mappings().all()
+    values = {record["room_id"]: record["balance"] for record in records}
+    for row in rows:
+        amount = values.get(row["school_room_id"]) if row["status"] == "active" else None
+        await apply_observation(conn, row["id"], amount, observation, error)
 
 
 async def finish_operations(conn, root, records, error):

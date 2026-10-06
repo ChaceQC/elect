@@ -1,18 +1,20 @@
 # 数据结构与初始化
 
-更新日期：2026-10-05。七个库共有 55 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+更新日期：2026-10-06。七个库共有 56 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
 
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
 | Identity | elect_identity | identity_0003 | 7 |
-| School Adapter | elect_school | school_0006 | 10 |
-| Room | elect_room | room_0005 | 11 |
+| School Adapter | elect_school | school_0007 | 11 |
+| Room | elect_room | room_0006 | 11 |
 | Monitoring | elect_monitoring | monitoring_0006 | 14 |
 | Payment | elect_payment | payment_0004 | 6 |
 | Notification | elect_notification | notification_0002 | 4 |
 | Audit | elect_audit | audit_0001 | 3 |
 
 [schema-catalog.json](schema-catalog.json)按迁移链导出当前 head 的列类型、null、主键、唯一键、CHECK、外键、生成列与查询索引。可执行定义在 backend/services/{domain}/migrations/versions/0001_initial.py；后续变更使用新 revision，不改已发布迁移。
+
+R2新增Adapter owner余额计数表和Room观测序号/hash、最后成功序号/错误序号/时间/代码。旧行新增字段为null，金额与原fetched_at不回填。迁移不运行旧支付调度维护；计数表和Room高水位须一起保留，见[迁移与回退边界](../runbooks/余额观测与历史执行边界.md)。
 
 业务 ID 用 BINARY(16)，hash 用 BINARY(32)，UTC DATETIME(6)、Shanghai DATE、DECIMAL(14,2)/DECIMAL(18,4)。本库 FK 为 RESTRICT，不跨库 FK、不级联删除审计/任务历史。`created_at/updated_at` 有数据库默认值，后续写操作由领域服务更新 updated_at。
 

@@ -1,3 +1,4 @@
+import asyncio
 from uuid import UUID
 
 from services.common.http import ApiError
@@ -12,20 +13,27 @@ from .repository import RoomRepository
 
 
 async def sync_tick(app):
+    async with asyncio.timeout(110):
+        return await sync_once(app)
+
+
+async def sync_once(app):
     repository = RoomRepository(app.state.database)
     operation = await repository.claim()
     if operation is None:
         return False
     request_id = new_id()
     principal = Principal("room", UUID(bytes=operation["owner_user_id"]), 1, request_id)
+    observation = None
     try:
         value = await app.state.service_client.call(
             "school_adapter", "/rooms/bound", "school:rooms", request_id, principal=principal
         )
-        records, error = value["items"], None
+        observation = value.get("observation")
+        records, error = value["items"], observation.get("error_code") if observation else None
     except ApiError as failure:
         records, error = [], failure.code
-    await repository.complete(operation, records, error, request_id)
+    await repository.complete(operation, records, error, request_id, observation)
     return True
 
 

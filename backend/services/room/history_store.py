@@ -3,6 +3,8 @@
 import random
 from collections import Counter
 
+from sqlalchemy import text
+
 from services.common.ids import new_id
 from services.common.sql import execute, first
 
@@ -49,7 +51,8 @@ async def finish_sync(conn, row):
     await propagate(conn, row["sync_id"], state, code)
 
 
-async def finish_history(engine, row, result, error, retryable=False, retry_after=None):
+async def finish_history(engine, row, result, error, retryable=False, retry_after=None,
+                         *, committing=None):
     from uuid import UUID
 
     from .preference_store import lock_preference
@@ -59,17 +62,20 @@ async def finish_history(engine, row, result, error, retryable=False, retry_afte
         await lock_preference(conn, UUID(bytes=row["owner_user_id"]))
         current = await first(
             conn,
-            "SELECT *,lease_until>UTC_TIMESTAMP(6) AS valid FROM history_sync_windows "
+            "SELECT * FROM history_sync_windows "
             "WHERE id=:id FOR UPDATE",
             id=row["id"],
         )
+        now = (await first(conn, "SELECT UTC_TIMESTAMP(6) AS now"))["now"]
         if (
-            current["state"] != "running"
+            not current or current["state"] != "running"
             or current["lease_owner"] != row["lease_owner"]
             or current["execution_epoch"] != row["execution_epoch"]
-            or not current["valid"]
+            or not current["lease_until"] or current["lease_until"] <= now
         ):
             return False
+        if committing:
+            committing.set()
         binding = await target(
             conn, UUID(bytes=row["owner_user_id"]), UUID(bytes=row["binding_id"])
         )
@@ -102,33 +108,28 @@ async def finish_history(engine, row, result, error, retryable=False, retry_afte
                 end=row["end_date"],
             )
             occurrences = Counter()
+            batch = []
             for record in result["items"]:
                 fingerprint = bytes.fromhex(record["row_hash"])
                 occurrences[fingerprint] += 1
-                await execute(
-                    conn,
+                batch.append(dict(
+                    id=new_id().bytes, binding=row["binding_id"], room=result["request_room_id"],
+                    date=record["record_date"], last=record["last_reading"],
+                    reading=record["reading"], usage=record["energy_usage"],
+                    amount=record["charged_amount"], status=record["charge_status"],
+                    hash=fingerprint, sync=row["sync_id"], occurrence=occurrences[fingerprint],
+                    version=current["execution_epoch"], quality=record["quality"],
+                ))
+            for offset in range(0, len(batch), 250):
+                await conn.execute(text(
                     "INSERT INTO school_history_records "
                     "(id,binding_id,request_room_id,source,record_date,source_timezone"
                     ",last_reading,reading,energy_usage,charged_amount,charge_status,r"
                     "ow_hash,sync_id,occurrence_index,snapshot_version,quality) "
                     "VALUES "
                     "(:id,:binding,:room,'C02',:date,'Asia/Shanghai',:last,:reading,:u"
-                    "sage,:amount,:status,:hash,:sync,:occurrence,:version,:quality)",
-                    id=new_id().bytes,
-                    binding=row["binding_id"],
-                    room=result["request_room_id"],
-                    date=record["record_date"],
-                    last=record["last_reading"],
-                    reading=record["reading"],
-                    usage=record["energy_usage"],
-                    amount=record["charged_amount"],
-                    status=record["charge_status"],
-                    hash=fingerprint,
-                    sync=row["sync_id"],
-                    occurrence=occurrences[fingerprint],
-                    version=current["execution_epoch"],
-                    quality=record["quality"],
-                )
+                    "sage,:amount,:status,:hash,:sync,:occurrence,:version,:quality)"
+                ), batch[offset:offset + 250])
             await execute(
                 conn,
                 "UPDATE history_sync_windows SET "

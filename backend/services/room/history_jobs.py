@@ -83,6 +83,7 @@ async def accept_history(engine, owner, binding, command, key, request_id):
 
 
 async def claim_history(engine):
+    from .history_execution import LEASE_SECONDS
     from .preference_store import lock_preference
 
     async with engine.begin() as conn:
@@ -141,10 +142,11 @@ async def claim_history(engine):
                 conn,
                 "UPDATE history_sync_windows SET "
                 "state='running',attempt_count=attempt_count+1,execution_epoch=executi"
-                "on_epoch+1,lease_owner=:lease,lease_until=DATE_ADD(UTC_TIMESTAMP(6),I"
-                "NTERVAL 45 SECOND) WHERE id=:id",
+                "on_epoch+1,lease_owner=:lease,lease_until=TIMESTAMPADD(SECOND,:seconds,"
+                "UTC_TIMESTAMP(6)) WHERE id=:id",
                 id=row["id"],
                 lease=lease,
+                seconds=LEASE_SECONDS,
             )
             await execute(
                 conn, "UPDATE history_syncs SET status='running' WHERE id=:id", id=row["sync_id"]

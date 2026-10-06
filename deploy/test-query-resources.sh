@@ -31,4 +31,6 @@ docker run --rm --name "$task_name" --network "$task_network" \
   -v "$task_root/backend/scripts:/app/scripts:ro" \
   "$task_image" python -m pytest -q --tb=short \
   tests/integration/test_snapshot_admission.py tests/integration/test_history_admission.py \
-  tests/integration/test_history_completion.py tests/integration/test_login_resources.py
+  tests/integration/test_history_completion.py tests/integration/test_login_resources.py \
+  tests/integration/test_balance_observations.py tests/integration/test_history_execution.py \
+  tests/integration/test_paid_balance_terminal.py

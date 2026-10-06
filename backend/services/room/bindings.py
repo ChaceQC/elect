@@ -112,7 +112,8 @@ async def confirm(engine, row, record, request_id):
         )
         if record["room_id"] != room["school_room_id"]:
             raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校确认目标不一致")
-        binding = await confirm_binding(conn, current["owner_user_id"], record)
+        binding = await confirm_binding(conn, current["owner_user_id"], record,
+                                        record.get("balance_observation"))
         owner = UUID(bytes=current["owner_user_id"])
         preference = await lock_preference(conn, owner)
         child = None

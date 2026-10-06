@@ -68,7 +68,9 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
                         await execute(conn, "SELECT 1")
                     activity = False
                 else:
-                    activity = await checked_tick(app, tick, heartbeat)
+                    activity = await checked_tick(
+                        app, tick, heartbeat, timeout=None if service == "room" else 120,
+                    )
                     if service == "school_adapter":
                         next_cleanup = time.monotonic() + (0 if activity else 60)
                 heartbeat.write(healthy=True, activity=activity)
@@ -86,10 +88,10 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
             app.state.history_broker = None
 
 
-async def checked_tick(app, tick, heartbeat):
+async def checked_tick(app, tick, heartbeat, *, timeout=120):
     task = asyncio.create_task(tick(app))
     try:
-        async with asyncio.timeout(120):
+        async with asyncio.timeout(timeout):
             while not task.done():
                 done, _ = await asyncio.wait({task}, timeout=10)
                 if not done:

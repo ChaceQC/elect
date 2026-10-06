@@ -99,7 +99,9 @@ class RoomRepository(RoomQueries):
             )
             return {**row, "lease_owner": lease}
 
-    async def complete(self, operation, records, error, request_id):
+    async def complete(self, operation, records, error, request_id, observation=None):
+        from .balance_store import update_balances
+
         owner = operation["owner_user_id"]
         async with self.engine.begin() as conn:
             row = await locked_operation(conn, operation)
@@ -113,18 +115,11 @@ class RoomRepository(RoomQueries):
             target = None
             if error:
                 sync_state = "stale" if state["last_synced_at"] else "failed"
-                await execute(
-                    conn,
-                    "UPDATE room_balance_cache c JOIN room_bindings b "
-                    "ON c.binding_id=b.id SET c.quality='stale',c.error_code=:error "
-                    "WHERE b.owner_user_id=:owner",
-                    error=error,
-                    owner=owner,
-                )
             else:
                 sync_state = await mirror_bindings(conn, owner, records)
                 target = await snapshot_target(conn, UUID(bytes=owner), records)
                 await align_default(conn, UUID(bytes=owner), target, request_id)
+            await update_balances(conn, owner, records, error, observation)
             await execute(
                 conn,
                 "UPDATE room_sync_state SET state=:state,error_code=:error,"

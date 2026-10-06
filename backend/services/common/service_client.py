@@ -1,5 +1,6 @@
 """固定内部目标；认证材料只经验证服务器证书的 TLS 发送。"""
 
+import asyncio
 import os
 import ssl
 
@@ -44,6 +45,14 @@ class ServiceClient:
         return self._client
 
     async def call(
+        self, receiver, path, scope, request_id, payload=None, *, principal=None, method="POST",
+        budget=None,
+    ):
+        async with asyncio.timeout(budget):
+            return await self._call(receiver, path, scope, request_id, payload,
+                                    principal=principal, method=method)
+
+    async def _call(
         self, receiver, path, scope, request_id, payload=None, *, principal=None, method="POST"
     ):
         token = issue_token(

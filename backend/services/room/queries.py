@@ -32,7 +32,8 @@ class RoomQueries:
                     await execute(
                         conn,
                         "SELECT b.*,r.building_name,r.room_no,c.balance,c.fetched_at,"
-                        "c.school_observed_at,c.quality,c.error_code FROM room_bindings b "
+                        "c.school_observed_at,c.quality,c.error_code,c.observation_sequence "
+                        "FROM room_bindings b "
                         "JOIN rooms r ON r.id=b.room_id LEFT JOIN room_balance_cache c "
                         f"ON c.binding_id=b.id WHERE {predicate} ORDER BY "
                         "r.building_name,r.room_no,b.id LIMIT :size OFFSET :offset",
@@ -93,8 +94,8 @@ class RoomQueries:
     def binding(row, sync_state):
         fetched = aware(row["fetched_at"])
         stale = (
-            sync_state != "ready"
-            or row["quality"] != "fresh"
+            row["status"] != "active"
+            or row["observation_sequence"] is None or row["quality"] != "fresh"
             or not fetched
             or (datetime.now(UTC) - fetched).total_seconds() > 300
         )
@@ -118,7 +119,7 @@ class RoomQueries:
                 "refresh_state": "pending"
                 if sync_state == "loading"
                 else "failed"
-                if sync_state in {"failed", "stale"} or row["error_code"]
+                if row["error_code"]
                 else "ready",
                 "error_code": row["error_code"],
             },
@@ -182,7 +183,8 @@ class RoomQueries:
             row = await first(
                 conn,
                 "SELECT b.*,r.building_name,r.room_no,c.balance,c.fetched_at,"
-                "c.school_observed_at,c.quality,c.error_code FROM room_bindings b "
+                "c.school_observed_at,c.quality,c.error_code,c.observation_sequence "
+                "FROM room_bindings b "
                 "JOIN rooms r ON r.id=b.room_id LEFT JOIN room_balance_cache c "
                 "ON c.binding_id=b.id "
                 "WHERE b.id=:id AND b.owner_user_id=:owner AND b.status<>'inactive'",

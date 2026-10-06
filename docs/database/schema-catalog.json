@@ -552,7 +552,7 @@
     },
     "school_adapter": {
       "database": "elect_school",
-      "revision": "school_0006",
+      "revision": "school_0007",
       "tables": {
         "school_credentials": {
           "columns": {
@@ -1232,12 +1232,30 @@
             }
           ],
           "indexes": []
+        },
+        "balance_observation_counters": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "sequence": {
+              "type": "BIGINT",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
         }
       }
     },
     "room": {
       "database": "elect_room",
-      "revision": "room_0005",
+      "revision": "room_0006",
       "tables": {
         "rooms": {
           "columns": {
@@ -1682,6 +1700,36 @@
             "updated_at": {
               "type": "DATETIME(6)",
               "nullable": false,
+              "primary_key": false
+            },
+            "observation_sequence": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "observation_hash": {
+              "type": "BINARY(32)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_success_sequence": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_error_sequence": {
+              "type": "BIGINT",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_error_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
+            },
+            "last_error_code": {
+              "type": "VARCHAR(64)",
+              "nullable": true,
               "primary_key": false
             }
           },

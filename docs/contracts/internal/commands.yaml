@@ -245,7 +245,7 @@ t2_routes:
   - {receiver: school_adapter, callers: [gateway], scope: 'captcha:create', path: /captchas, request: 'schemas.json#/$defs/ChallengeCommand', response: '../openapi.yaml#/components/schemas/Captcha'}
   - {receiver: school_adapter, callers: [identity], scope: 'credential:authenticate', path: /login-attempts/status, request: 'schemas.json#/$defs/AttemptQuery', response: 'schemas.json#/$defs/StagedCredential'}
   - {receiver: school_adapter, callers: [identity], scope: 'credential:read', path: /credentials/view, request: 已签名用户上下文, response: 本人账号与凭据版本状态，不含密码或token}
-  - {receiver: school_adapter, callers: [room], scope: 'school:rooms', path: /rooms/bound, request: 已签名用户上下文, response: B02精简字段与十进制余额}
+  - {receiver: school_adapter, callers: [room], scope: 'school:rooms', path: /rooms/bound, request: 已签名用户上下文, response: B02精简字段与十进制余额及BalanceReading观察；先检查error_code再解释空列表}
   - {receiver: school_adapter, callers: [room], scope: 'school:rooms', path: /rooms/candidates, request: 'schemas.json#/$defs/RoomQuery', response: '../openapi.yaml#/components/schemas/Candidates'}
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/agreement, request: 无, response: '../openapi.yaml#/components/schemas/Agreement'}
   - {receiver: identity, callers: [gateway], scope: 'identity:browser', path: /browser/login, request: 'schemas.json#/$defs/BrowserLogin', response: TLS-only会话token与LoginResult，Gateway仅置安全Cookie}
@@ -274,11 +274,11 @@ t4_query_routes:
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/consumption, request: 'schemas.json#/$defs/ConsumptionQuery', response: '../openapi.yaml#/components/schemas/Consumption'}
   - {receiver: room, callers: [gateway], scope: 'room:browser', path: /browser/history-sync, request: binding_id/日期范围/idempotency_key, response: '../openapi.yaml#/components/schemas/AcceptedOperation'}
   - {receiver: room, callers: [school_adapter, monitoring], scope: 'room:query', path: /controls/query-target, request: 'schemas.json#/$defs/BindingQuery', response: 本人active绑定的school_room_id，仅内部使用}
-  - {receiver: school_adapter, callers: [room], scope: 'school:history', path: /queries/history, request: 'schemas.json#/$defs/HistoryWindowQuery', response: 授权请求C02白名单行/指纹/请求归属}
+  - {receiver: school_adapter, callers: [room], scope: 'school:history', path: /queries/history, request: 'schemas.json#/$defs/HistoryExecutionQuery', response: 共享剩余预算的授权C02白名单行/指纹/请求归属}
   - {receiver: school_adapter, callers: [monitoring], scope: 'school:collect', path: /queries/collect, request: 'schemas.json#/$defs/BindingQuery', response: 逐school_room_id匹配B02余额；可选meter含last_reading/reading/delta/record_date/source_record_key/quality，C02失败时省略meter}
 
 t4_run_routes:
-  - {receiver: room, callers: [school_adapter], scope: 'room:balance-commit', path: /controls/balance-observed, request: 'schemas.json#/$defs/BalanceObservation', response: 对应本人有效Binding的缓存观察，旧时间不得覆盖新缓存}
+  - {receiver: room, callers: [school_adapter], scope: 'room:balance-commit', path: /controls/balance-observed, request: 'schemas.json#/$defs/BalanceObservation', response: 对应本人有效Binding的缓存观察；按序号比较、同序号冲突拒绝、新错误保留旧金额}
   - {receiver: monitoring, callers: [gateway], scope: 'monitor:browser', path: /browser/runs, request: idempotency_key, response: '../openapi.yaml#/components/schemas/AcceptedRun'}
   - {receiver: monitoring, callers: [gateway], scope: 'monitor:browser', path: /browser/run, request: 'schemas.json#/$defs/RunQuery', response: '../openapi.yaml#/components/schemas/Run'}
   - {receiver: monitoring, callers: [gateway], scope: 'monitor:browser', path: /browser/cancel, request: 'schemas.json#/$defs/CancelRunQuery', response: '../openapi.yaml#/components/schemas/Run'}

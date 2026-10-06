@@ -4,6 +4,7 @@ import asyncio
 from uuid import UUID
 
 from services.common.audit_events import record_audit
+from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.security import Principal
@@ -22,7 +23,7 @@ async def claim(engine, order_id=None):
             "AND (:order IS NULL OR id=:order) "
             "AND (cancel_requested_at IS NULL OR state='paid_confirmed') "
             "AND (state IN ('awaiting_payment','status_unknown','submit_unknown') OR "
-            "(state='paid_confirmed' AND balance_refresh_state IN ('pending','failed'))) "
+            "(state='paid_confirmed' AND balance_refresh_state='pending')) "
             "ORDER BY next_check_at,id LIMIT 1 FOR UPDATE SKIP LOCKED",
             order=order_id.bytes if order_id else None,
         )
@@ -40,19 +41,25 @@ async def claim(engine, order_id=None):
 
 async def balance_refresh(state, row, principal):
     operation = row["balance_refresh_operation_id"]
+    try:
+        if not operation:
+            value = await state.service_client.call(
+                "room", "/browser/balance-refresh", "room:browser", principal.request_id,
+                {"binding_id": str(UUID(bytes=row["binding_id"])),
+                 "idempotency_key": f"payment-paid:{UUID(bytes=row['id'])}"},
+                principal=principal,
+            )
+            operation = UUID(value["operation_id"]).bytes
+        result = await refresh_status(state, operation, principal)
+        return operation, result, None
+    except ApiError as failure:
+        # 接受成功后读取失败也保留operation，不能丢掉关联或误写业务failed。
+        return operation, "unavailable", failure.code
+
+
+async def refresh_status(state, operation, principal):
     if not operation:
-        value = await state.service_client.call(
-            "room",
-            "/browser/balance-refresh",
-            "room:browser",
-            principal.request_id,
-            {
-                "binding_id": str(UUID(bytes=row["binding_id"])),
-                "idempotency_key": f"payment-paid:{UUID(bytes=row['id'])}",
-            },
-            principal=principal,
-        )
-        operation = UUID(value["operation_id"]).bytes
+        raise ApiError(404, ErrorCode.NOT_FOUND, "余额刷新关联缺失")
     value = await state.service_client.call(
         "room",
         "/browser/operation",
@@ -61,9 +68,13 @@ async def balance_refresh(state, row, principal):
         {"operation_id": str(UUID(bytes=operation))},
         principal=principal,
     )
-    return operation, "succeeded" if value["state"] == "succeeded" else "failed" if value[
-        "state"
-    ] in {"failed", "cancelled"} else "pending"
+    if value["state"] in {"failed", "cancelled"}:
+        return "failed"
+    if value["state"] == "succeeded":
+        return "succeeded"
+    if value["state"] in {"accepted", "running", "reconciling"}:
+        return "pending"
+    raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE, "余额刷新状态暂不可确认", True)
 
 
 async def check_order(app, row):
@@ -87,12 +98,14 @@ async def check_order(app, row):
                 next_state = candidate
             if next_state == "paid_confirmed":
                 refresh_state = "pending"
-        if next_state == "paid_confirmed" and refresh_state != "succeeded":
-            operation, refresh_state = await balance_refresh(state, row, principal)
+        if next_state == "paid_confirmed" and refresh_state == "pending":
+            operation, refresh_state, error = await balance_refresh(state, row, principal)
+            if refresh_state == "unavailable":
+                refresh_state = "pending"
     except ApiError as failure:
         error = failure.code
         if next_state == "paid_confirmed":
-            refresh_state = "failed"
+            refresh_state = "pending"
     async with state.database.begin() as conn:
         # 与建单/取码提交及取消统一按操作→订单加锁，避免独立回查角色反向抢锁。
         await execute(
@@ -115,7 +128,8 @@ async def check_order(app, row):
             conn,
             "UPDATE payment_orders SET state=:state,error_code=:error,"
             "last_checked_at=UTC_TIMESTAMP(6),"
-            "next_check_at=IF(cancel_requested_at IS NOT NULL AND :state!='paid_confirmed',"
+            "next_check_at=IF(:finished OR "
+            "(cancel_requested_at IS NOT NULL AND :state!='paid_confirmed'),"
             "NULL,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :delay SECOND)),"
             "check_lease_owner=NULL,check_lease_until=NULL,balance_refresh_state=:refresh,"
             "balance_refresh_operation_id=:operation,version=version+1 WHERE id=:id",
@@ -124,6 +138,9 @@ async def check_order(app, row):
             error=error,
             refresh=refresh_state,
             operation=operation,
+            finished=next_state in ORDER.terminal and (
+                next_state != "paid_confirmed" or refresh_state != "pending"
+            ),
             delay=30 if error else 2,
         )
         if next_state in ORDER.terminal and valid["state"] != next_state:
