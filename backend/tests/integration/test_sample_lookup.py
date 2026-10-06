@@ -52,6 +52,40 @@ def test_repeated_key_uses_all_earlier_history_and_keeps_fixed_total():
     asyncio.run(case())
 
 
+def test_capture_meter_delta_keeps_previous_sample_across_pages_and_date_filter():
+    async def case():
+        async with database("monitoring") as engine:
+            owner, binding = new_id(), new_id()
+            await seed_samples(engine, owner, binding, 7)
+            readings = ["13240.8000", "13249.3000", "13249.3000", None,
+                        "13250.0000", "13248.0000", "13251.0000"]
+            async with engine.begin() as conn:
+                ids = (await execute(conn, "SELECT id FROM monitor_samples WHERE "
+                                     "owner_user_id=:owner ORDER BY captured_at,id",
+                                     owner=owner.bytes)).scalars().all()
+                for index, (sid, reading) in enumerate(zip(ids, readings, strict=True)):
+                    await execute(conn, "UPDATE monitor_samples SET meter_reading=:reading,"
+                                  "meter_delta=5.29,previous_sample_id=:previous WHERE id=:id",
+                                  id=sid, reading=reading,
+                                  previous=ids[index - 1] if 0 < index < 6 else None)
+                await execute(conn, "UPDATE monitor_samples SET captured_at='2026-08-31 15:59:00' "
+                              "WHERE id=:id", id=ids[0])
+            query = SampleQuery(binding_id=binding, start_date=date(2026, 9, 1),
+                                end_date=date(2026, 9, 1), page=1, page_size=2)
+            first_page = await list_samples(engine, owner, query, b"synthetic-key")
+            items = list(first_page.items)
+            for page in (2, 3):
+                result = await list_samples(engine, owner, query.model_copy(update={
+                    "page": page, "snapshot_token": first_page.snapshot_token}), b"synthetic-key")
+                assert result.total == 6
+                items.extend(result.items)
+            by_id = {item.id.bytes: item for item in items}
+            assert [by_id[sid].meter_capture_delta for sid in ids[1:]] == [
+                "8.5000", "0.0000", None, None, "-2.0000", None]
+            assert all(item.meter_delta == "5.2900" for item in items)
+    asyncio.run(case())
+
+
 def test_long_term_index_plan_scan_latency_and_write_cost(monkeypatch):
     monkeypatch.setenv("ELECT_DB_POOL_SIZE", "2")
     monkeypatch.setenv("ELECT_DB_MAX_OVERFLOW", "1")

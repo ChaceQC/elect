@@ -14,6 +14,7 @@ from .sample_snapshots import create_or_reuse
 
 PAGE_SQL = (
     "SELECT p.*,previous.captured_at AS previous_captured_at,"
+    "p.meter_reading-previous.meter_reading AS meter_capture_delta,"
     "COALESCE(p.capture_interval_minutes,m.interval_minutes) AS interval_minutes,"
     "CASE WHEN p.meter_source_record_key IS NULL OR p.meter_source_record_key='' THEN 0 "
     "ELSE EXISTS(SELECT 1 FROM monitor_samples other WHERE "
@@ -53,6 +54,9 @@ def sample_view(row):
         if row["meter_reading"] is not None
         else None,
         meter_delta=format(row["meter_delta"], ".4f") if row["meter_delta"] is not None else None,
+        meter_capture_delta=format(row["meter_capture_delta"], ".4f")
+        if row["meter_capture_delta"] is not None
+        else None,
         meter_record_date=row["meter_record_date"],
         meter_source="school_C02_daily_record" if row["meter_record_date"] else None,
         meter_source_record_key=row["meter_source_record_key"],

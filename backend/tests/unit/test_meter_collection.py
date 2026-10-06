@@ -136,6 +136,7 @@ def test_worker_persists_meter_with_balance_and_sample_api_displays_it(monkeypat
                "meter_last_reading": Decimal(sample["meter_last"]),
                "meter_reading": Decimal(sample["meter_reading"]),
                "meter_delta": Decimal(sample["meter_delta"]),
+               "meter_capture_delta": None,
                "meter_record_date": sample["meter_date"],
                "meter_source_record_key": sample["meter_key"], "meter_is_repeated": True,
                "quality": sample["quality"]}
@@ -144,5 +145,6 @@ def test_worker_persists_meter_with_balance_and_sample_api_displays_it(monkeypat
             "100.0000", "102.5000", "2.5000")
         assert view.meter_record_date == date(2026, 10, 3) and view.meter_is_repeated
         assert view.quality == "meter_not_realtime"
+        assert view.meter_capture_delta is None
 
     asyncio.run(verify())

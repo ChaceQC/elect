@@ -1,5 +1,7 @@
 # 后端工程
 
+0.20.3采集查询新增`meter_capture_delta`：本次止码减`previous_sample_id`对应止码，跨页与日期筛选不改变差值；缺失为null、相同为0、负差保留。原学校日差与来源字段兼容保留，无新增迁移。见[电表口径](../docs/decisions/电表读数与缴费结果确认.md)。
+
 0.20.2补修AUD-14/AUD-07：Identity登录与撤回的未恢复错误持久保留，执行门繁忙单独跳过；5秒退避和其他任务成功不能清空60秒失败预算。规则见[后台健康手册](../docs/runbooks/后台健康与协调退出.md)，补修专项见[验收](../docs/acceptance/审计修复/Identity恢复健康补修.md)。恢复跨库水位门禁保持。
 
 R6新增Identity本库会话接口`/auth/session`，与依赖Adapter的旧`/auth/me`分开；旧Me和登录响应保持兼容。无新增数据库迁移或Secret；协议和回退见[本地会话与学校资料](../docs/runbooks/本地会话与学校资料.md)。

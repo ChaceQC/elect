@@ -1364,6 +1364,12 @@ export interface components {
             meter_reading: string | null;
             /** Meter Delta */
             meter_delta: string | null;
+            /**
+             * Meter Capture Delta
+             * @description 本次止码减上一条成功采集止码；沿用采集基线，任一缺失为null，负差保留。
+             * @default null
+             */
+            meter_capture_delta: string | null;
             /** Meter Record Date */
             meter_record_date: string | null;
             /** Meter Source */

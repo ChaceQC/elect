@@ -29,6 +29,7 @@ core模式公开API和领域DTO不变。核心内部52个接口直接复用原�
 - 受保护写请求使用 Origin 和内存 `X-CSRF-Token`；每次实时 introspection，依赖不可用时拒绝新写入。对象不属于本人返回不可枚举 404。
 - 成功信封为 data/meta；失败为 error/meta，meta 包含 request_id 与带时区 server_time；logout 204 无正文。429 使用 Retry-After，错误中 retry_after_seconds 表达相同等待期。
 - 金额为 `DECIMAL(14,2)` 对应的固定两位十进制字符串，读数为 `DECIMAL(18,4)` 对应固定四位字符串；不接受 float、科学计数法、NaN/Infinity。未知为 null。
+- 0.20.3采集Sample新增可选meter_capture_delta，表示本次meter_reading减previous_sample_id对应止码；相同为0、首次/任一缺失为null、负差保留，固定四位小数（相减允许15位整数）。分页/日期筛选不改变基线，学校原始meter_delta等字段含义不变；旧后端缺字段时前端显示—。
 - 日期是上海自然日期，范围含首尾、最多 366 天、不能超过 server_time 对应上海今天；数据库边界转成 UTC 半开区间。日/周一至周日/月桶只计选中范围，缺失日保持 unknown。
 - 所有 202 均由 MySQL 事务持久受理后返回；操作、运行和订单分别用 `/operations/{id}`、`/monitor/runs/{id}`、`/payment-orders/{id}`查询。QR GET 的 202 代表原订单的持久二维码工作，不创建新订单。
 - 绑定、同步、余额/历史刷新、立即采集、建单及二维码刷新使用 Idempotency-Key，长度 16..128，按用户+操作类型分区。相同键不同摘要返回 `409 IDEMPOTENCY_CONFLICT`，网络重试保持原键；台账至少 180 天，unknown 不普通过期清除。
