@@ -1,13 +1,14 @@
-## 2026-10-06 · R1源码与隔离验收完成，待提交CI
+## 2026-10-06 · R1完成与验收收口
 
 ### 已完成
 
 - 0.19.3修复AUD-10/AUD-11：历史直接根关系传播全部窗口终态，提供默认dry-run/分批apply/游标续扫；Identity上下文持锁执行门1+2/250ms、后台繁忙跳过、获取/释放异常连接失效。
 - 同步前后端工程/锁文件、OpenAPI版本及生成器、README、AGENTS、架构/契约/执行计划、维护手册与R1验收台账。无新增迁移，未改依赖；不存在AGENT.md。
+- 业务提交`f5d433fc00f26b6d3c011e0689703a6f741b7822`已push到origin/dev，[Actions37419320433](https://github.com/ChaceQC/elect/actions/runs/37419320433)成功：前后端两组和check成功，三组完整验证及publish按快速规则skipped。R1专项和阶段门禁已满足。
 
 ### 进行中
 
-- 本地专项已通过；提交前最终契约/文档差异核对及push后最新CI待完成，阶段暂不标完成。
+- 业务实施无进行中项；本条及完成状态为纯Markdown验收收口，按路径规则不触发CI，收口SHA与push状态在最终回复登记。
 
 ### 阻塞与风险
 
@@ -15,7 +16,7 @@
 
 ### 下一步
 
-- 提交push并确认R1最新提交快速CI/check成功，再补记纯Markdown验收收口；下一业务工作包为R2.1 OCR真实计算执行槽，本轮不提前实施。
+- 下一业务工作包为R2.1：为OCR建立真实计算执行槽，修复调用方超时后释放并发额度的问题；本轮停止于R1完成。
 
 ### 主要文件或模块
 
@@ -24,7 +25,7 @@
 ### 验证
 
 - 真实一次性MySQL8.4.6：34 passed（31.86秒），覆盖多窗口/失败/配额/存量、生产2+1池、慢调用时会话读取、取消/释放异常和双进程锁；无业务Secret/卷/学校请求。
-- 执行门/维护CLI/后台定向单元20 passed，core生命周期4 passed；改动文件ruff通过，git diff --check通过，容器已清理。OpenAPI检查发现生成器版本仍旧，已同步修正后复核；完整业务回归交给要求的CI门禁。
+- 执行门/维护CLI/后台定向单元20 passed，core生命周期4 passed；改动文件ruff、git diff --check通过，容器已清理。OpenAPI版本生成器已同步，OpenAPI/schema catalog/migration manifest复核通过；13份Markdown本地链接检查通过。最新业务SHA的远端CI/check已成功，R7 full和现有部署验收未执行。
 
 ## 2026-10-06 · R0完成与纯Markdown CI验收
 
