@@ -14,6 +14,9 @@ from .history_jobs import claim_history
 
 
 async def refresh_tick(app):
+    from .balance_store import settle_aliases
+
+    settled = await settle_aliases(app.state.database)
     row = await claim_refresh(app.state.database)
     if row:
         principal = Principal("room", UUID(bytes=row["owner_user_id"]), 1, new_id())
@@ -31,7 +34,7 @@ async def refresh_tick(app):
         except ApiError as failure:
             records, error = [], failure.code
         await finish_refresh(app.state.database, row, records, error, observation)
-    return bool(row)
+    return bool(row or settled)
 
 
 async def query_tick(app, *, stop=None, heartbeat=None):

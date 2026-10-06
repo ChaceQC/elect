@@ -4,6 +4,7 @@ import hashlib
 from datetime import timedelta
 from uuid import UUID
 
+from services.common.archive_store import request_key, unavailable
 from services.common.errors import ErrorCode
 from services.common.events import RunReadyPayload
 from services.common.http import ApiError
@@ -124,6 +125,7 @@ async def scheduler_tick(engine):
 
 async def accept_run(engine, owner, key, request_id):
     key_hash = hashlib.sha256(key.encode()).digest()
+    digest = hashlib.sha256(b"manual_run").digest()
     async with engine.begin() as conn:
         monitor = await lock_monitor(conn, owner)
         prior = await first(
@@ -135,6 +137,14 @@ async def accept_run(engine, owner, key, request_id):
         )
         if prior:
             return prior
+        cold = await request_key(conn, owner, "manual_run", key_hash, digest)
+        if cold:
+            result = await first(conn, "SELECT r.* FROM monitor_runs r JOIN monitors m "
+                "ON m.id=r.monitor_id WHERE r.id=:id AND m.owner_user_id=:owner",
+                id=cold, owner=owner.bytes)
+            if not result:
+                raise unavailable()
+            return result
         await check_budget(conn, owner)
         if (
             monitor["state"] != "active"
@@ -152,7 +162,7 @@ async def accept_run(engine, owner, key, request_id):
             "MP(6),INTERVAL 180 DAY))",
             owner=owner.bytes,
             key=key_hash,
-            digest=hashlib.sha256(b"manual_run").digest(),
+            digest=digest,
             run=row["id"],
         )
         return row

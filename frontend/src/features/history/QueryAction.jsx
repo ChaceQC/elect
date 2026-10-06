@@ -11,7 +11,7 @@ import { RefreshCw } from 'lucide-react'
 export function QueryAction({ path, body = {}, label, operationId, compact = false }) {
   const { user } = useSession()
   const cache = useQueryClient()
-  const { controller, submit, busy } = useRequestIntent()
+  const { controller, submit, busy, coolingDown } = useRequestIntent()
   const [intent, setIntent] = useState(/** @type {import('../../api/intents.js').Intent|null} */ (null))
   const [error, setError] = useState('')
   useEffect(() => {
@@ -27,14 +27,14 @@ export function QueryAction({ path, body = {}, label, operationId, compact = fal
   const running = intent && (!intent.id || !['succeeded', 'failed', 'cancelled'].includes(operation.data?.state ?? ''))
   const refreshing = busy || !!intent?.id && !!running && !operation.pollingPaused
   async function start() {
-    if (!controller || busy) return
+    if (!controller || busy || coolingDown) return
     const next = running && intent ? intent : controller.create(path, body)
     setIntent(next); setError('')
     try { setIntent(await submit(next)) }
     catch (cause) { setError(cause instanceof Error ? cause.message : '查询受理未确认，请查询原操作。') }
   }
   return <div className="query-action">
-    <button className="quiet" title={compact ? label : undefined} aria-busy={refreshing} disabled={busy || !!intent?.id && !!running} onClick={() => { void start() }}><RefreshCw className={refreshing ? 'refresh-spinning' : undefined} size={14} aria-hidden="true" /><span className={compact ? 'sr-only' : undefined}>{!busy && running && !intent?.id ? '查询原请求的受理结果' : label}</span></button>
+    <button className="quiet" title={compact ? label : undefined} aria-busy={refreshing} disabled={busy || coolingDown || !!intent?.id && !!running} onClick={() => { void start() }}><RefreshCw className={refreshing ? 'refresh-spinning' : undefined} size={14} aria-hidden="true" /><span className={compact ? 'sr-only' : undefined}>{!busy && running && !intent?.id ? '查询原请求的受理结果' : label}</span></button>
     {refreshing && <span className="sr-only" role="status">正在刷新</span>}
     {operation.data?.state === 'unknown' && <p role="status">查询结果尚未确认</p>}
     {operation.data?.state === 'cancelled' && <p role="status">查询已取消</p>}

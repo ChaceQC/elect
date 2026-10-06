@@ -1,18 +1,18 @@
 # 数据结构与初始化
 
-0.19.6审计R4实施中：三域新键预算、180天映射保留与快照公平连续清理已接通，归档/恢复及阶段CI未收口。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
+0.19.6审计R4源码与隔离专项完成、待最终CI：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
 
-更新日期：2026-10-06。七个库共有 56 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+更新日期：2026-10-06。七个库共有77张领域/事件/归档表，每库另有独立alembic_version；没有业务种子数据。R4新增每域3张冷归档/去重表，逐表保留与实际引用见[保留清单](保留与归档引用清单.md)。
 
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
-| Identity | elect_identity | identity_0003 | 7 |
-| School Adapter | elect_school | school_0007 | 11 |
-| Room | elect_room | room_0006 | 11 |
-| Monitoring | elect_monitoring | monitoring_0006 | 14 |
-| Payment | elect_payment | payment_0004 | 6 |
-| Notification | elect_notification | notification_0002 | 4 |
-| Audit | elect_audit | audit_0001 | 3 |
+| Identity | elect_identity | identity_0004 | 10 |
+| School Adapter | elect_school | school_0008 | 14 |
+| Room | elect_room | room_0008 | 14 |
+| Monitoring | elect_monitoring | monitoring_0009 | 17 |
+| Payment | elect_payment | payment_0006 | 9 |
+| Notification | elect_notification | notification_0003 | 7 |
+| Audit | elect_audit | audit_0002 | 6 |
 
 [schema-catalog.json](schema-catalog.json)按迁移链导出当前 head 的列类型、null、主键、唯一键、CHECK、外键、生成列与查询索引。可执行定义在 backend/services/{domain}/migrations/versions/0001_initial.py；后续变更使用新 revision，不改已发布迁移。
 

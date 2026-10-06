@@ -54,6 +54,7 @@ def test_large_backlog_fairness_locked_reader_stop_and_resume():
                     "WHERE owner_user_id>:owner AND expires_at<=UTC_TIMESTAMP(6) "
                     "ORDER BY owner_user_id,expires_at,id LIMIT 64", owner=b"")).mappings().first()
                 assert "ix_snapshot_owner_expiry" in (plan["possible_keys"] or "")
+                assert plan["key"] == "ix_snapshot_owner_expiry"
             cleaner, stop = SnapshotCleaner(), asyncio.Event()
             async with engine.begin() as reader:
                 await execute(reader, "SELECT id FROM sample_snapshots WHERE id=:id FOR SHARE",
@@ -72,10 +73,12 @@ def test_large_backlog_fairness_locked_reader_stop_and_resume():
                 assert delay in {1, 60}
                 rounds += 1
                 assert rounds < 30
+                if (await counts(engine, ["sample_snapshots"]))[0]:
+                    await asyncio.sleep(delay)
             elapsed = time.monotonic() - started
             assert await counts(engine, ["monitor_samples"]) == [20001]
             assert await cleaner.round(engine, stop) == 60
-            print(f"R4 snapshot members=20000 rounds={rounds} sql_seconds={elapsed:.3f} "
-                  f"members_per_sql_second={20000/elapsed:.1f} "
-                  f"new_delay_upper_seconds={elapsed+rounds-1:.3f} old_delay_seconds=1140")
+            print(f"R4 snapshot members=20000 rounds={rounds} elapsed_seconds={elapsed:.3f} "
+                  f"members_per_second={20000/elapsed:.1f} "
+                  "old_schedule_wait_derived_seconds=1140")
     asyncio.run(case())

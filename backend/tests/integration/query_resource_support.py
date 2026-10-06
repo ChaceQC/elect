@@ -37,7 +37,7 @@ def migrate(connection, domain, revision="head"):
 
 
 @asynccontextmanager
-async def database(domain, *, production_pool=False):
+async def database(domain, *, production_pool=False, revision="head"):
     url = root_url()
     name = "elect_query_test_" + uuid4().hex
     root = create_async_engine(url, hide_parameters=True)
@@ -52,8 +52,8 @@ async def database(domain, *, production_pool=False):
             assert (await first(conn, "SELECT VERSION() AS v"))["v"].startswith("8.4.")
             await execute(conn, f"CREATE DATABASE `{name}` CHARACTER SET utf8mb4")
         async with engine.begin() as conn:
-            await conn.run_sync(migrate, domain)
-            await conn.run_sync(migrate, domain)  # 升级入口可重复运行。
+            await conn.run_sync(migrate, domain, revision)
+            await conn.run_sync(migrate, domain, revision)  # 升级入口可重复运行。
         yield engine
     finally:
         await engine.dispose()

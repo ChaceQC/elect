@@ -42,6 +42,10 @@ async def run(mode):
             async with engine.begin() as conn:
                 await execute(conn, "SET time_zone='+00:00'")
                 if mode == "apply":
+                    from services.common.archive_verify import verify_archives, verify_cold_links
+
+                    await verify_archives(conn)
+                    await verify_cold_links(conn)
                     # 每域独立事务；网络隔离和停止Worker先行，部分失败可安全重入。
                     for statement in RULES.get(domain, []):
                         await execute(conn, statement)

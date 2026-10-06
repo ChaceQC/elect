@@ -3,6 +3,7 @@
 import hashlib
 from uuid import UUID
 
+from services.common.archive_store import request_key, unavailable
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
@@ -48,6 +49,15 @@ async def refresh(engine, owner, order, key):
     digest = hashlib.sha256(f"qr:{order}".encode()).digest()
     async with engine.begin() as conn:
         await lock_owner(conn, owner)
+        cold = await request_key(conn, owner, "qr_refresh", key_hash(key), digest)
+        if cold:
+            prior = await first(conn, "SELECT id,state FROM payment_operations "
+                "WHERE id=:id AND owner_user_id=:owner AND order_id=:order",
+                id=cold, owner=owner.bytes, order=order.bytes)
+            if not prior:
+                raise unavailable()
+            return AcceptedOperation(operation_id=UUID(bytes=cold), state=prior["state"],
+                                     poll_url=f"/api/v1/operations/{UUID(bytes=cold)}")
         # 与回查/Worker一致先锁操作，避免持订单锁后引用被回查锁住的操作。
         await execute(
             conn, "SELECT id FROM payment_operations WHERE order_id=:id FOR UPDATE",

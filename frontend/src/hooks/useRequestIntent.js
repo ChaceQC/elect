@@ -28,5 +28,5 @@ export function useRequestIntent() {
       throw error
     } finally { setBusy(false) }
   }
-  return { controller, submit, busy: busy || retryAt > Date.now() }
+  return { controller, submit, busy, coolingDown: retryAt > Date.now() }
 }

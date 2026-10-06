@@ -3,7 +3,7 @@
   "databases": {
     "identity": {
       "database": "elect_identity",
-      "revision": "identity_0003",
+      "revision": "identity_0004",
       "tables": {
         "users": {
           "columns": {
@@ -342,6 +342,9 @@
           ],
           "indexes": [
             [
+              "issued_session_id"
+            ],
+            [
               "state",
               "expires_at"
             ]
@@ -546,13 +549,160 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
+          "indexes": [
+            [
+              "processed_at",
+              "event_id"
+            ]
+          ]
+        },
+        "archive_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_key": {
+              "type": "VARCHAR(200)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "format_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "row_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "kind",
+              "object_key"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "cold_request_keys": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "result_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "kind",
+              "result_id"
+            ]
+          ]
+        },
+        "cold_inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
           "indexes": []
         }
       }
     },
     "school_adapter": {
       "database": "elect_school",
-      "revision": "school_0007",
+      "revision": "school_0008",
       "tables": {
         "school_credentials": {
           "columns": {
@@ -1087,7 +1237,12 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
-          "indexes": []
+          "indexes": [
+            [
+              "processed_at",
+              "event_id"
+            ]
+          ]
         },
         "account_reservations": {
           "columns": {
@@ -1250,12 +1405,154 @@
           "checks": [],
           "foreign_keys": [],
           "indexes": []
+        },
+        "archive_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_key": {
+              "type": "VARCHAR(200)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "format_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "row_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "kind",
+              "object_key"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "cold_request_keys": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "result_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "kind",
+              "result_id"
+            ]
+          ]
+        },
+        "cold_inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": []
         }
       }
     },
     "room": {
       "database": "elect_room",
-      "revision": "room_0007",
+      "revision": "room_0008",
       "tables": {
         "rooms": {
           "columns": {
@@ -1532,6 +1829,11 @@
             "request_source": {
               "type": "VARCHAR(16)",
               "nullable": false,
+              "primary_key": false
+            },
+            "balance_result": {
+              "type": "JSON",
+              "nullable": true,
               "primary_key": false
             }
           },
@@ -2247,7 +2549,12 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
-          "indexes": []
+          "indexes": [
+            [
+              "processed_at",
+              "event_id"
+            ]
+          ]
         },
         "room_sync_state": {
           "columns": {
@@ -2288,12 +2595,154 @@
           ],
           "foreign_keys": [],
           "indexes": []
+        },
+        "archive_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_key": {
+              "type": "VARCHAR(200)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "format_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "row_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "kind",
+              "object_key"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "cold_request_keys": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "result_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "kind",
+              "result_id"
+            ]
+          ]
+        },
+        "cold_inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": []
         }
       }
     },
     "monitoring": {
       "database": "elect_monitoring",
-      "revision": "monitoring_0008",
+      "revision": "monitoring_0009",
       "tables": {
         "monitors": {
           "columns": {
@@ -3504,7 +3953,12 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
-          "indexes": []
+          "indexes": [
+            [
+              "processed_at",
+              "event_id"
+            ]
+          ]
         },
         "send_permits": {
           "columns": {
@@ -3623,12 +4077,154 @@
             }
           ],
           "indexes": []
+        },
+        "archive_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_key": {
+              "type": "VARCHAR(200)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "format_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "row_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "kind",
+              "object_key"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "cold_request_keys": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "result_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "kind",
+              "result_id"
+            ]
+          ]
+        },
+        "cold_inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": []
         }
       }
     },
     "notification": {
       "database": "elect_notification",
-      "revision": "notification_0002",
+      "revision": "notification_0003",
       "tables": {
         "notification_jobs": {
           "columns": {
@@ -3973,13 +4569,160 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
+          "indexes": [
+            [
+              "processed_at",
+              "event_id"
+            ]
+          ]
+        },
+        "archive_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_key": {
+              "type": "VARCHAR(200)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "format_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "row_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "kind",
+              "object_key"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "cold_request_keys": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "result_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "kind",
+              "result_id"
+            ]
+          ]
+        },
+        "cold_inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
           "indexes": []
         }
       }
     },
     "payment": {
       "database": "elect_payment",
-      "revision": "payment_0005",
+      "revision": "payment_0006",
       "tables": {
         "payment_orders": {
           "columns": {
@@ -4420,7 +5163,12 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
-          "indexes": []
+          "indexes": [
+            [
+              "processed_at",
+              "event_id"
+            ]
+          ]
         },
         "payment_owners": {
           "columns": {
@@ -4481,12 +5229,154 @@
               "created_at"
             ]
           ]
+        },
+        "archive_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_key": {
+              "type": "VARCHAR(200)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "format_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "row_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "kind",
+              "object_key"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "cold_request_keys": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "result_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "kind",
+              "result_id"
+            ]
+          ]
+        },
+        "cold_inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": []
         }
       }
     },
     "audit": {
       "database": "elect_audit",
-      "revision": "audit_0001",
+      "revision": "audit_0002",
       "tables": {
         "audit_events": {
           "columns": {
@@ -4680,6 +5570,153 @@
           "unique": [],
           "checks": [],
           "foreign_keys": [],
+          "indexes": [
+            [
+              "processed_at",
+              "event_id"
+            ]
+          ]
+        },
+        "archive_records": {
+          "columns": {
+            "id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(64)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "object_key": {
+              "type": "VARCHAR(200)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "format_version": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "row_count": {
+              "type": "INTEGER",
+              "nullable": false,
+              "primary_key": false
+            },
+            "content_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "payload": {
+              "type": "LONGBLOB",
+              "nullable": false,
+              "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [
+            [
+              "kind",
+              "object_key"
+            ]
+          ],
+          "checks": [],
+          "foreign_keys": [],
+          "indexes": []
+        },
+        "cold_request_keys": {
+          "columns": {
+            "owner_user_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "kind": {
+              "type": "VARCHAR(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "key_hash": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "request_digest": {
+              "type": "BINARY(32)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "result_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
+          "indexes": [
+            [
+              "kind",
+              "result_id"
+            ]
+          ]
+        },
+        "cold_inbox_events": {
+          "columns": {
+            "consumer_name": {
+              "type": "VARCHAR(128)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "event_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": true
+            },
+            "processed_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
+            },
+            "archive_id": {
+              "type": "BINARY(16)",
+              "nullable": false,
+              "primary_key": false
+            }
+          },
+          "unique": [],
+          "checks": [],
+          "foreign_keys": [
+            {
+              "columns": [
+                "archive_id"
+              ],
+              "targets": [
+                "archive_records.id"
+              ]
+            }
+          ],
           "indexes": []
         }
       }

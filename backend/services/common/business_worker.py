@@ -14,16 +14,9 @@ from .sql import execute
 
 
 async def school_cleanup(app):
-    async with app.state.database.begin() as conn:
-        result = await execute(
-            conn,
-            "UPDATE credential_staging SET "
-            "state=IF(state='activated','activated','expired'),"
-            "encrypted_payload='',wrapped_dek='',updated_at=UTC_TIMESTAMP(6) "
-            "WHERE expires_at <= UTC_TIMESTAMP(6) AND LENGTH(encrypted_payload)>0 "
-            "ORDER BY state,expires_at,attempt_id LIMIT 100",
-        )
-    return result.rowcount > 0
+    from services.school_adapter.retention import cleanup
+
+    return bool((await cleanup(app.state.database))["staging"])
 
 
 async def run(service, *, control=None):
@@ -53,6 +46,7 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
     else:
         tick = school_cleanup
     next_cleanup = 0
+    next_session_cleanup = 0
     try:
         while not stop.is_set():
             try:
@@ -65,6 +59,12 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
                     activity = await checked_tick(
                         app, tick, heartbeat, timeout=None if service == "room" else 120,
                     )
+                    if (service == "identity" and not stop.is_set()
+                            and time.monotonic() >= next_session_cleanup):
+                        from services.identity.retention import cleanup
+
+                        await cleanup(app.state.database)
+                        next_session_cleanup = time.monotonic() + 60
                     if service == "school_adapter":
                         next_cleanup = time.monotonic() + (0 if activity else 60)
                     heartbeat.write(healthy=True, activity=activity, next_scan_in=(
@@ -74,7 +74,7 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
                 heartbeat.write(healthy=False)
                 log("business_recovery_retry", service=service, error_code="DEPENDENCY_UNAVAILABLE")
                 activity = False
-            # 清理每分钟最多100行一批，积压继续小批；真实读库每10秒保留健康。
+            # Adapter每批至多200行，积压继续小批；真实读库每10秒保留健康。
             delay = (0 if activity else 10) if service == "school_adapter" else 1
             await pause(stop, delay)
     finally:

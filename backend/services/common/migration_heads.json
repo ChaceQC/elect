@@ -1,9 +1,9 @@
 {
-  "identity": "identity_0003",
-  "school_adapter": "school_0007",
-  "room": "room_0007",
-  "monitoring": "monitoring_0008",
-  "notification": "notification_0002",
-  "payment": "payment_0005",
-  "audit": "audit_0001"
+  "identity": "identity_0004",
+  "school_adapter": "school_0008",
+  "room": "room_0008",
+  "monitoring": "monitoring_0009",
+  "notification": "notification_0003",
+  "payment": "payment_0006",
+  "audit": "audit_0002"
 }

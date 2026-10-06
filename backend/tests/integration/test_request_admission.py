@@ -1,10 +1,12 @@
 """R4三域真实MySQL并发预算与拒绝回滚；只造合成请求。"""
 
 import asyncio
+import hashlib
 from types import SimpleNamespace
 
 import pytest
 from query_resource_support import counts, database, requires_mysql, seed_binding
+from sqlalchemy import text
 from test_payment_polling import seed as payment_seed
 
 from services.common.http import ApiError
@@ -71,6 +73,43 @@ def test_parallel_new_keys_replay_pending_and_rejection_rollback(domain):
                 await submit(str(new_id()))
             assert error.value.status == 429
             assert await counts(engine, tables) == before
+    asyncio.run(case())
+
+
+def test_legacy_many_balance_aliases_commit_in_bounded_batches():
+    from services.common.sql import first
+    from services.room.balance import claim_refresh, finish_refresh
+    from services.room.balance_store import settle_aliases
+
+    async def case():
+        async with database("room", production_pool=True) as engine:
+            owner, binding = new_id(), new_id()
+            await seed_binding(engine, owner, binding)
+            root = await accept_refresh(engine, owner, binding, str(new_id()))
+            async with engine.begin() as conn:
+                target = await first(conn, "SELECT b.room_id,r.school_room_id FROM room_bindings b "
+                    "JOIN rooms r ON r.id=b.room_id WHERE b.id=:id", id=binding.bytes)
+                await conn.execute(text("INSERT INTO room_operations "
+                    "(id,owner_user_id,type,target_room_id,target_binding_id,idempotency_key_hash,"
+                    "request_digest,state,saga_step,upstream_operation_id) VALUES "
+                    "(:id,:owner,'balance_refresh',:room,:binding,:key,:digest,'accepted','merged',:root)"),
+                    [{"id": new_id().bytes, "owner": owner.bytes, "room": target["room_id"],
+                      "binding": binding.bytes, "key": hashlib.sha256(new_id().bytes).digest(),
+                      "digest": b"0"*32, "root": root.bytes} for _ in range(600)])
+            row = await claim_refresh(engine)
+            await finish_refresh(engine, row,
+                                 [{"room_id": target["school_room_id"], "balance": "10.00"}], None)
+            async with engine.connect() as conn:
+                assert (await first(conn, "SELECT state FROM room_operations WHERE id=:id",
+                                    id=root.bytes))["state"] == "succeeded"
+                assert (await first(conn, "SELECT COUNT(*) AS n FROM room_operations "
+                                    "WHERE state='succeeded'"))["n"] == 250
+            assert await settle_aliases(engine)
+            assert await settle_aliases(engine)
+            assert not await settle_aliases(engine)
+            async with engine.connect() as conn:
+                assert (await first(conn, "SELECT COUNT(*) AS n FROM room_operations "
+                                    "WHERE state='succeeded'"))["n"] == 601
     asyncio.run(case())
 
 

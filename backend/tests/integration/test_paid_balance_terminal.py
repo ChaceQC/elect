@@ -76,7 +76,8 @@ def test_temporary_503_preserves_operation_pending_and_30_second_backoff():
         row = await read(engine, order)
         assert row["state"] == "paid_confirmed" and row["balance_refresh_state"] == "succeeded"
         assert row["next_check_at"] is None
-        assert calls.count("/controls/payment-balance-refresh") == calls.count("/payments/check") == 1
+        assert calls.count("/controls/payment-balance-refresh") == 1
+        assert calls.count("/payments/check") == 1
     run("payment", case)
 
 

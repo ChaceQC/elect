@@ -126,6 +126,8 @@ class RoomQueries:
         }
 
     async def operation(self, owner, operation):
+        from services.common.archive_store import read_object
+
         async with self.engine.connect() as conn:
             row = await first(
                 conn,
@@ -133,7 +135,9 @@ class RoomQueries:
                 id=operation.bytes,
                 owner=owner.bytes,
             )
-        if not row:
+            if not row:
+                row = await read_object(conn, "room_operations", operation.bytes.hex())
+        if not row or row["owner_user_id"] != owner.bytes:
             raise ApiError(404, ErrorCode.NOT_FOUND, "对象不存在")
         return {
             "id": str(operation),

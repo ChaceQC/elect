@@ -63,6 +63,7 @@ async def accept_refresh(engine, owner, binding, key, *, source="browser"):
             conn,
             "SELECT id FROM room_operations WHERE owner_user_id=:owner "
             "AND type='balance_refresh' AND state IN ('accepted','running') AND id<>:id "
+            "AND saga_step<>'merged' "
             "ORDER BY created_at,id LIMIT 1",
             owner=owner.bytes,
             id=operation.bytes,
@@ -101,6 +102,7 @@ async def claim_refresh(engine):
         candidate = await first(
             conn,
             "SELECT owner_user_id FROM room_operations WHERE type='balance_refresh' "
+            "AND saga_step<>'merged' "
             "AND state IN ('accepted','running') AND (lease_until IS NULL OR "
             "lease_until<=UTC_TIMESTAMP(6)) ORDER BY created_at LIMIT 1",
         )

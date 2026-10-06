@@ -10,7 +10,9 @@ if [ "$#" -eq 0 ]; then
   set -- tests/integration/test_snapshot_admission.py tests/integration/test_history_admission.py \
     tests/integration/test_history_completion.py tests/integration/test_login_resources.py \
     tests/integration/test_balance_observations.py tests/integration/test_history_execution.py \
-    tests/integration/test_paid_balance_terminal.py tests/integration/test_request_admission.py
+    tests/integration/test_paid_balance_terminal.py tests/integration/test_request_admission.py \
+    tests/integration/test_snapshot_cleanup_rounds.py tests/integration/test_retention_archive.py \
+    tests/integration/test_retention_temporary.py tests/integration/test_retention_payment.py
 fi
 cleanup() {
   docker rm -f -v "$task_name" "$task_mysql" >/dev/null 2>&1 || true

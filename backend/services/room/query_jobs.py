@@ -3,6 +3,7 @@
 import hashlib
 from uuid import UUID
 
+from services.common.archive_store import request_key
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
@@ -42,6 +43,9 @@ async def accept_query(conn, owner, binding, key, kind, digest, *,
         if prior["request_digest"] != digest:
             raise ApiError(409, ErrorCode.IDEMPOTENCY_CONFLICT, "同一幂等键的请求内容不同")
         return UUID(bytes=prior["id"]), False
+    cold = await request_key(conn, owner, kind, key_hash, digest)
+    if cold:
+        return UUID(bytes=cold), False
     require_no_removal(preference)
     row = await target(conn, owner, binding, active=True)
     if admission is not None:
