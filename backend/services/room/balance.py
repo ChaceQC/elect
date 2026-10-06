@@ -3,16 +3,14 @@
 import hashlib
 from datetime import UTC, datetime
 from functools import partial
-from uuid import UUID
 
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.common.ids import new_id
 from services.common.sql import aware, execute, first
 
 from .balance_admission import check_budget
 from .dto import Balance
-from .preference_store import lock_preference, locked_operation
+from .preference_store import locked_operation
 from .query_jobs import accept_query, target
 
 
@@ -97,38 +95,10 @@ async def accept_refresh(engine, owner, binding, key, *, source="browser"):
         return operation
 
 
-async def claim_refresh(engine):
-    async with engine.begin() as conn:
-        candidate = await first(
-            conn,
-            "SELECT owner_user_id FROM room_operations WHERE type='balance_refresh' "
-            "AND saga_step<>'merged' "
-            "AND state IN ('accepted','running') AND (lease_until IS NULL OR "
-            "lease_until<=UTC_TIMESTAMP(6)) ORDER BY created_at LIMIT 1",
-        )
-        if not candidate:
-            return None
-        await lock_preference(conn, UUID(bytes=candidate["owner_user_id"]))
-        row = await first(
-            conn,
-            "SELECT * FROM room_operations WHERE owner_user_id=:owner AND "
-            "type='balance_refresh' AND state IN ('accepted','running') AND "
-            "saga_step<>'merged' AND (lease_until IS NULL OR "
-            "lease_until<=UTC_TIMESTAMP(6)) ORDER BY created_at,id LIMIT 1 FOR UPDATE",
-            owner=candidate["owner_user_id"],
-        )
-        if not row:
-            return None
-        lease = str(new_id())
-        await execute(
-            conn,
-            "UPDATE room_operations SET "
-            "state='running',lease_owner=:lease,lease_until=DATE_ADD(UTC_TIMESTAMP(6),"
-            "INTERVAL 45 SECOND) WHERE id=:id",
-            id=row["id"],
-            lease=lease,
-        )
-        return {**row, "lease_owner": lease}
+async def claim_refresh(engine, schedule=None, *, stop=None):
+    from .read_claims import claim_operation
+
+    return await claim_operation(engine, "balance_refresh", schedule, stop=stop)
 
 
 async def finish_refresh(engine, row, records, error, observation=None):

@@ -77,27 +77,10 @@ class RoomRepository(RoomQueries):
             )
             return operation
 
-    async def claim(self):
-        lease = str(new_id())
-        async with self.engine.begin() as conn:
-            row = await first(
-                conn,
-                "SELECT * FROM room_operations WHERE type='binding_sync' "
-                "AND (state='accepted' OR (state='running' AND lease_until <= "
-                "UTC_TIMESTAMP(6))) ORDER BY created_at,id LIMIT 1 "
-                "FOR UPDATE SKIP LOCKED",
-            )
-            if not row:
-                return None
-            await execute(
-                conn,
-                "UPDATE room_operations SET state='running',lease_owner=:lease,"
-                "lease_until=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 120 SECOND),"
-                "updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
-                lease=lease,
-                id=row["id"],
-            )
-            return {**row, "lease_owner": lease}
+    async def claim(self, schedule=None, *, stop=None):
+        from .read_claims import claim_operation
+
+        return await claim_operation(self.engine, "binding_sync", schedule, stop=stop)
 
     async def complete(self, operation, records, error, request_id, observation=None):
         from .balance_store import update_balances

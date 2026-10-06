@@ -19,8 +19,9 @@ def test_room_control_progresses_while_history_is_blocked(monkeypatch, tmp_path)
         app = SimpleNamespace(state=SimpleNamespace())
 
         async def slow_history(*args, **kwargs):
-            entered.set()
-            await release.wait()
+            with kwargs["heartbeat"].work(90, lease_seconds=45):
+                entered.set()
+                await release.wait()
             return True
 
         async def control(*args):
@@ -41,9 +42,10 @@ def test_room_control_progresses_while_history_is_blocked(monkeypatch, tmp_path)
                 tasks.create_task(active["control"].run(app, stop, control_beat, None))
                 await checked.wait()
                 assert not query.done()
-                assert query_beat.snapshot()["inflight"]
+                slots = query_beat.snapshot()["slots"]
+                assert len(slots) == 2 and all(value["inflight"] for value in slots.values())
                 release.set()
-        history.assert_awaited_once()
+        assert history.await_count == 2
         checker.assert_awaited_once()
 
     asyncio.run(verify())

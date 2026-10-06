@@ -2,7 +2,6 @@
 
 import hashlib
 from functools import partial
-from uuid import UUID
 
 from services.common.dates import check_range, windows
 from services.common.events import HistorySyncPayload
@@ -82,48 +81,28 @@ async def accept_history(engine, owner, binding, command, key, request_id):
     return operation
 
 
-async def claim_history(engine):
+async def claim_history(engine, schedule=None, *, stop=None):
     from .history_execution import LEASE_SECONDS
-    from .preference_store import lock_preference
+    from .read_claims import HISTORY_DUE, candidates, lock_idle
 
-    async with engine.begin() as conn:
-        candidates = (
-            (
-                await execute(
-                    conn,
-                    "SELECT DISTINCT s.owner_user_id FROM history_syncs s JOIN "
-                    "history_sync_windows w ON w.sync_id=s.id WHERE s.status IN "
-                    "('accepted','running') AND ((w.state IN ('pending','retry_wait') "
-                    "AND w.next_attempt_at<=UTC_TIMESTAMP(6)) OR (w.state='running' "
-                    "AND w.lease_until<=UTC_TIMESTAMP(6))) LIMIT 100",
-                )
-            )
-            .scalars()
-            .all()
-        )
-        for owner in candidates:
-            await lock_preference(conn, UUID(bytes=owner))
-            running = await first(
-                conn,
-                "SELECT w.id FROM history_sync_windows w JOIN history_syncs s ON "
-                "s.id=w.sync_id WHERE s.owner_user_id=:owner AND w.state='running' "
-                "AND w.lease_until>UTC_TIMESTAMP(6) LIMIT 1",
-                owner=owner,
-            )
-            if running:
+    for owner in await candidates(engine, "history_sync", schedule):
+        if stop and stop.is_set():
+            return None
+        if schedule:
+            schedule.visited("history_sync", owner)
+        async with engine.begin() as conn:
+            if not await lock_idle(conn, owner):
                 continue
             row = await first(
                 conn,
-                "SELECT w.*,s.owner_user_id,s.binding_id,s.operation_id FROM "
+                "SELECT w.*,s.owner_user_id,s.binding_id,s.operation_id,"
+                "UTC_TIMESTAMP(6) AS claimed_at FROM "
                 "history_sync_windows w JOIN history_syncs s ON s.id=w.sync_id WHERE "
-                "s.owner_user_id=:owner AND s.status IN ('accepted','running') AND "
-                "((w.state IN ('pending','retry_wait') AND "
-                "w.next_attempt_at<=UTC_TIMESTAMP(6)) OR (w.state='running' AND "
-                "w.lease_until<=UTC_TIMESTAMP(6))) ORDER BY "
+                "s.owner_user_id=:owner AND " + HISTORY_DUE + " ORDER BY "
                 "s.created_at,w.start_date,w.id LIMIT 1 FOR UPDATE",
                 owner=owner,
             )
-            if not row:
+            if not row or stop and stop.is_set():
                 continue
             lease = str(new_id())
             if row["attempt_count"] >= 3:
@@ -156,6 +135,9 @@ async def claim_history(engine):
                 "UPDATE room_operations SET state='running' WHERE id=:id",
                 id=row["operation_id"],
             )
+            from services.common.read_schedule import claimed
+
+            claimed("room", "history_sync", row, row["next_attempt_at"])
             return {
                 **row,
                 "lease_owner": lease,

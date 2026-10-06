@@ -1,6 +1,6 @@
 # Docker 部署入口
 
-0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../docs/runbooks/请求预算与保留归档.md)。
+0.19.7审计R5源码与定向隔离验证完成：会话/监控读取减写、样本索引、按owner轮转及两个读取槽已接通；最终快速CI/check待登记。规则、迁移和未部署边界见[读取与有界调度](../docs/runbooks/读取与有界调度.md)。
 
 0.19.5的后台持续失败会协调停止并非零退出，沿用`unless-stopped`恢复；原领域drain预算后最多再留5秒，standalone API/短任务40秒、Identity/Room任务135秒、Monitoring Worker110秒、Payment Worker190秒Compose宽限已对齐，邮件仍45秒。恢复false不启动监督或角色，无新增迁移/容器。隔离入口`test-r3-processes.sh`验证三模式自动重启与不重放，`test-r3-transport.sh`验证真实MQ降级65秒；前者纳入完整CI compatibility组。详见[运行手册](../docs/runbooks/后台健康与协调退出.md)，现有部署不自动升级。
 

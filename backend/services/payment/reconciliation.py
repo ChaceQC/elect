@@ -8,36 +8,12 @@ from services.common.audit_events import record_audit
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
+from services.common.read_schedule import ReadSchedule, processing
 from services.common.security import Principal
 from services.common.sql import execute, first
 
+from .check_claims import claim
 from .states import ORDER
-
-
-async def claim(engine, order_id=None):
-    lease = str(new_id())
-    async with engine.begin() as conn:
-        row = await first(
-            conn,
-            "SELECT * FROM payment_orders WHERE next_check_at<=UTC_TIMESTAMP(6) "
-            "AND (check_lease_until IS NULL OR check_lease_until<=UTC_TIMESTAMP(6)) "
-            "AND (:order IS NULL OR id=:order) "
-            "AND (cancel_requested_at IS NULL OR state='paid_confirmed') "
-            "AND (state IN ('awaiting_payment','status_unknown','submit_unknown') OR "
-            "(state='paid_confirmed' AND balance_refresh_state='pending')) "
-            "ORDER BY next_check_at,id LIMIT 1 FOR UPDATE SKIP LOCKED",
-            order=order_id.bytes if order_id else None,
-        )
-        if not row:
-            return None
-        await execute(
-            conn,
-            "UPDATE payment_orders SET check_lease_owner=:lease,"
-            "check_lease_until=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 90 SECOND) WHERE id=:id",
-            id=row["id"],
-            lease=lease,
-        )
-    return {**row, "check_lease_owner": lease}
 
 
 async def balance_refresh(state, row, principal):
@@ -162,12 +138,17 @@ async def check_order(app, row):
             )
 
 
-async def check_tick(app, heartbeat=None, order_id=None):
-    row = await claim(app.state.database, order_id)
+async def check_tick(app, heartbeat=None, order_id=None, *, stop=None):
+    if stop and stop.is_set():
+        return False
+    if not hasattr(app.state, "check_schedule"):
+        app.state.check_schedule = ReadSchedule(("reconciliation",))
+    row = await claim(app.state.database, order_id, app.state.check_schedule, stop=stop)
     if not row:
         return False
     with (heartbeat.work(170, lease_seconds=90) if heartbeat else nullcontext()) as work_health:
-        return await _check_claimed(app, row, work_health)
+        with processing("payment", "reconciliation"):
+            return await _check_claimed(app, row, work_health)
 
 
 async def _check_claimed(app, row, work_health):

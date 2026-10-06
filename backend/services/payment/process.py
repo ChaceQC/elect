@@ -6,8 +6,9 @@ from functools import partial
 from services.common.app import create_app
 from services.common.background import Role, require_standalone, run_standalone
 from services.common.job import pause
-from services.common.logging import log
+from services.common.logging import log_failure
 from services.common.process_control import run_managed
+from services.common.read_slots import run_slots
 from services.common.scheduling import IdleBackoff
 
 from .jobs import recover
@@ -27,6 +28,12 @@ async def run(role, *, control=None):
 
 
 async def role_loop(role, app, stop, heartbeat, hub=None):
+    if role == "reconciliation":
+        return await run_slots(partial(scan_loop, role), app, stop, heartbeat, hub)
+    return await scan_loop(role, app, stop, heartbeat, hub)
+
+
+async def scan_loop(role, app, stop, heartbeat, hub=None):
     idle = IdleBackoff((1,) if role == "reconciliation" else (1, 2, 5))
     try:
         while not stop.is_set():
@@ -40,14 +47,14 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
                 activity = (
                     await recover(app.state.database)
                     if role == "recovery"
-                    else await check_tick(app, heartbeat)
+                    else await check_tick(app, heartbeat, stop=stop)
                     if role == "reconciliation"
                     else await worker_tick(app, heartbeat, stop=stop)
                 )
                 heartbeat.write(healthy=True, activity=activity)
-            except Exception:
+            except Exception as error:
                 heartbeat.write(healthy=False)
-                log("payment_retry", service="payment", error_code="DEPENDENCY_UNAVAILABLE")
+                log_failure("payment_retry", error, service="payment", role=role)
                 activity = False
             delay = 1 if role == "recovery" else idle.next(activity)
             queue = getattr(app.state, "payment_queue", None)

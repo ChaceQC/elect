@@ -33,16 +33,16 @@ async def run(service, *, control=None):
 
 
 async def business_loop(service, app, stop, heartbeat, hub=None):
+    if service == "room":
+        from services.room.read_loop import room_loop
+
+        return await room_loop(app, stop, heartbeat, hub)
     if service == "identity":
         from services.identity.recovery import recover_tick as tick
 
         tick = partial(tick, stop=stop)
     elif service == "room_control":
         from services.room.worker import control_tick as tick
-    elif service == "room":
-        from services.room.worker import room_tick as tick
-
-        tick = partial(tick, stop=stop, hub=hub, heartbeat=heartbeat)
     else:
         tick = school_cleanup
     next_cleanup = 0
