@@ -1,5 +1,7 @@
 # 后端工程
 
+0.19.5统一分派诊断、后台健康和进程失败恢复：连续业务失败与MQ降级分开，三种入口共享fatal/drain，正常停止退出0；OCR卡住有最终退出保障。无新增迁移，运行规则和定向入口见[后台健康与协调退出](../docs/runbooks/后台健康与协调退出.md)。
+
 0.19.1增加采集快照复用、受理配额及每60秒的小批到期清理，历史同步在本人锁内检查速率/待办/窗口配额。升级先应用`monitoring_0006`和`room_0005`，构建迁移清单已同步；不新增进程或Secret，详见[查询资源规则](../docs/decisions/查询资源受理与快照清理.md)。
 
 0.19.0新增`python -m services.core`，一个Web服务和各领域上下文运行Gateway及六个业务域，School Adapter和邮件发送仍为独立进程。邮件入口不创建FastAPI应用；运行时读取构建生成的migration_heads.json，不加载Alembic。`ELECT_DEPLOYMENT_MODE=core`及回退/安全边界见[七容器方案](../docs/decisions/七容器核心组合.md)，下文业务规则沿用0.18.3。

@@ -1,6 +1,7 @@
 """持久余额与历史读取；领取事务在调用学校前结束。"""
 
 import asyncio
+from contextlib import nullcontext
 from uuid import UUID
 
 from services.common.http import ApiError
@@ -33,12 +34,13 @@ async def refresh_tick(app):
     return bool(row)
 
 
-async def query_tick(app, *, stop=None):
-    async with asyncio.timeout(45):
-        row = await refresh_tick(app)
+async def query_tick(app, *, stop=None, heartbeat=None):
+    with heartbeat.work(45) if heartbeat else nullcontext():
+        async with asyncio.timeout(45):
+            row = await refresh_tick(app)
     if stop and stop.is_set():
         return bool(row)
     history = await claim_history(app.state.database)
     if history:
-        await execute_window(app, history)
+        await execute_window(app, history, heartbeat=heartbeat)
     return bool(row or history)

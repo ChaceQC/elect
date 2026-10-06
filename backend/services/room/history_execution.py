@@ -1,6 +1,7 @@
 """一个窗口一个90秒预算；独立续租直到提交持有行锁，失租拒绝迟到执行。"""
 
 import asyncio
+from contextlib import nullcontext
 from uuid import UUID
 
 from services.common.http import ApiError
@@ -41,6 +42,12 @@ async def renew(engine, row):
 
 
 async def execute_window(app, row, *, heartbeat=None):
+    with (heartbeat.work(EXECUTION_SECONDS, lease_seconds=LEASE_SECONDS)
+          if heartbeat else nullcontext()) as work_health:
+        return await _execute_window(app, row, work_health=work_health)
+
+
+async def _execute_window(app, row, *, work_health=None):
     committing = asyncio.Event()
     deadline = asyncio.get_running_loop().time() + EXECUTION_SECONDS
 
@@ -67,11 +74,13 @@ async def execute_window(app, row, *, heartbeat=None):
         while True:
             await asyncio.sleep(RENEW_SECONDS)
             if committing.is_set():
+                if work_health:
+                    work_health.committing()
                 continue  # 最终事务持有窗口行锁；事务完成前不能被新领取者接管。
             if not await renew(app.state.database, row):
                 return False
-            if heartbeat:
-                heartbeat.write(healthy=True)
+            if work_health:
+                work_health.renew(LEASE_SECONDS)
 
     task, lease = asyncio.create_task(work()), asyncio.create_task(lease_loop())
     try:

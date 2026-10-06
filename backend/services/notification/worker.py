@@ -1,6 +1,7 @@
 """持久投递领取、当前许可与 SMTP；不在 SQL 行锁中等待服务或网络。"""
 
 import asyncio
+from contextlib import nullcontext
 from uuid import UUID
 
 from services.common.http import ApiError
@@ -101,13 +102,16 @@ async def execute_job(app, job):
     return await finish(app.state.database, job, outcome, request_id)
 
 
-async def worker_tick(app, job_id=None):
+async def worker_tick(app, job_id=None, *, heartbeat=None):
     if app.state.smtp is None:
         # 仍检查 MySQL，默认禁外发不能绕过恢复和事件落库。
         from services.common.sql import execute
 
         async with app.state.database.connect() as conn:
-            await execute(conn, "SELECT 1")
+            await execute(conn, "SELECT id FROM notification_jobs LIMIT 1")
         return False
     job = await claim(app.state.database, job_id)
-    return await execute_job(app, job) if job else False
+    if not job:
+        return False
+    with heartbeat.work(45, lease_seconds=45) if heartbeat else nullcontext():
+        return await execute_job(app, job)

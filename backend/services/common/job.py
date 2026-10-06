@@ -2,22 +2,20 @@
 
 import argparse
 import asyncio
-import signal
 import sys
 from types import SimpleNamespace
 
-from sqlalchemy import text
-
-from .background import require_standalone
+from .background import Role, require_standalone, run_standalone
 from .broker import Broker, verified_event
 from .database import create_database, database_ready, migration_head
-from .heartbeat import Heartbeat
 from .internal_dto import EventEnvelope
 from .logging import configure_logging, log
 from .outbox import claim_event, consume_once, finish_event
+from .process_control import run_managed
 from .runtime import load_runtime, side_effect_policy
 from .scheduling import IdleBackoff, retry_delay
 from .security import validate_keys
+from .transport_health import QueueUnavailable, receive, transport_scan
 
 
 async def relay_tick(engine, broker):
@@ -26,20 +24,22 @@ async def relay_tick(engine, broker):
         return False
     try:
         event = EventEnvelope.model_validate(claim["payload"])
-        await broker.publish(event)
     except Exception:
         await finish_event(engine, claim, published=False)
         raise
+    try:
+        await broker.publish(event)
+    except Exception:
+        await finish_event(engine, claim, published=False)
+        raise QueueUnavailable() from None
     await finish_event(engine, claim, published=True)
     return True
 
 
 async def audit_tick(engine, runtime, queue):
-    message = await queue.get(fail=False, timeout=3)
+    message = await receive(queue)
     if message is None:
-        # 实际读库保证心跳反映持久化能力。
-        async with engine.connect() as connection:
-            await connection.execute(text("SELECT 1"))
+        await transport_scan(engine, "audit")
         return False
     try:
         event = verified_event(runtime, message)
@@ -61,7 +61,7 @@ async def audit_tick(engine, runtime, queue):
     return changed
 
 
-async def run_job(service, role):
+async def run_job(service, role, *, control=None):
     require_standalone()
     runtime = load_runtime(service)
     validate_keys(runtime)
@@ -69,15 +69,12 @@ async def run_job(service, role):
     if not runtime.db_url or not runtime.amqp_url or (role == "audit" and service != "audit"):
         raise RuntimeError("角色配置不正确")
     engine = create_database(runtime.db_url.get_secret_value())
-    heartbeat, stop = Heartbeat(service, role), asyncio.Event()
-    loop = asyncio.get_running_loop()
-    for signum in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(signum, stop.set)
     app = SimpleNamespace(state=SimpleNamespace(
-        runtime=runtime, database=engine, migration_head=migration_head(service)
+        runtime=runtime, database=engine, migration_head=migration_head(service),
+        process_control=control,
     ))
     try:
-        await transport_loop(app, stop, heartbeat)
+        await run_standalone(app, [Role(role, transport_loop, max_age=45)], control)
     finally:
         await engine.dispose()
 
@@ -91,12 +88,15 @@ async def transport_loop(app, stop, heartbeat, hub=None):
             broker = Broker(runtime, hub=hub)
             try:
                 await database_ready(engine, app.state.migration_head)
-                async with asyncio.timeout(8):
-                    await broker.open()
-                    queue = (
-                        await broker.consume(await broker.audit_queue())
-                        if heartbeat.document["role"] == "audit" else None
-                    )
+                try:
+                    async with asyncio.timeout(8):
+                        await broker.open()
+                        queue = (
+                            await broker.consume(await broker.audit_queue())
+                            if heartbeat.document["role"] == "audit" else None
+                        )
+                except Exception:
+                    raise QueueUnavailable() from None
                 idle = IdleBackoff()
                 while not stop.is_set():
                     activity = False
@@ -111,7 +111,8 @@ async def transport_loop(app, stop, heartbeat, hub=None):
                             )
                         activity = changed or activity
                         heartbeat.write(
-                            healthy=broker.connection.connected.is_set(), activity=changed,
+                            healthy=True, activity=changed,
+                            degraded=None if broker.connection.connected.is_set() else "rabbitmq",
                         )
                         if not changed:
                             break
@@ -122,6 +123,13 @@ async def transport_loop(app, stop, heartbeat, hub=None):
                             idle.reset()
                     elif await engine.outbox_wakeup.wait(stop, delay):
                         idle.reset()
+            except QueueUnavailable:
+                try:
+                    await transport_scan(engine, heartbeat.document["role"])
+                    heartbeat.write(healthy=True, degraded="rabbitmq")
+                except Exception:
+                    heartbeat.write(healthy=False)
+                log("job_transport_retry", service=runtime.service, error_code="MQ_UNAVAILABLE")
             except Exception:
                 heartbeat.write(healthy=False)
                 log("job_retry", service=runtime.service, error_code="DEPENDENCY_UNAVAILABLE")
@@ -149,7 +157,8 @@ def main():
     args = parser.parse_args()
     configure_logging()
     try:
-        asyncio.run(run_job(args.service, args.role))
+        run_managed(args.service, lambda control: run_job(args.service, args.role, control=control),
+                    drain_seconds=30)
     except Exception:
         log("job_start_failed", service=args.service, error_code="INVALID_RUNTIME")
         sys.exit(1)

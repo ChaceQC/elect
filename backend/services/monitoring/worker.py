@@ -1,6 +1,7 @@
 """余额读取在事务之外；续租失败取消 HTTP 且拒绝提交。"""
 
 import asyncio
+from contextlib import nullcontext
 
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
@@ -32,6 +33,11 @@ async def collect(app, execution, request_id):
 
 
 async def execute_run(app, execution, heartbeat=None):
+    with (heartbeat.work(90, lease_seconds=45) if heartbeat else nullcontext()) as work_health:
+        return await _execute_run(app, execution, work_health)
+
+
+async def _execute_run(app, execution, work_health):
     request_id = new_id()
     task = asyncio.create_task(collect(app, execution, request_id))
     try:
@@ -42,8 +48,8 @@ async def execute_run(app, execution, heartbeat=None):
                     task.cancel()
                     await acknowledge_cancel(app.state.database, execution)
                     return False
-                if not done and heartbeat:
-                    heartbeat.write(healthy=True)
+                if not done and work_health:
+                    work_health.renew(45)
             value = task.result()
             await succeed(
                 app.state.database, execution, value["balance"], request_id,
@@ -80,6 +86,6 @@ async def worker_tick(app, run_id=None, heartbeat=None):
     if not execution:
         return False
     if heartbeat:
-        heartbeat.write(healthy=True)
+        heartbeat.tick()
     await execute_run(app, execution, heartbeat)
     return True

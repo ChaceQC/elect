@@ -1,6 +1,7 @@
 """计算槽由执行器拥有；取消调用者不会取消或释放正在运行的原生计算。"""
 
 import asyncio
+import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
@@ -15,8 +16,18 @@ class OcrExecutor:
         self.waiting = deque()
         self.worker = None
         self.accepting = True
-        # R3监督器可等待此通知；R2不假称线程可被取消。
+        self.active_deadline = None
         self.fatal = asyncio.Event()
+
+    def request_stop(self):
+        self.accepting = False
+
+    def health_failure(self):
+        if self.fatal.is_set():
+            return "OCR_DRAIN_EXHAUSTED"
+        if self.active_deadline is not None and time.monotonic() >= self.active_deadline + 5:
+            return "OCR_COMPUTATION_STALLED"
+        return None
 
     async def solve(self, image, deadline):
         if not self.accepting or len(self.waiting) >= 2:
@@ -44,7 +55,7 @@ class OcrExecutor:
                 image, deadline, future = job
                 if not future.done():
                     try:
-                        deadline.remaining()
+                        self.active_deadline = time.monotonic() + deadline.remaining()
                         value = await asyncio.wrap_future(self.pool.submit(self.solver, image))
                     except Exception as error:
                         if not future.done():
@@ -52,12 +63,14 @@ class OcrExecutor:
                     else:
                         if not future.done():
                             future.set_result(value)
+                    finally:
+                        self.active_deadline = None
                 job = self.waiting.popleft() if self.waiting else None
         finally:
             self.worker = None
 
     async def close(self, timeout=5):
-        self.accepting = False
+        self.request_stop()
         while self.waiting:
             _, _, future = self.waiting.popleft()
             if not future.done():

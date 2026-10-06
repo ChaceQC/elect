@@ -50,6 +50,11 @@ def create_app(service: str, *, business=False, background=True):
     @app.get("/health/ready")
     async def ready():
         try:
+            control = getattr(app.state, "process_control", None)
+            if control and control.stop_started is not None:
+                return JSONResponse(status_code=503, content={
+                    "service": service, "status": "not_ready",
+                })
             if app.state.database:
                 async with asyncio.timeout(3):
                     await database_ready(app.state.database, app.state.migration_head)

@@ -1,6 +1,7 @@
 """只接受 Adapter 已验收映射；付款后重新查询学校余额，不做本地加法。"""
 
 import asyncio
+from contextlib import nullcontext
 from uuid import UUID
 
 from services.common.audit_events import record_audit
@@ -165,6 +166,11 @@ async def check_tick(app, heartbeat=None, order_id=None):
     row = await claim(app.state.database, order_id)
     if not row:
         return False
+    with (heartbeat.work(170, lease_seconds=90) if heartbeat else nullcontext()) as work_health:
+        return await _check_claimed(app, row, work_health)
+
+
+async def _check_claimed(app, row, work_health):
     task = asyncio.create_task(check_order(app, row))
     try:
         async with asyncio.timeout(170):
@@ -183,8 +189,8 @@ async def check_tick(app, heartbeat=None, order_id=None):
                         )
                     if not result.rowcount:
                         return False
-                    if heartbeat:
-                        heartbeat.write(healthy=True)
+                    if work_health:
+                        work_health.renew(90)
             await task
     finally:
         if not task.done():

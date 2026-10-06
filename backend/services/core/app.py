@@ -46,6 +46,9 @@ def core_app():
 
     @app.get("/health/ready")
     async def ready():
+        control = getattr(app.state, "process_control", None)
+        if control and control.stop_started is not None:
+            return JSONResponse({"service": "core", "status": "not_ready"}, status_code=503)
         results = await asyncio.gather(*(domain_health(c) for c in app.state.domains.values()))
         domains = dict(zip(app.state.domains, results, strict=True))
         statuses = {value["status"] for value in results}

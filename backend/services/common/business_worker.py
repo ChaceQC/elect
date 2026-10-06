@@ -2,15 +2,14 @@
 
 import argparse
 import asyncio
-import signal
 import time
 from functools import partial
 
-from .background import require_standalone
+from .background import Role, require_standalone, run_standalone
 from .background_roles import BUSINESS_ROLES
-from .heartbeat import Heartbeat
 from .job import pause
 from .logging import configure_logging, log
+from .process_control import run_managed
 from .sql import execute
 
 
@@ -27,23 +26,17 @@ async def school_cleanup(app):
     return result.rowcount > 0
 
 
-async def run(service):
+async def run(service, *, control=None):
     from .app import create_app
 
     require_standalone()
     app = create_app(service, business=service != "school_adapter", background=False)
-    stop, heartbeat = asyncio.Event(), Heartbeat(service, BUSINESS_ROLES[service])
-    for signum in (signal.SIGTERM, signal.SIGINT):
-        asyncio.get_running_loop().add_signal_handler(signum, stop.set)
+    app.state.process_control = control
+    configured = [Role(BUSINESS_ROLES[service], partial(business_loop, service))]
+    if service == "room":
+        configured.append(Role("control", partial(business_loop, "room_control")))
     async with app.router.lifespan_context(app):
-        if service == "room":
-            async with asyncio.TaskGroup() as tasks:
-                tasks.create_task(business_loop(service, app, stop, heartbeat))
-                tasks.create_task(business_loop(
-                    "room_control", app, stop, Heartbeat("room", "control"),
-                ))
-        else:
-            await business_loop(service, app, stop, heartbeat)
+        await run_standalone(app, configured, control)
 
 
 async def business_loop(service, app, stop, heartbeat, hub=None):
@@ -56,7 +49,7 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
     elif service == "room":
         from services.room.worker import room_tick as tick
 
-        tick = partial(tick, stop=stop, hub=hub)
+        tick = partial(tick, stop=stop, hub=hub, heartbeat=heartbeat)
     else:
         tick = school_cleanup
     next_cleanup = 0
@@ -66,6 +59,7 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
                 if service == "school_adapter" and time.monotonic() < next_cleanup:
                     async with app.state.database.connect() as conn:
                         await execute(conn, "SELECT 1")
+                    heartbeat.tick()
                     activity = False
                 else:
                     activity = await checked_tick(
@@ -73,7 +67,9 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
                     )
                     if service == "school_adapter":
                         next_cleanup = time.monotonic() + (0 if activity else 60)
-                heartbeat.write(healthy=True, activity=activity)
+                    heartbeat.write(healthy=True, activity=activity, next_scan_in=(
+                        60 if service == "school_adapter" and not activity else None
+                    ))
             except Exception:
                 heartbeat.write(healthy=False)
                 log("business_recovery_retry", service=service, error_code="DEPENDENCY_UNAVAILABLE")
@@ -89,6 +85,11 @@ async def business_loop(service, app, stop, heartbeat, hub=None):
 
 
 async def checked_tick(app, tick, heartbeat, *, timeout=120):
+    with heartbeat.work(timeout if timeout is not None else 250):
+        return await _checked_tick(app, tick, heartbeat, timeout=timeout)
+
+
+async def _checked_tick(app, tick, heartbeat, *, timeout):
     task = asyncio.create_task(tick(app))
     try:
         async with asyncio.timeout(timeout):
@@ -97,7 +98,7 @@ async def checked_tick(app, tick, heartbeat, *, timeout=120):
                 if not done:
                     async with app.state.database.connect() as conn:
                         await execute(conn, "SELECT 1")
-                    heartbeat.write(healthy=True)
+                    heartbeat.tick()
             return task.result()
     finally:
         if not task.done():
@@ -111,7 +112,7 @@ def main():
     args = parser.parse_args()
     configure_logging()
     try:
-        asyncio.run(run(args.service))
+        run_managed(args.service, lambda control: run(args.service, control=control))
     except Exception:
         raise SystemExit("业务进程启动失败，请检查 Secret 和数据库状态") from None
 

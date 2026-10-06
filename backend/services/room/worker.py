@@ -55,7 +55,7 @@ async def control_tick(app):
     return True
 
 
-async def room_tick(app, *, stop=None, hub=None):
+async def room_tick(app, *, stop=None, hub=None, heartbeat=None):
     from .query_worker import query_tick
 
     if stop and stop.is_set():
@@ -63,7 +63,7 @@ async def room_tick(app, *, stop=None, hub=None):
     synced = await sync_tick(app)
     if stop and stop.is_set():
         return synced
-    queried = await query_tick(app, stop=stop)
+    queried = await query_tick(app, stop=stop, heartbeat=heartbeat)
     from .wakeups import drain
 
     if not stop or not stop.is_set():

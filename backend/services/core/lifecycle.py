@@ -50,6 +50,7 @@ async def lifespan(app):
     async with AsyncExitStack() as stack:
         try:
             for name, context in {"gateway": app, **contexts}.items():
+                context.state.process_control = getattr(app.state, "process_control", None)
                 runtime = load_runtime(name, path=f"/run/secrets/{name}_runtime")
                 context.state.service_client_factory = lambda value: ServiceClient(
                     value, local=dispatcher)

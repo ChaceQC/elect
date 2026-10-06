@@ -1,11 +1,10 @@
 """签名事件 -> 本域 Inbox/job；ACK 之前完成持久创建。"""
 
-import asyncio
-
 from services.common.broker import verified_event
 from services.common.ids import new_id
 from services.common.logging import log
 from services.common.outbox import consume_once
+from services.common.transport_health import receive
 
 from .repository import create_job
 from .worker import get_snapshot
@@ -29,8 +28,7 @@ async def consume_alert(app, event):
 
 
 async def message_tick(app, queue):
-    async with asyncio.timeout(3):
-        message = await queue.get(fail=False, timeout=1)
+    message = await receive(queue)
     if message is None:
         return False
     try:

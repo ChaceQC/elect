@@ -1,6 +1,7 @@
 """MySQL 扫描优先；重复唤醒或 Worker 重启不会重置学校 dispatch。"""
 
 import asyncio
+from contextlib import nullcontext
 from uuid import UUID
 
 from services.common.http import ApiError
@@ -93,6 +94,11 @@ async def advance(app, row):
 
 
 async def execute(app, row, heartbeat=None):
+    with (heartbeat.work(170, lease_seconds=90) if heartbeat else nullcontext()) as work_health:
+        await _execute(app, row, work_health)
+
+
+async def _execute(app, row, work_health):
     task = asyncio.create_task(advance(app, row))
     try:
         async with asyncio.timeout(170):
@@ -101,8 +107,8 @@ async def execute(app, row, heartbeat=None):
                 if not done:
                     if not await jobs.renew(app.state.database, row):
                         return
-                    if heartbeat:
-                        heartbeat.write(healthy=True)
+                    if work_health:
+                        work_health.renew(90)
             await task
     except (ApiError, TimeoutError) as error:
         await jobs.update(
