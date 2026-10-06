@@ -1,4 +1,33 @@
-## 2026-10-06 · R3诊断、健康与失败恢复（门禁收口中）
+## 2026-10-06 · R3完成与验收收口
+
+### 已完成
+
+- 续接R3聊天，确认当前dev及origin/dev均为`5beeb0b437dd292376c4951fe2aa344aca0c7887`且工作区干净。该提交已修正旧解绑并发测试的心跳上下文，前次诊断/健康/进程恢复源码与定向证据沿用0.19.5，不新增业务改动。
+- 核对[Actions37431544313](https://github.com/ChaceQC/elect/actions/runs/37431544313)：2026-10-06 15:48:59（Asia/Shanghai）completed/success，前后端/check成功，business/compatibility/delivery和publish按quick跳过。R3.1—R3.3及AUD-12原生线程退出联动完成。
+- 同步执行计划、总计划、后端计划、16项台账与R3验收。前端README版本对齐现有package.json的0.19.5，部署README补记现有workflow的纯Markdown例外；根README、AGENTS和后端README已覆盖当前行为，无需追加流水，仓库无AGENT.md。
+
+### 进行中
+
+- 无业务实施进行中项；本次仅纯Markdown文档收口，检查后commit/push，按路径规则不触发CI，收口SHA在最终回复登记。
+
+### 阻塞与风险
+
+- 无R3实施阻塞。现有部署未升级，业务存量未apply，未读取真实凭据或调用学校/SMTP/支付。R7 full、完整组合升级/恢复和目标机长期容量保持未执行，T阶段未验收边界不变；R4—R7未开始。
+
+### 下一步
+
+- 下一业务工作包R4.1：Room余额刷新、Monitoring立即采集、Payment二维码三域受理预算，覆盖新幂等键限额、旧键重放免扣与拒绝无持久残留；本轮停止于R3完成。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md、docs/审计修复执行计划-2026-10-06.md、docs/总实施计划.md、docs/后端实施计划.md、docs/acceptance/审计修复/README.md及R3诊断健康与失败恢复.md、frontend/README.md、deploy/README.md。
+
+### 验证
+
+- 最新CI后端335 passed/50 skipped（99.55秒），一次性MySQL46 passed（38.95秒），前端56 passed（7.59秒），浏览器43 passed（31.1秒）；规则/契约/构建与check成功。普通入口skip不计入通过，隔离MySQL另记。
+- 既有诊断9项、退出/健康36项、三模式容器恢复及MQ断连65秒专项证据保留。本次8份Markdown的UTF-8、147个本地链接、版本/阶段/CI引用一致性及Git差异检查通过，不重跑已通过的测试。
+
+## 2026-10-06 · R3诊断、健康与失败恢复（实施记录，门禁已在上条收口）
 
 ### 已完成
 
