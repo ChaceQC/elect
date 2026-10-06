@@ -7,7 +7,7 @@ import { useSession } from '../auth/SessionProvider.jsx'
 
 /** @param {{order: import('../../api/generated').components['schemas']['Order'], onRefresh: ()=>void}} props */
 export function PaymentQr({ order, onRefresh }) {
-  const { user } = useSession()
+  const { user, profile } = useSession()
   const { controller, submit, busy, coolingDown } = useRequestIntent()
   const [image, setImage] = useState('')
   const [error, setError] = useState('')
@@ -24,7 +24,7 @@ export function PaymentQr({ order, onRefresh }) {
     return () => URL.revokeObjectURL(url)
   }, [query.data])
   async function refresh() {
-    if (!controller || submitting.current || coolingDown) return
+    if (!profile || !controller || submitting.current || coolingDown) return
     submitting.current = true; setError('')
     const path = `/payment-orders/${order.order_id}/qr-refresh`
     const previous = controller.restore().find(item => item.path === path && !item.id)
@@ -43,6 +43,6 @@ export function PaymentQr({ order, onRefresh }) {
     {image && <p className="muted">二维码有效期尚未确认。扫码后支付结果会自动更新。</p>}
     {(query.error || error) && <StatusBlock title={error || query.error?.message || '二维码读取失败'} error />}
     {order.qr_error_code && <p className="muted">二维码状态：{order.qr_error_code}</p>}
-    {['awaiting_payment', 'status_unknown'].includes(order.state) && order.qr_status !== 'unknown' && <button className="quiet" disabled={busy || coolingDown} onClick={() => { void refresh() }}>重新获取同订单二维码</button>}
+    {['awaiting_payment', 'status_unknown'].includes(order.state) && order.qr_status !== 'unknown' && <button className="quiet" disabled={!profile || busy || coolingDown} onClick={() => { void refresh() }}>重新获取同订单二维码</button>}
   </div>
 }

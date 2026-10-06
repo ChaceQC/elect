@@ -11,7 +11,7 @@ import { useSession } from '../auth/SessionProvider.jsx'
 /** @typedef {import('../../api/generated').components['schemas']['Run']} Run */
 /** @param {{monitor: import('./draft.js').Monitor}} props */
 export function RunControls({ monitor }) {
-  const { user } = useSession()
+  const { user, profile } = useSession()
   const cache = useQueryClient()
   const { controller, submit, busy, coolingDown } = useRequestIntent()
   const [intent, setIntent] = useState(/** @type {import('../../api/intents.js').Intent|null} */ (null))
@@ -31,7 +31,7 @@ export function RunControls({ monitor }) {
   const active = run && ['pending', 'running', 'retry_wait', 'cancel_requested'].includes(run.state)
   const names = { pending: '等待采集', running: '正在采集', retry_wait: '等待重试', cancel_requested: '正在结束本次请求', succeeded: '采集已完成', failed: '采集失败', cancelled: '本次已取消' }
   async function start() {
-    if (!controller || busy || coolingDown) return
+    if (!profile || !controller || busy || coolingDown) return
     const next = intent && !intent.id ? intent : controller.create('/monitor/runs', {}, 'run')
     setIntent(next); setError('')
     try { setIntent(await submit(next)) }
@@ -45,7 +45,7 @@ export function RunControls({ monitor }) {
     finally { await operation.refresh(); void cache.invalidateQueries({ queryKey: ['monitor', user?.id] }); setCancelling(false) }
   }
   return <section className="data-card"><h2>本次采集</h2>
-    <button disabled={busy || coolingDown || !!active || !!intent?.id && operation.isPending || !monitor.config.enabled || monitor.state !== 'active'} onClick={() => { void start() }}>{busy ? '正在受理…' : intent && !intent.id ? '查询原采集请求' : '立即采集'}</button>
+    <button disabled={!profile || busy || coolingDown || !!active || !!intent?.id && operation.isPending || !monitor.config.enabled || monitor.state !== 'active'} onClick={() => { void start() }}>{busy ? '正在受理…' : intent && !intent.id ? '查询原采集请求' : '立即采集'}</button>
     <p className="muted">取消本次采集不关闭后续计划；已完成的采集记录保留。</p>
     {run && <><p role="status">{names[run.state]}</p><p>计划时间：{timestampLabel(run.scheduled_for)} · 尝试{run.attempts.length}次</p>
       {run.binding_id !== monitor.binding_id && <p>该运行属于切换前的寝室，当前设置已使用新目标。</p>}

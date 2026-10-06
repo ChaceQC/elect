@@ -18,6 +18,7 @@ export function useBindings({ q = '', page = 1, pageSize = 10 } = {}) {
 
 /** @param {Bindings|undefined} data @param {import('../auth/SessionProvider.jsx').Me|null} user */
 export function bindingUnavailableReason(data, user) {
+  if (!user) return '学校资料暂不可用，绑定和解绑暂不可用。'
   if (!data) return '正在确认学校绑定是否开放'
   if (!data.binding_write_enabled) return '新增和删除学校绑定暂未开放，仍可同步和查看已有寝室。'
   if (user?.credential_status !== 'active' || !user.consent.credential_use_allowed) return '请在“我的账户”中重新学校认证后绑定或解绑。'

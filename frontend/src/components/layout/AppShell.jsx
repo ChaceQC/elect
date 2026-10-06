@@ -17,7 +17,7 @@ const pages = [
 ]
 
 export function AppShell() {
-  const { user } = useSession()
+  const { profile, profileStatus, refreshUser } = useSession()
   const { pathname } = useLocation()
   const bindings = useBindings({ pageSize: 100 })
   const room = bindings.data?.items.find(item => item.id === bindings.data.default_binding_id)
@@ -28,13 +28,15 @@ export function AppShell() {
       <nav aria-label="主导航">{pages.map(({ path, label, icon }) => { const Icon = icon; return <NavLink key={path} to={path}>
         <Icon size={19} aria-hidden="true" />{label}<span className="nav-active-dot" /></NavLink> })}</nav>
       <div className="sidebar-bottom"><button className="sidebar-profile" aria-label="我的账户" onClick={() => setAccountOpen(true)}>
-        <span className="avatar">同</span><span className="profile-identity"><strong>{user?.student_id}</strong><small>在校学生</small></span>
+        <span className="avatar">同</span><span className="profile-identity"><strong>{profile?.student_id ?? '学校资料暂不可用'}</strong><small>在校学生</small></span>
         <LogOut className="profile-icon" size={18} aria-hidden="true" /><User className="mobile-account" size={16} aria-hidden="true" /><span className="mobile-account">我的账户</span></button></div>
     </aside>
     <div className="workspace"><header className="topbar"><div className="breadcrumb">我的用电空间<ChevronRight size={14} aria-hidden="true" /><strong>{title}</strong></div>
       <span className="top-room"><Building2 size={15} aria-hidden="true" />{room?.display_name ?? (bindings.data?.default_binding_id ? '默认寝室信息暂不可用' : '尚未设置默认寝室')}</span>
     </header><main id="main-content" className="page-content"><RoomsBootstrap />
-      {user?.credential_status === 'requires_reauth' && <StatusBlock title="学校认证需要修复"
+      {profileStatus === 'unavailable' && <StatusBlock title="学校资料暂不可用"
+        action={{ label: '重新加载学校资料', onClick: () => { void refreshUser() } }}><p>仍可查看已有记录和关闭监控，学校相关操作暂不可用。</p></StatusBlock>}
+      {profile?.credential_status === 'requires_reauth' && <StatusBlock title="学校认证需要修复"
         action={{ label: '重新认证', onClick: () => setAccountOpen(true) }}><p>你仍可查看已有记录。</p></StatusBlock>}
       <Outlet /></main></div>
     <Modal open={accountOpen} title="我的账户" onClose={() => setAccountOpen(false)}>

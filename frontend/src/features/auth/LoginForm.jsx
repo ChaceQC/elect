@@ -12,7 +12,7 @@ import { hasReadAgreement, rememberReadAgreement } from './agreementStorage.js'
 export function LoginForm({ reauthenticate = false, onSuccess }) {
   const session = useSession()
   const captcha = useCaptcha()
-  const [student, setStudent] = useState(reauthenticate ? session.user?.student_id ?? '' : '')
+  const [student, setStudent] = useState(reauthenticate ? session.profile?.student_id ?? '' : '')
   const [password, setPassword] = useState('')
   const [answer, setAnswer] = useState('')
   const [readVersion, setReadVersion] = useState('')

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { setupServer } from 'msw/node'
+import { setupServer } from '../fixtures/server.js'
 import { AppProviders } from '../../src/app/providers.jsx'
 import { AccountContent } from '../../src/features/auth/AccountContent.jsx'
 import { apiClient } from '../../src/api/client.js'

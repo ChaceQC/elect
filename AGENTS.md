@@ -2,7 +2,7 @@
 
 本文件适用于整个仓库。默认使用中文沟通，遵循用户当前任务要求。
 
-R6实施：新增Identity本库/auth/session，旧/auth/me与登录完整Me兼容；真实token/用户/版本/有效期验证，学校资料故障不等于应用退出。前端仅新接口404走旧后端兼容，迟到资料不得跨账号；无迁移/Secret/池扩容，现有部署未升级。规则与阶段状态见docs/runbooks/本地会话与学校资料.md、docs/acceptance/审计修复/R6本地会话与资料解耦.md。
+0.20.0审计R6：新增Identity本库/auth/session，旧/auth/me与登录完整Me兼容；真实token/用户/版本/有效期验证，学校资料故障不等于应用退出。前端user与profile独立，只有新接口404走一次旧后端兼容，迟到资料不得跨账号或修改本地CSRF；学校能力未知时禁用，缓存/历史及关闭监控仍可用。无迁移/Secret/池扩容，现有部署未升级。规则与阶段状态见docs/runbooks/本地会话与学校资料.md、docs/acceptance/审计修复/R6本地会话与资料解耦.md。
 
 0.19.7审计R5：每请求权威会话验证、60秒条件续期、12小时滑动最多60秒粒度差异及7天上限；auth/me一次验证、monitor GET独立RR无控制写锁。monitoring_0010新增电表key复合索引，固定分页total不变。Payment回查/Room三类读取各2槽、32候选owner游标与SKIP LOCKED复核，独立心跳/租约/停止；全局RC、2+1池与学校5/4/1不变。升级先停旧角色，不混跑领取协议；现有部署未升级。规则及CI见docs/runbooks/读取与有界调度.md与docs/acceptance/审计修复/R5读取与调度优化.md。
 

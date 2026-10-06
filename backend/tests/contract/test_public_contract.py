@@ -15,9 +15,9 @@ SPEC = yaml.safe_load((ROOT / "docs/contracts/openapi.yaml").read_text())
 def test_openapi_is_valid_and_matches_backend_dto():
     validate(SPEC)
     assert SPEC == build_contract()
-    assert len(ENDPOINTS) == 34
-    assert len({entry.name for entry in ENDPOINTS}) == 34
-    assert len({(entry.method, entry.path) for entry in ENDPOINTS}) == 34
+    assert len(ENDPOINTS) == 35
+    assert len({entry.name for entry in ENDPOINTS}) == len(ENDPOINTS)
+    assert len({(entry.method, entry.path) for entry in ENDPOINTS}) == len(ENDPOINTS)
 
 
 def test_persistent_acceptance_has_recovery_and_write_guards():
