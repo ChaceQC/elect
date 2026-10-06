@@ -1,4 +1,33 @@
-## 2026-10-06 · R2执行、时间与终态边界（实施中）
+## 2026-10-06 · R2完成与验收收口
+
+### 已完成
+
+- 完成0.19.4的R2.1—R2.4：OCR真实单线程/有界排队；余额owner序号/三个写入口/成功与错误分离；历史90秒预算、45秒租约与10秒续租、批量原子提交；支付后失败余额任务结束跟踪及旧调度维护CLI。
+- 同步school_0007/room_0006增量迁移及清单、内部DTO/契约、公开余额时间语义、前后端/锁文件版本、README/AGENTS/架构/计划/维护和验收文档。无AGENT.md，依赖未升级。
+- 最终业务/测试提交`83a7edbc577117b6c2625725d7e06de7e727c986`已push，[Actions37422862798](https://github.com/ChaceQC/elect/actions/runs/37422862798)前后端/check成功，三组完整验证及publish按quick跳过。此前失败的旧夹具已同步并经定向21项验证，不沿用失败提交验收。
+
+### 进行中
+
+- 无业务实施进行中项；本条为纯Markdown验收收口，按路径规则不触发CI，收口SHA在最终回复登记。
+
+### 阻塞与风险
+
+- 无R2实施阻塞。AUD-12不可终止原生计算的实际进程退出联动依计划留R3；现有部署未升级，业务存量未apply，真实身份/学校/SMTP/支付未使用。R3—R7保持未开始。
+
+### 下一步
+
+- 下一业务工作包R3.1：core分派边界增加领域/请求关联的脱敏诊断，再统一健康语义和进程退出；本轮停止于R2完成。
+
+### 主要文件或模块
+
+- backend/services/school_adapter/、room/、payment/、common/、backend/tests/、deploy/test-query-resources.sh、版本/契约/迁移清单与docs/acceptance/审计修复/R2执行时间与终态边界.md。
+
+### 验证
+
+- 最终CI：后端297 passed/50 skipped、一次性MySQL46 passed；前端56 passed、浏览器43 passed，契约/构建/check成功。本地OCR9项/真实模型离线2项、R2 MySQL12项、预算/core/后台/支付调度24项通过；已完成13份文档265个本地链接及Git差异检查。
+- 仅运行隔离合成环境；OCR真实模型用合成图、network=none，进程峰值169.7MiB。临时容器/网络已清理，WSL保留。Windows原生tzdata/Node限制已通过WSL/规定Node22 CI验证区分，未改无关环境；R7 full及部署验收未执行。
+
+## 2026-10-06 · R2执行、时间与终态边界（实施记录）
 
 ### 已完成
 
