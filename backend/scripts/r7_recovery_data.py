@@ -78,6 +78,10 @@ async def verify(apps, state):
     data, owner = state["r7"], UUID(state["owner"])
     room, adapter = apps["room"].state.database, apps["school_adapter"].state.database
     assert await verify_observations(room, adapter) >= 1
+    async with adapter.connect() as conn:
+        counter = await first(conn, "SELECT sequence FROM balance_observation_counters "
+                              "WHERE owner_user_id=:id", id=owner.bytes)
+        assert counter["sequence"] == data["sequence"]
     async with room.connect() as conn:
         row = await first(conn, "SELECT observation_sequence,last_success_sequence "
                           "FROM room_balance_cache WHERE binding_id=:id",

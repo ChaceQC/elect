@@ -11,15 +11,18 @@ from uuid import UUID
 import httpx
 
 from scripts.domain_combined_smoke import setup
+from scripts.t4_monitor_smoke import enable
 from scripts.t5_alert_smoke import collect
-from scripts.t5_fixtures import SmtpSimulator, make_job, owner_with_monitor
+from scripts.t5_fixtures import SmtpSimulator, event_for_sample, make_job
 from scripts.t6_fixtures import PaymentSchool
+from scripts.t6_smoke import account
 from services.common.config_contract import SideEffectPolicy
 from services.common.ids import new_id
 from services.common.internal_dto import DispatchOrder
 from services.common.security import Principal
 from services.common.sql import execute, first
 from services.monitoring.scheduler import scheduler_tick
+from services.notification.consumer import consume_alert
 from services.notification.worker import worker_tick as mail_tick
 from services.payment.api import CreateCommand
 from services.payment.jobs import claim
@@ -62,8 +65,13 @@ async def prepared_order(apps, owner):
     return str(accepted.order_id)
 
 
-async def seed(apps):
-    owner = await owner_with_monitor(apps)
+async def seed(apps, school):
+    client, user, _ = await account(apps, school)
+    try:
+        await enable(client)
+    finally:
+        await client.aclose()
+    owner = UUID(user["id"])
     sample = await collect(apps["monitoring"].state.database, owner, "19.99")
     job, _ = await make_job(apps, sample)
     return {"owner": str(owner), "sample": str(sample),
@@ -117,10 +125,16 @@ async def restored(apps, state):
         await adapter.school_credentials.current(UUID(state["owner"]))
     )["student_id"].startswith("synthetic-")
     assert not await payment_tick(apps["payment"], order_id=UUID(state["order"]))
+    event = await event_for_sample(apps["monitoring"], UUID(state["sample"]))
+    assert not await consume_alert(apps["notification"], event)
     async with SmtpSimulator() as smtp:
         apps["notification"].state.smtp = smtp.transport
         assert not await mail_tick(apps["notification"], UUID(state["job"]))
         assert smtp.connections == 0
+    async with apps["notification"].state.database.connect() as conn:
+        jobs = await first(conn, "SELECT COUNT(*) AS n FROM notification_jobs "
+                           "WHERE alert_slot_id=:id", id=event.payload.alert_slot_id.bytes)
+        assert jobs["n"] == 1
     assert await scheduler_tick(apps["monitoring"].state.database) == 0
     async with apps["monitoring"].state.database.connect() as conn:
         sample = await first(conn, "SELECT balance FROM monitor_samples WHERE id=:id",
@@ -132,10 +146,10 @@ async def restored(apps, state):
 async def main(args):
     if os.environ.get("ELECT_TEST_DISPOSABLE") != "1":
         raise RuntimeError("仅允许显式隔离测试")
-    apps, _ = await setup()
+    apps, school = await setup()
     try:
         if args.mode == "seed":
-            state = await seed(apps)
+            state = await seed(apps, school)
             from scripts.r7_recovery_data import seed as seed_r7
 
             state["r7"] = await seed_r7(apps, state)
