@@ -1,3 +1,31 @@
+## 2026-10-06 · R0完成与纯Markdown CI验收
+
+### 已完成
+
+- R0基线、七域源码迁移头、16项状态台账、隔离入口/生产2+1池参数、存量与证据边界已完成；本轮未修改业务代码，R1—R7均未开始。
+- 最终CI配置提交`7d011432c7cb24cfdec9bb3389152d551cd36e6c`已push，[Actions37417297648](https://github.com/ChaceQC/elect/actions/runs/37417297648)成功：前后端两组及check成功，三组完整验证与publish按预期跳过。此前R0基线c9f527d也已通过，证据见docs/acceptance/审计修复/R0基线与验证边界.md。
+- 按用户最终更正使用Actions跳过纯Markdown分支push，AGENTS恢复输入基线；文档可正常补记，不采用“CI后禁止更新文档”的方案。main PR、标签及手动完整门禁保留。
+
+### 进行中
+
+- 业务实施无进行中项；本条及完成状态为纯Markdown验收收口，最终push的SHA及无Actions运行观察在交付回复说明，不伪称又一次CI成功。
+
+### 阻塞与风险
+
+- R0无阻塞。WSL已按要求保持运行，容器总数0，无其他项目容器需要关闭；真实学校、SMTP、支付、存量业务数据及业务部署未操作。R1真实MySQL故障验证仍待实施。
+
+### 下一步
+
+- 下一工作包为R1.1：修复finish_sync历史合并终态传播并提供默认dry-run存量命令，再做R1.2生产2+1池登录执行门；本轮停止于R0。
+
+### 主要文件或模块
+
+- docs/acceptance/审计修复/、docs/审计修复执行计划-2026-10-06.md、docs/总实施计划.md、docs/README.md、PROJECT_PROGRESS.md；已通过CI的配置为.github/workflows/check.yaml。
+
+### 验证
+
+- 七域迁移图清单检查通过；actionlint和7项现有CI门禁检查通过；文档UTF-8、路径及Git差异检查通过。最后验收提交只包含.md，push后以Actions列表/check-runs核对未触发行为；源码/配置以7d01143的实际绿色结果为依据。
+
 ## 2026-10-06 · 更正为Actions跳过纯Markdown提交
 
 ### 已完成
