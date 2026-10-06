@@ -1,5 +1,7 @@
 # Docker 部署入口
 
+0.19.6审计R4实施中：三域新键预算、180天映射保留与快照公平连续清理已接通，归档/恢复及阶段CI未收口。规则、迁移和未部署边界见[请求预算与保留归档](../docs/runbooks/请求预算与保留归档.md)。
+
 0.19.5的后台持续失败会协调停止并非零退出，沿用`unless-stopped`恢复；原领域drain预算后最多再留5秒，standalone API/短任务40秒、Identity/Room任务135秒、Monitoring Worker110秒、Payment Worker190秒Compose宽限已对齐，邮件仍45秒。恢复false不启动监督或角色，无新增迁移/容器。隔离入口`test-r3-processes.sh`验证三模式自动重启与不重放，`test-r3-transport.sh`验证真实MQ降级65秒；前者纳入完整CI compatibility组。详见[运行手册](../docs/runbooks/后台健康与协调退出.md)，现有部署不自动升级。
 
 CI使用[隔离并行验证与触发分层](../docs/decisions/CI并行验证.md)：非main分支push只跑前后端快速检查，main PR/版本标签及默认手动运行完整，手动分支可选quick。分支push仅在全部变更为`.md`时按路径规则不触发；main PR、版本标签和手动运行不受该例外影响，文档收口须保留最近业务提交的成功CI证据，见[审计执行计划第3节](../docs/审计修复执行计划-2026-10-06.md#3-阶段依赖与交付顺序)。快速不导出镜像。`test-prepare.sh`只创建一次性Secret/空库并完成迁移健康检查，`test-business.sh`执行完整业务，`test-ci-group.sh`分别编排business/compatibility/delivery。完整CI复用前后端作业提供的同提交镜像，恢复不再构建ops；`test-cleanup.sh`只删除标记的本次项目及其恢复目标的容器/卷/网络。check按场景严格汇总，生产start/upgrade逐容器启动不变。 main push按用户追加要求不触发CI，PR合并后不重复运行。

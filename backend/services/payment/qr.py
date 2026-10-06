@@ -10,6 +10,7 @@ from services.common.operations import AcceptedOperation, Operation
 from services.common.sql import aware, execute, first
 
 from .orders import get_order, key_hash
+from .qr_admission import check_budget, lock_owner
 
 
 async def operation(engine, owner, operation_id):
@@ -46,6 +47,7 @@ async def refresh(engine, owner, order, key):
     await get_order(engine, owner, order)
     digest = hashlib.sha256(f"qr:{order}".encode()).digest()
     async with engine.begin() as conn:
+        await lock_owner(conn, owner)
         # 与回查/Worker一致先锁操作，避免持订单锁后引用被回查锁住的操作。
         await execute(
             conn, "SELECT id FROM payment_operations WHERE order_id=:id FOR UPDATE",
@@ -71,6 +73,7 @@ async def refresh(engine, owner, order, key):
                 raise ApiError(409, ErrorCode.IDEMPOTENCY_CONFLICT, "该键已用于另一个二维码请求")
             operation_id, state = UUID(bytes=previous["operation_id"]), previous["state"]
         else:
+            await check_budget(conn, owner)
             if row["state"] not in {"awaiting_payment", "status_unknown"}:
                 raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS, "订单状态不允许重新取得二维码")
             pending = await first(

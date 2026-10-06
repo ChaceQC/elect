@@ -9,11 +9,14 @@ from pydantic import Field
 
 from services.common.dates import today
 from services.common.dto import DTO
+from services.common.errors import ErrorCode
+from services.common.http import ApiError
 from services.common.internal_dto import (
     BalanceObservation,
     BindingQuery,
     ConsumptionQuery,
     HistoryWindowQuery,
+    PaymentBalanceRefresh,
 )
 from services.common.security import Principal, require_user_principal
 from services.common.sql import first
@@ -60,6 +63,18 @@ async def balance(command: BindingQuery, request: Request, principal: Browser):
 async def refresh(command: RefreshCommand, request: Request, principal: Browser):
     operation = await accept_refresh(
         request.app.state.database, principal.user_id, command.binding_id, command.idempotency_key
+    )
+    return await accepted(request, principal, operation)
+
+
+@router.post("/controls/payment-balance-refresh")
+async def payment_refresh(command: PaymentBalanceRefresh, request: Request, principal: Browser):
+    # scope沿用原payment权限；来源只信任已验证的签名issuer，不接受浏览器字段。
+    if principal.service != "payment":
+        raise ApiError(404, ErrorCode.NOT_FOUND, "内部用途不存在")
+    operation = await accept_refresh(
+        request.app.state.database, principal.user_id, command.binding_id,
+        f"payment-paid:{command.order_id}", source="payment",
     )
     return await accepted(request, principal, operation)
 

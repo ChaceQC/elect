@@ -352,6 +352,10 @@ class SessionContext(DTO):
     csrf_token: str | None
 
 
+class PaymentBalanceRefresh(BindingQuery):
+    order_id: UUID
+
+
 class EventEnvelope(DTO):
     event_id: UUID
     type: Literal[

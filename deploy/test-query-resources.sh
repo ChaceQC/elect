@@ -6,6 +6,12 @@ task_image=${ELECT_QUERY_TEST_IMAGE:-elect-backend-check}
 task_name="elect-test-query-$$"
 task_network="${task_name}-network"
 task_mysql="${task_name}-mysql"
+if [ "$#" -eq 0 ]; then
+  set -- tests/integration/test_snapshot_admission.py tests/integration/test_history_admission.py \
+    tests/integration/test_history_completion.py tests/integration/test_login_resources.py \
+    tests/integration/test_balance_observations.py tests/integration/test_history_execution.py \
+    tests/integration/test_paid_balance_terminal.py tests/integration/test_request_admission.py
+fi
 cleanup() {
   docker rm -f -v "$task_name" "$task_mysql" >/dev/null 2>&1 || true
   docker network rm "$task_network" >/dev/null 2>&1 || true
@@ -30,7 +36,4 @@ docker run --rm --name "$task_name" --network "$task_network" \
   -v "$task_root/backend/tests:/app/tests:ro" \
   -v "$task_root/backend/scripts:/app/scripts:ro" \
   "$task_image" python -m pytest -q --tb=short \
-  tests/integration/test_snapshot_admission.py tests/integration/test_history_admission.py \
-  tests/integration/test_history_completion.py tests/integration/test_login_resources.py \
-  tests/integration/test_balance_observations.py tests/integration/test_history_execution.py \
-  tests/integration/test_paid_balance_terminal.py
+  "$@"

@@ -152,7 +152,7 @@ def test_confirmed_payment_blocks_late_qr_and_continues_balance_refresh(database
                 checks.append(path)
                 if path == "/payments/check":
                     return {"order_state": "paid_confirmed"}
-                if path == "/browser/balance-refresh":
+                if path == "/controls/payment-balance-refresh":
                     return {"operation_id": str(balance_id)}
                 return {"state": "succeeded" if balance_done else "running"}
 
@@ -179,7 +179,8 @@ def test_confirmed_payment_blocks_late_qr_and_continues_balance_refresh(database
             assert await reconciliation.check_tick(app, order_id=order)
             assert (await read(engine, order))["balance_refresh_state"] == "succeeded"
             assert not await reconciliation.claim(engine, order)
-            assert checks.count("/payments/check") == checks.count("/browser/balance-refresh") == 1
+            assert checks.count("/payments/check") == 1
+            assert checks.count("/controls/payment-balance-refresh") == 1
         finally:
             await engine.dispose()
 

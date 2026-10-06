@@ -13,6 +13,7 @@ from services.common.outbox import append_event
 from services.common.sql import aware, execute, first
 
 from .repository import lock_monitor
+from .run_admission import check_budget
 
 
 def latest_slot(anchor, now, minutes):
@@ -134,6 +135,7 @@ async def accept_run(engine, owner, key, request_id):
         )
         if prior:
             return prior
+        await check_budget(conn, owner)
         if (
             monitor["state"] != "active"
             or not monitor["desired_enabled"]
@@ -147,7 +149,7 @@ async def accept_run(engine, owner, key, request_id):
             conn,
             "INSERT INTO monitor_run_requests (owner_user_id,idempotency_key_hash,request_d"
             "igest,run_id,expires_at) VALUES (:owner,:key,:digest,:run,DATE_ADD(UTC_TIMESTA"
-            "MP(6),INTERVAL 7 DAY))",
+            "MP(6),INTERVAL 180 DAY))",
             owner=owner.bytes,
             key=key_hash,
             digest=hashlib.sha256(b"manual_run").digest(),

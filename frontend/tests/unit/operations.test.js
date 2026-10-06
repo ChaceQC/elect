@@ -11,6 +11,24 @@ const user = '0199a10c-0000-7000-8000-000000000001'
 const order = '0199a10c-0000-7000-8000-000000000002'
 beforeEach(() => sessionStorage.clear())
 
+it('429保存原键与截止时间，重载后等待结束才能恢复原请求', async () => {
+  const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ error: { code: 'RATE_LIMITED', message: '稍后' },
+    meta: { request_id: user } }, { status: 429, headers: { 'Retry-After': '60' } }))
+    .mockResolvedValue(Response.json({ data: { operation_id: order }, meta: { request_id: user } }, { status: 202 }))
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(100000)
+  try {
+    const controller = new OperationController(user, new ApiClient(fetcher))
+    const intent = controller.create(`/room-bindings/${order}/balance-refresh`)
+    await expect(controller.submit(intent)).rejects.toMatchObject({ status: 429 })
+    const restored = new OperationController(user, controller.client)
+    await expect(restored.submit(restored.restore()[0])).rejects.toMatchObject({ status: 429 })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    clock.mockReturnValue(160001)
+    expect((await restored.submit(restored.restore()[0])).id).toBe(order)
+    expect(fetcher.mock.calls.map(([, options]) => options.headers.get('Idempotency-Key'))).toEqual([intent.key, intent.key])
+  } finally { clock.mockRestore() }
+})
+
 it.each(['FEATURE_DISABLED', 'DEPENDENCY_UNAVAILABLE'])('503 %s按受理事实区分拒绝与未知', async code => {
   const fetcher = vi.fn().mockResolvedValue(Response.json({ error: { code, message: 'test' },
     meta: { request_id: user } }, { status: 503 }))

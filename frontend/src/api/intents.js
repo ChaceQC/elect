@@ -4,7 +4,7 @@ import { randomId } from '../lib/uuid.js'
 /** @typedef {'operation'|'run'|'order'} ResourceKind */
 /** @typedef {Record<string,string|number|boolean|null>} SafeBody */
 /** @typedef {{key: string, path: string, body: SafeBody, kind: ResourceKind,
- * id: string|null, createdAt: number, method?: 'POST'|'DELETE'}} Intent */
+ * id: string|null, createdAt: number, retryAt?: number, method?: 'POST'|'DELETE'}} Intent */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const fields = new Set(['candidate_id', 'binding_id', 'amount', 'expected_version', 'make_default',
   'start_date', 'end_date'])
@@ -80,6 +80,10 @@ export class OperationController {
   /** @param {Intent} intent */
   async submit(intent) {
     if (intent.id) return intent
+    const saved = this.restore().find(item => item.key === intent.key) ?? intent
+    const seconds = Math.ceil(((saved.retryAt ?? 0) - Date.now()) / 1000)
+    if (seconds > 0) throw new ApiError('RATE_LIMITED', `请至少等待 ${seconds} 秒后用原请求重试`, 429,
+      { retryable: true, retry_after_seconds: seconds })
     const previous = this.inFlight.get(intent.key)
     if (previous) return previous
     const pending = this.send(intent)
@@ -95,6 +99,10 @@ export class OperationController {
         headers: { 'Idempotency-Key': intent.key } })
     } catch (error) {
       if (isFeatureRejected(error)) this.forget(intent.key)
+      if (error instanceof ApiError && error.status === 429) {
+        const seconds = Math.max(1, error.retryAfterSeconds ?? 60)
+        this.remember(Object.freeze({ ...intent, retryAt: Date.now() + seconds * 1000 }))
+      }
       throw error
     }
     const field = { operation: 'operation_id', run: 'run_id', order: 'order_id' }[intent.kind]
@@ -120,7 +128,8 @@ export class OperationController {
             !(item.id === null || typeof item.id === 'string' && UUID.test(item.id)) ||
             !Number.isFinite(item.createdAt) || key !== `elect.intent.${this.userId}.${item.key}`) throw new Error('invalid')
           this.memory.set(item.key, Object.freeze({ key: item.key, path: item.path, kind: item.kind,
-            id: item.id, createdAt: item.createdAt, method: item.method ?? 'POST', body: sanitize(item.body) }))
+            id: item.id, createdAt: item.createdAt, method: item.method ?? 'POST', body: sanitize(item.body),
+            retryAt: Number.isFinite(item.retryAt) ? item.retryAt : undefined }))
           this.persisted.add(item.key)
         } catch { this.storage?.removeItem(key) }
       }

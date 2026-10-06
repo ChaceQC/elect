@@ -2,6 +2,7 @@
 
 import hashlib
 from datetime import UTC, datetime
+from functools import partial
 from uuid import UUID
 
 from services.common.errors import ErrorCode
@@ -9,6 +10,7 @@ from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.sql import aware, execute, first
 
+from .balance_admission import check_budget
 from .dto import Balance
 from .preference_store import lock_preference, locked_operation
 from .query_jobs import accept_query, target
@@ -48,11 +50,12 @@ async def get_balance(engine, owner, binding):
     )
 
 
-async def accept_refresh(engine, owner, binding, key):
+async def accept_refresh(engine, owner, binding, key, *, source="browser"):
     digest = hashlib.sha256(f"balance:{binding}".encode()).digest()
     async with engine.begin() as conn:
         operation, created = await accept_query(
-            conn, owner, binding, key, "balance_refresh", digest
+            conn, owner, binding, key, "balance_refresh", digest,
+            admission=partial(check_budget, owner=owner, source=source), source=source,
         )
         if not created:
             return operation
@@ -73,7 +76,7 @@ async def accept_refresh(engine, owner, binding, key):
                 id=operation.bytes,
                 prior=pending["id"],
             )
-        else:
+        elif source == "browser":
             recent = await first(
                 conn,
                 "SELECT id FROM room_operations WHERE owner_user_id=:owner "

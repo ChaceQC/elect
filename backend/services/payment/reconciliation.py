@@ -45,9 +45,9 @@ async def balance_refresh(state, row, principal):
     try:
         if not operation:
             value = await state.service_client.call(
-                "room", "/browser/balance-refresh", "room:browser", principal.request_id,
+                "room", "/controls/payment-balance-refresh", "room:browser", principal.request_id,
                 {"binding_id": str(UUID(bytes=row["binding_id"])),
-                 "idempotency_key": f"payment-paid:{UUID(bytes=row['id'])}"},
+                 "order_id": str(UUID(bytes=row["id"]))},
                 principal=principal,
             )
             operation = UUID(value["operation_id"]).bytes

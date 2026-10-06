@@ -32,7 +32,7 @@ def test_failed_balance_ends_tracking_and_paid_never_regresses(terminal):
             calls.append(path)
             if path == "/payments/check":
                 return {"order_state": "paid_confirmed"}
-            if path == "/browser/balance-refresh":
+            if path == "/controls/payment-balance-refresh":
                 return {"operation_id": str(operation)}
             return {"state": terminal}
 
@@ -58,7 +58,7 @@ def test_temporary_503_preserves_operation_pending_and_30_second_backoff():
             calls.append(path)
             if path == "/payments/check":
                 return {"order_state": "paid_confirmed"}
-            if path == "/browser/balance-refresh":
+            if path == "/controls/payment-balance-refresh":
                 return {"operation_id": str(operation)}
             if calls.count(path) == 1:
                 raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE, "synthetic", True)
@@ -76,7 +76,7 @@ def test_temporary_503_preserves_operation_pending_and_30_second_backoff():
         row = await read(engine, order)
         assert row["state"] == "paid_confirmed" and row["balance_refresh_state"] == "succeeded"
         assert row["next_check_at"] is None
-        assert calls.count("/browser/balance-refresh") == calls.count("/payments/check") == 1
+        assert calls.count("/controls/payment-balance-refresh") == calls.count("/payments/check") == 1
     run("payment", case)
 
 

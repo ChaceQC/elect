@@ -139,8 +139,12 @@ async def slot_loop(app, stop, heartbeat, hub):
 
 
 async def scan_loop(role, app, stop, heartbeat, hub=None):
+    from .snapshot_cleanup import SnapshotCleaner
+
+    cleaner = SnapshotCleaner()
     broker, queue, reconnect_at = None, None, 0
     next_snapshot_cleanup = 0
+    next_recovery = 0
     idle = IdleBackoff((1, 2, 5) if role == "worker" else (1, 2, 5, 10))
     try:
         while not stop.is_set():
@@ -161,14 +165,15 @@ async def scan_loop(role, app, stop, heartbeat, hub=None):
                         reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
                         activity = await consumer_tick(role, app, None, heartbeat, stop)
                 else:
-                    activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
-                        app.state.database
-                    )
+                    activity = False
+                    if role == "scheduler" or time.monotonic() >= next_recovery:
+                        activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
+                            app.state.database
+                        )
+                        next_recovery = time.monotonic() + 15
                     if role == "recovery" and time.monotonic() >= next_snapshot_cleanup:
-                        from .snapshot_cleanup import cleanup_snapshots
-
-                        await cleanup_snapshots(app.state.database)
-                        next_snapshot_cleanup = time.monotonic() + 60
+                        cleanup_delay = await cleaner.round(app.state.database, stop)
+                        next_snapshot_cleanup = time.monotonic() + cleanup_delay
                 heartbeat.write(healthy=True, activity=activity,
                                 degraded=degraded(broker, queue)
                                 if role in {"worker", "alerts"} else None)
@@ -177,6 +182,8 @@ async def scan_loop(role, app, stop, heartbeat, hub=None):
                 log("monitor_job_retry", service="monitoring", error_code="DEPENDENCY_UNAVAILABLE")
                 activity = False
             delay = {"scheduler": 5, "recovery": 15}.get(role)
+            if role == "recovery":
+                delay = max(0.05, min(next_snapshot_cleanup, next_recovery) - time.monotonic())
             if delay is None:
                 delay = idle.next(activity)
             if queue:

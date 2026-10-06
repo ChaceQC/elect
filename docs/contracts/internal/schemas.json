@@ -2186,6 +2186,27 @@
       "title": "SessionContext",
       "type": "object"
     },
+    "PaymentBalanceRefresh": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "order_id": {
+          "format": "uuid",
+          "title": "Order Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "order_id"
+      ],
+      "title": "PaymentBalanceRefresh",
+      "type": "object"
+    },
     "AlertReservedPayload": {
       "additionalProperties": false,
       "properties": {

@@ -1255,7 +1255,7 @@
     },
     "room": {
       "database": "elect_room",
-      "revision": "room_0006",
+      "revision": "room_0007",
       "tables": {
         "rooms": {
           "columns": {
@@ -1528,6 +1528,11 @@
               "type": "BOOL",
               "nullable": false,
               "primary_key": false
+            },
+            "request_source": {
+              "type": "VARCHAR(16)",
+              "nullable": false,
+              "primary_key": false
             }
           },
           "unique": [
@@ -1570,6 +1575,18 @@
               "owner_user_id",
               "type",
               "created_at"
+            ],
+            [
+              "owner_user_id",
+              "type",
+              "request_source",
+              "created_at"
+            ],
+            [
+              "owner_user_id",
+              "type",
+              "request_source",
+              "state"
             ],
             [
               "state",
@@ -2276,7 +2293,7 @@
     },
     "monitoring": {
       "database": "elect_monitoring",
-      "revision": "monitoring_0006",
+      "revision": "monitoring_0008",
       "tables": {
         "monitors": {
           "columns": {
@@ -2677,6 +2694,10 @@
           "indexes": [
             [
               "expires_at"
+            ],
+            [
+              "owner_user_id",
+              "created_at"
             ]
           ]
         },
@@ -3303,6 +3324,11 @@
             [
               "owner_user_id",
               "created_at"
+            ],
+            [
+              "owner_user_id",
+              "expires_at",
+              "id"
             ]
           ]
         },
@@ -3953,7 +3979,7 @@
     },
     "payment": {
       "database": "elect_payment",
-      "revision": "payment_0004",
+      "revision": "payment_0005",
       "tables": {
         "payment_orders": {
           "columns": {
@@ -4430,6 +4456,11 @@
               "type": "BINARY(16)",
               "nullable": false,
               "primary_key": false
+            },
+            "created_at": {
+              "type": "DATETIME(6)",
+              "nullable": false,
+              "primary_key": false
             }
           },
           "unique": [],
@@ -4444,7 +4475,12 @@
               ]
             }
           ],
-          "indexes": []
+          "indexes": [
+            [
+              "owner_user_id",
+              "created_at"
+            ]
+          ]
         }
       }
     },
