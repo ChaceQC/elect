@@ -10,8 +10,9 @@ from uuid import UUID
 
 import httpx
 
+from scripts.domain_combined_smoke import setup
 from scripts.t5_alert_smoke import collect
-from scripts.t5_fixtures import SmtpSimulator, make_job, owner_with_monitor, setup
+from scripts.t5_fixtures import SmtpSimulator, make_job, owner_with_monitor
 from scripts.t6_fixtures import PaymentSchool
 from services.common.config_contract import SideEffectPolicy
 from services.common.ids import new_id
@@ -131,10 +132,13 @@ async def restored(apps, state):
 async def main(args):
     if os.environ.get("ELECT_TEST_DISPOSABLE") != "1":
         raise RuntimeError("仅允许显式隔离测试")
-    apps = await setup()
+    apps, _ = await setup()
     try:
         if args.mode == "seed":
             state = await seed(apps)
+            from scripts.r7_recovery_data import seed as seed_r7
+
+            state["r7"] = await seed_r7(apps, state)
             args.state_file.write_text(json.dumps(state))
             args.state_file.chmod(0o600)
             if os.environ.get("ELECT_RESULT_UID"):
@@ -147,6 +151,9 @@ async def main(args):
                 args.state_file.write_text(json.dumps(state))
             else:
                 await restored(apps, state)
+                from scripts.r7_recovery_data import verify as verify_r7
+
+                await verify_r7(apps, state)
     finally:
         for app in apps.values():
             await app.state.service_client.close()
