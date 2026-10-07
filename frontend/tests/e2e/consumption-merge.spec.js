@@ -11,13 +11,16 @@ for (const width of [1440, 375]) {
     let consumptionReads = 0
     let unavailable = false
     /** @param {string} start @param {string} end */
-    function merged(start, end) {
+    function merged(start, end, allKnown = false) {
       const value = consumption(start, end)
       value.buckets = value.buckets.map((bucket, i) => ({ ...bucket,
-        amount: i === 0 ? synced ? '2.50' : '1.30' : null,
-        known_days: i === 0 ? 1 : 0, estimated_amount: i === 0 && !synced ? '1.30' : null,
+        amount: i === 0 ? synced ? '2.50' : '1.30' : allKnown ? '0.00' : null,
+        known_days: i === 0 || allKnown ? 1 : 0, complete: i === 0 || allKnown,
+        estimated_amount: i === 0 && !synced ? '1.30' : null,
         estimated_days: i === 0 && !synced ? 1 : 0 }))
-      value.summary = { ...value.summary, amount: synced ? '2.50' : '1.30', known_days: 1,
+      value.summary = { ...value.summary, amount: synced ? '2.50' : '1.30',
+        known_days: allKnown ? value.summary.expected_days : 1,
+        complete: allKnown || value.summary.expected_days === 1,
         estimated_amount: synced ? null : '1.30', estimated_days: synced ? 0 : 1 }
       value.monitoring_status = unavailable ? 'unavailable' : 'ready'
       return value
@@ -35,9 +38,9 @@ for (const width of [1440, 375]) {
       if (path.endsWith('/monitor-samples')) return route.fulfill({ json: envelope({ items: [], total: 0,
         page: 1, page_size: 10, has_monitor_history: true, snapshot_token: 'synthetic-snapshot', snapshot_expires_at: '2026-10-07T23:59:00+08:00' }) })
       if (path === '/api/v1/overview') {
-        const history = merged('2026-09-24', '2026-10-07')
+        const history = merged('2026-09-24', '2026-10-07', true)
         return route.fulfill({ json: envelope({ viewing_binding_id: a, profile: null, balance: balance('18.70'),
-          summary: { yesterday_amount: null, last_14_days_amount: history.summary.amount, known_days: 1, expected_days: 14, complete: false },
+          summary: { yesterday_amount: null, last_14_days_amount: history.summary.amount, known_days: 14, expected_days: 14, complete: true },
           daily_consumption: history, monitor: null, component_status: { profile: 'unavailable', balance: 'ready', history: 'partial', monitor: 'unavailable' } }) })
       }
       return route.fulfill({ status: 404 })
@@ -46,12 +49,21 @@ for (const width of [1440, 375]) {
     await expect(page.getByRole('img', { name: /含余额变化估算/ })).toBeVisible()
     await expect(page.getByText(/当天首次余额减少计入前一天/)).toBeVisible()
     await expect(page.locator('.stat-grid')).toContainText('含余额变化估算')
+    await expect(page.locator('.stat-grid')).toContainText('已知14/14天')
+    await expect(page.locator('.stat-grid')).not.toContainText('部分数据')
+    await page.goto('/details?start_date=2026-09-28&end_date=2026-09-28')
+    await expect(page.locator('.history-summary')).toContainText('1/1 天，含余额变化估算')
+    await expect(page.locator('.history-summary')).not.toContainText('不完整')
     await page.goto('/details?start_date=2026-09-28&end_date=2026-10-01')
     await expect(page.getByRole('img', { name: /含余额变化估算/ })).toBeVisible()
     await expect(page.getByText(/当天首次余额减少计入前一天/)).toBeVisible()
     await page.getByText('查看图表数据', { exact: true }).click()
     await expect(page.locator('.chart-data')).toContainText('含余额变化估算 ¥1.30')
     await expect(page.locator('.chart-data')).toContainText('—')
+    await expect(page.locator('.chart-data li').first()).toContainText('已知1/1天')
+    await expect(page.locator('.chart-data li').first()).not.toContainText('部分数据')
+    await expect(page.locator('.chart-data li').nth(1)).toContainText('已知0/1天，暂无数据')
+    await expect(page.locator('.history-summary')).toContainText('数据不完整')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     if (process.env.ELECT_T4_SCREENSHOT_DIR) {
       await mkdir(process.env.ELECT_T4_SCREENSHOT_DIR, { recursive: true })

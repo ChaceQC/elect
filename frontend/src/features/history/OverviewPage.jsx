@@ -51,7 +51,7 @@ export function OverviewPage() {
         {overview.summary?.yesterday_amount == null && <p className="muted">昨日完整消费尚未取得</p>}</section>
         <section className="card stat"><div className="stat-label"><span>近 14 天消费</span><Wallet size={18} aria-hidden="true" /></div>
           <div className="stat-value">{moneyLabel(overview.summary?.last_14_days_amount ?? null).replace('¥', '')}<small>元</small></div>
-          {overview.summary && !overview.summary.complete && <p className="muted">已知{overview.summary.known_days}/{overview.summary.expected_days}天 · 部分数据，合计可能不完整{overview.daily_consumption?.summary.estimated_amount != null ? '，含余额变化估算' : ''}</p>}</section>
+          {overview.summary && <p className="muted">已知{overview.summary.known_days}/{overview.summary.expected_days}天{!overview.summary.complete && (overview.summary.known_days === 0 ? ' · 暂无金额数据' : ' · 部分数据，合计可能不完整')}{overview.daily_consumption?.summary.estimated_amount != null ? '，含余额变化估算' : ''}</p>}</section>
         <section className="card stat"><div className="stat-label"><Link to="/monitor">监控状态</Link><Bell size={18} aria-hidden="true" /></div>
           <div className="stat-value">{overview.monitor ? overview.monitor.enabled ? '已开启' : '未开启' : '—'}</div>
           {overview.monitor?.enabled && overview.monitor.health !== 'healthy' && <p className="muted">{overview.monitor.health === 'degraded' ? '采集部分异常' : '采集暂不可用'} · <Link to="/monitor">查看状态</Link></p>}</section></div>

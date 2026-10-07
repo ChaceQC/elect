@@ -48,6 +48,9 @@ def test_clipped_buckets_decimal_zero_duplicates_and_unknown(granularity):
     assert buckets[-1]["end_date"] == date(2026, 10, 1)
     if granularity == "day":
         assert [b["amount"] for b in buckets] == ["0.30", None, None, "0.00"]
+        assert [b["complete"] for b in buckets] == [True, False, False, True]
+    elif granularity == "month":
+        assert [b["complete"] for b in buckets] == [False, True]
 
 
 def test_c02_same_day_duplicates_and_request_provenance():

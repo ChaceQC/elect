@@ -40,6 +40,7 @@ def test_merge_daily_before_regroup_school_zero_negative_and_decimal(granularity
                                 "expected_days": 6, "complete": False,
                                 "estimated_amount": "0.30", "estimated_days": 2}
     assert value["version"] == 11 and value["monitoring_status"] == "ready"
+    assert value["coverage"] == value["sync_status"] == "partial"
     if granularity == "day":
         assert [b["amount"] for b in value["buckets"]] == [
             "1.50", "0.10", "0.20", "-0.30", "0.00", None]
@@ -98,3 +99,38 @@ def test_gateway_checks_binding_before_monitor_and_requests_daily_data(monkeypat
         asyncio.run(query_api.consumption(new_id(), request, date(2026, 9, 28),
                                          date(2026, 9, 29), "day"))
     client.call.assert_not_called()
+
+
+@pytest.mark.parametrize("count", [1, 7, 30])
+@pytest.mark.parametrize("granularity", ["day", "week", "month"])
+def test_all_dates_known_are_complete_even_with_estimates(count, granularity):
+    source = history(["0.00"] + [None] * (count - 1))
+    source["sync_status"] = "empty"
+    value = merge_consumption(source, estimates(["0.00"] + ["1.20"] * (count - 1)), granularity)
+    assert value["summary"]["known_days"] == value["summary"]["expected_days"] == count
+    assert value["summary"]["complete"] is True
+    assert value["coverage"] == "complete" and value["sync_status"] == "ready"
+    assert all(bucket["complete"] for bucket in value["buckets"])
+    assert value["summary"]["estimated_days"] == count - 1
+    if count > 1:
+        assert value["summary"]["estimated_amount"] is not None
+
+
+@pytest.mark.parametrize("state", ["loading", "stale", "failed", "unavailable"])
+def test_full_coverage_does_not_hide_school_sync_state(state):
+    source = history([None])
+    source["sync_status"] = state
+    value = merge_consumption(source, estimates(["0.00"]), "day")
+    assert value["coverage"] == "complete" and value["summary"]["complete"] is True
+    assert value["summary"]["estimated_amount"] == "0.00"
+    assert value["sync_status"] == state
+
+
+def test_school_only_full_coverage_survives_monitor_unavailable():
+    client = SimpleNamespace(call=AsyncMock(side_effect=TimeoutError()))
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(service_client=client)))
+    value = asyncio.run(with_monitoring(request, Principal("gateway", new_id(), 1, new_id()),
+                                       history(["0.00", "1.20"]), "week"))
+    assert value["coverage"] == "complete" and value["sync_status"] == "ready"
+    assert value["monitoring_status"] == "unavailable"
+    assert value["summary"]["estimated_amount"] is None

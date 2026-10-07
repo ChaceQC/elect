@@ -104,7 +104,7 @@ class Bucket(DateRange):
     energy_usage: Reading | None
     known_days: Count
     expected_days: Annotated[StrictInt, Field(ge=1)]
-    complete: bool
+    complete: bool = Field(description="金额已知日期覆盖全部所选日期，不代表学校结算或估算精度。")
     estimated_amount: Money | None = Field(
         default=None, description="合计中来自余额变化估算的金额。"
     )
@@ -116,7 +116,7 @@ class ConsumptionSummary(DTO):
     energy_usage: Reading | None
     known_days: Count
     expected_days: Annotated[StrictInt, Field(ge=1)]
-    complete: bool
+    complete: bool = Field(description="金额已知日期覆盖全部所选日期，不代表学校结算或估算精度。")
     estimated_amount: Money | None = Field(
         default=None, description="合计中来自余额变化估算的金额。"
     )
@@ -146,7 +146,7 @@ class OverviewSummary(DTO):
     last_14_days_amount: Money | None
     known_days: Count
     expected_days: Count
-    complete: bool
+    complete: bool = Field(description="金额已知日期覆盖全部所选日期，不代表学校结算或估算精度。")
 
 
 class MonitorOverview(DTO):

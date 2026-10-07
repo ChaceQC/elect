@@ -1072,7 +1072,10 @@ export interface components {
             known_days: number;
             /** Expected Days */
             expected_days: number;
-            /** Complete */
+            /**
+             * Complete
+             * @description 金额已知日期覆盖全部所选日期，不代表学校结算或估算精度。
+             */
             complete: boolean;
             /**
              * Estimated Amount
@@ -1100,7 +1103,10 @@ export interface components {
             known_days: number;
             /** Expected Days */
             expected_days: number;
-            /** Complete */
+            /**
+             * Complete
+             * @description 金额已知日期覆盖全部所选日期，不代表学校结算或估算精度。
+             */
             complete: boolean;
             /**
              * Estimated Amount
@@ -1177,7 +1183,10 @@ export interface components {
             known_days: number;
             /** Expected Days */
             expected_days: number;
-            /** Complete */
+            /**
+             * Complete
+             * @description 金额已知日期覆盖全部所选日期，不代表学校结算或估算精度。
+             */
             complete: boolean;
         };
         /** MonitorOverview */
