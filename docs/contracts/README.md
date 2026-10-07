@@ -1,6 +1,6 @@
 # API 契约
 
-0.21.0的Consumption桶/汇总amount按日合并学校与监控余额变化估算：学校非零金额优先；缺失或0且有余额减少时补估算，之后聚合周/月。Bucket/ConsumptionSummary可选estimated_amount、estimated_days标明估算部分；Consumption可选monitoring_status标明降级，version包含所选范围样本数，complete仍为false。内部增加Monitoring的/browser/consumption，沿用monitor:browser；原余额变化/电表字段不变，规则见[消费趋势合并](../decisions/消费趋势合并监控估算.md)。
+0.21.1的Consumption桶/汇总amount按日合并学校与监控余额变化估算：学校非零金额优先；缺失或0且有余额减少时补估算，每日首次有效余额减少先归前一天，再按归属日期筛选、合并并聚合周/月。Bucket/ConsumptionSummary可选estimated_amount、estimated_days标明估算部分；Consumption可选monitoring_status标明降级，version包含归属所选范围的样本数，complete仍为false。内部增加Monitoring的/browser/consumption，沿用monitor:browser；原余额变化/电表字段不变，规则见[消费趋势合并](../decisions/消费趋势合并监控估算.md)。
 
 R6新增`GET /auth/session`及`LocalSession`，仅返回Identity本库用户ID、CSRF和同意记录；旧`/auth/me`及登录完整Me保持兼容。当前公开35个方法/路径，内部55个静态路由。失效401/依赖503与前端兼容规则见[本地会话与学校资料](../runbooks/本地会话与学校资料.md)。
 
