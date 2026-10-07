@@ -7,10 +7,12 @@
 - 前后端及锁文件版本同步0.22.1，更新DTO说明、根/前后端README、AGENTS、契约、架构与消费趋势决策；无AGENT.md，无数据库迁移或Secret变更。
 - 业务提交0c3f12d2eda56a632068e3903b02615e34d7ee16已推送dev，本次[快速CI37627630009](https://github.com/ChaceQC/elect/actions/runs/37627630009)已success，前后端与check均通过；完整三组及publish按quick设计跳过，不替代main PR完整门禁。
 - 用户追加按文档合入main：fetch后确认dev包含最新main（a235589），起始工作区干净，差异仅本次0.22.1修复及已交付缴费功能的文档收口；服务器严格GitHub Actions check、PR、管理员保护及禁止强推/删除均已核对。
+- [PR #12](https://github.com/ChaceQC/elect/pull/12)候选df835d4810e41573cad5458572f86342dc7df800的[完整CI37629390328](https://github.com/ChaceQC/elect/actions/runs/37629390328)于2026-10-07 21:52:08（Asia/Shanghai）五组及check全部success，publish按普通PR设计跳过。
+- 合并前重新fetch并核对最新候选、main祖先、CLEAN/MERGEABLE、全部检查所属运行及服务器保护；于21:55:46使用普通merge与match-head-commit合入main，合并提交fe4ea15a5783a50b87855faa6b8464675bcf9a2b。未使用admin或绕过保护，本地main/dev已快进到合并提交，最终Markdown记录在dev提交推送。
 
 ### 进行中
 
-- 准备dev → main PR，等待该PR最新候选完整CI五组与check全部通过。
+- 无进行中项，0.22.1消费完整性修复已通过完整门禁并交付main。
 
 ### 阻塞与风险
 
@@ -18,7 +20,7 @@
 
 ### 下一步
 
-- 创建PR并核对最新候选完整CI、main祖先及分支保护，全部满足后使用普通merge及match-head-commit合并，再同步本地main/dev并记录结果。本轮不部署或创建版本标签。
+- 如需运行页面生效，依据后续指定环境部署要求升级至0.22.1并核对日期完整性和估算提示；本轮合并任务已完成，未部署、创建版本标签或发布镜像。
 
 ### 主要文件或模块
 
@@ -30,6 +32,7 @@
 - Edge桌面1440px/手机375px两项专项通过，构建随浏览器入口通过；覆盖1/1及14/14隐藏部分提示、估算独立保留、0/1暂无数据、缺日期提示与采集刷新/降级。与同宽参考截图核对了趋势卡片、控件和新增文案的适配，无横向溢出；合成夹具的其他未登记接口报错不代表真实服务状态。
 - Windows后端定向检查临时通过uv --with tzdata补时区数据，未修改依赖；PowerShell的npm.ps1签名限制改用npm.cmd执行。git diff --check通过；本轮未执行真实学校、支付、SMTP或部署操作。
 - 业务提交快速CI通过；最终收口仅更新本Markdown，按路径规则不触发push CI，验证追溯上述0c3f12d和对应运行。
+- 本轮合并独立核对PR #12最新候选的完整五组/check、分支祖先与保护规则，不重复本地业务测试；最终文档收口追溯df835d4及完整运行37629390328，main push按规则不重复CI。
 
 ## 2026-10-07 · 学校缴费明细列表与总缴费
 
