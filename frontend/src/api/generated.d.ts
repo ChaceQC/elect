@@ -1044,7 +1044,10 @@ export interface components {
              * Format: date
              */
             end_date: string;
-            /** Amount */
+            /**
+             * Amount
+             * @description 按日学校非零金额优先，缺失或零金额以监控余额减少估算补充。
+             */
             amount: string | null;
             /** Energy Usage */
             energy_usage: string | null;
@@ -1054,10 +1057,25 @@ export interface components {
             expected_days: number;
             /** Complete */
             complete: boolean;
+            /**
+             * Estimated Amount
+             * @description 合计中来自余额变化估算的金额。
+             * @default null
+             */
+            estimated_amount: string | null;
+            /**
+             * Estimated Days
+             * @description 使用余额变化估算的日期数。
+             * @default 0
+             */
+            estimated_days: number;
         };
         /** ConsumptionSummary */
         ConsumptionSummary: {
-            /** Amount */
+            /**
+             * Amount
+             * @description 按日去重后的学校金额及监控余额变化估算合计。
+             */
             amount: string | null;
             /** Energy Usage */
             energy_usage: string | null;
@@ -1067,6 +1085,18 @@ export interface components {
             expected_days: number;
             /** Complete */
             complete: boolean;
+            /**
+             * Estimated Amount
+             * @description 合计中来自余额变化估算的金额。
+             * @default null
+             */
+            estimated_amount: string | null;
+            /**
+             * Estimated Days
+             * @description 使用余额变化估算的日期数。
+             * @default 0
+             */
+            estimated_days: number;
         };
         /** Consumption */
         Consumption: {
@@ -1106,6 +1136,11 @@ export interface components {
             sync_operation: components["schemas"]["OperationSummary"] | null;
             /** Version */
             version: number;
+            /**
+             * Monitoring Status
+             * @default null
+             */
+            monitoring_status: ("ready" | "unavailable") | null;
         };
         /** Profile */
         Profile: {

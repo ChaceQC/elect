@@ -18,7 +18,8 @@ export function OverviewPage() {
   const [search, setSearch] = useSearchParams()
   const viewing = search.get('binding_id') ?? ''
   const query = useQuery({ queryKey: ['overview', user?.id, viewing, bindings.data?.default_binding_id], enabled: !!user,
-    queryFn: async ({ signal }) => /** @type {import('../../api/generated').components['schemas']['Overview']} */ ((await apiClient.request(`/overview${viewing ? `?binding_id=${viewing}` : ''}`, { signal })).data) })
+    queryFn: async ({ signal }) => /** @type {import('../../api/generated').components['schemas']['Overview']} */ ((await apiClient.request(`/overview${viewing ? `?binding_id=${viewing}` : ''}`, { signal })).data),
+    refetchInterval: 60_000, refetchIntervalInBackground: false })
   const control = useQuery({ queryKey: ['monitor', user?.id], enabled: !!user,
     queryFn: async ({ signal }) => /** @type {import('../../api/generated').components['schemas']['Monitor']} */ ((await apiClient.request('/monitor', { signal })).data) })
   const overview = query.data
@@ -50,13 +51,14 @@ export function OverviewPage() {
         {overview.summary?.yesterday_amount == null && <p className="muted">昨日完整消费尚未取得</p>}</section>
         <section className="card stat"><div className="stat-label"><span>近 14 天消费</span><Wallet size={18} aria-hidden="true" /></div>
           <div className="stat-value">{moneyLabel(overview.summary?.last_14_days_amount ?? null).replace('¥', '')}<small>元</small></div>
-          {overview.summary && !overview.summary.complete && <p className="muted">已知{overview.summary.known_days}/{overview.summary.expected_days}天 · 部分数据，合计可能不完整</p>}</section>
+          {overview.summary && !overview.summary.complete && <p className="muted">已知{overview.summary.known_days}/{overview.summary.expected_days}天 · 部分数据，合计可能不完整{overview.daily_consumption?.summary.estimated_amount != null ? '，含余额变化估算' : ''}</p>}</section>
         <section className="card stat"><div className="stat-label"><Link to="/monitor">监控状态</Link><Bell size={18} aria-hidden="true" /></div>
           <div className="stat-value">{overview.monitor ? overview.monitor.enabled ? '已开启' : '未开启' : '—'}</div>
           {overview.monitor?.enabled && overview.monitor.health !== 'healthy' && <p className="muted">{overview.monitor.health === 'degraded' ? '采集部分异常' : '采集暂不可用'} · <Link to="/monitor">查看状态</Link></p>}</section></div>
       <section className="card overview-trend"><div className="card-heading"><h2>历史每日消费</h2><div className="actions"><span className="pill">最近 14 天</span>
         {bindingId && overview.daily_consumption && <QueryAction compact key={bindingId} path={`/room-bindings/${bindingId}/history-sync`} body={{ start_date: overview.daily_consumption.start_date, end_date: overview.daily_consumption.end_date }} label="同步最近14天学校历史" />}</div></div>
-        {overview.daily_consumption?.buckets.some(b => b.amount !== null) ? <ConsumptionTrend buckets={overview.daily_consumption.buckets} /> : <div className="empty">暂无已知学校消费记录。</div>}
+        {overview.daily_consumption?.buckets.some(b => b.amount !== null) ? <ConsumptionTrend buckets={overview.daily_consumption.buckets} /> : <div className="empty">暂无已知消费记录。</div>}
+        {overview.daily_consumption?.monitoring_status === 'unavailable' && <p role="alert">监控估算暂时不可用，正在展示已有学校历史。</p>}
         {overview.component_status.history === 'failed' && <p role="alert">学校历史暂时不可用，余额和监控信息仍可独立读取。</p>}
       </section></>}
   </>

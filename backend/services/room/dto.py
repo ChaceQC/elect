@@ -98,19 +98,29 @@ class HistoryRequest(DateRange):
 
 
 class Bucket(DateRange):
-    amount: Money | None
+    amount: Money | None = Field(
+        description="按日学校非零金额优先，缺失或零金额以监控余额减少估算补充。"
+    )
     energy_usage: Reading | None
     known_days: Count
     expected_days: Annotated[StrictInt, Field(ge=1)]
     complete: bool
+    estimated_amount: Money | None = Field(
+        default=None, description="合计中来自余额变化估算的金额。"
+    )
+    estimated_days: Count = Field(default=0, description="使用余额变化估算的日期数。")
 
 
 class ConsumptionSummary(DTO):
-    amount: Money | None
+    amount: Money | None = Field(description="按日去重后的学校金额及监控余额变化估算合计。")
     energy_usage: Reading | None
     known_days: Count
     expected_days: Annotated[StrictInt, Field(ge=1)]
     complete: bool
+    estimated_amount: Money | None = Field(
+        default=None, description="合计中来自余额变化估算的金额。"
+    )
+    estimated_days: Count = Field(default=0, description="使用余额变化估算的日期数。")
 
 
 class Consumption(DateRange):
@@ -122,6 +132,7 @@ class Consumption(DateRange):
     sync_status: ComponentState
     sync_operation: OperationSummary | None
     version: Version
+    monitoring_status: Literal["ready", "unavailable"] | None = None
 
 
 class Profile(DTO):

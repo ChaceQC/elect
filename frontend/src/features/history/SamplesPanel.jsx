@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client.js'
 import { StatusBlock } from '../../components/feedback/StatusBlock.jsx'
 import { timestampLabel } from '../../lib/dates.js'
@@ -11,6 +11,7 @@ import { Clock3, RefreshCw } from 'lucide-react'
 /** @param {{bindingId: string, range: import('./DateRangePicker.jsx').Range, page: number, onPageChange: (page: number)=>void}} props */
 export function SamplesPanel({ bindingId, range, page, onPageChange }) {
   const { user } = useSession()
+  const cache = useQueryClient()
   const [snapshot, setSnapshot] = useState(/** @type {string|null} */ (null))
   const [revision, setRevision] = useState(() => randomId())
   const query = useQuery({ queryKey: ['samples', user?.id, bindingId, range, revision, page, page > 1 ? snapshot : null], enabled: !!user,
@@ -31,7 +32,10 @@ export function SamplesPanel({ bindingId, range, page, onPageChange }) {
   const samples = query.data
   useEffect(() => { if (samples) setSnapshot(samples.snapshot_token) }, [samples])
   useEffect(() => { if (samples && page > Math.max(1, Math.ceil(samples.total / samples.page_size))) onPageChange(Math.max(1, Math.ceil(samples.total / samples.page_size))) }, [samples, page, onPageChange])
-  function reset() { onPageChange(1); setSnapshot(null); setRevision(randomId()) }
+  function reset() {
+    onPageChange(1); setSnapshot(null); setRevision(randomId())
+    for (const key of ['consumption', 'overview']) void cache.invalidateQueries({ queryKey: [key, user?.id] })
+  }
   return <section className="card"><div className="card-heading"><h2>监控采集明细</h2><div className="actions">
     {samples && <span className="pill">{samples.total} 条</span>}<button className="icon-button" aria-label="读取最新采集记录" title="读取最新采集记录" aria-busy={query.isFetching} disabled={query.isFetching} onClick={reset}><RefreshCw className={query.isFetching ? 'refresh-spinning' : undefined} size={16} aria-hidden="true" /></button></div></div>
     {query.error && <StatusBlock title={query.error.message} error action={{ label: '从第一页重新读取', onClick: reset }} />}

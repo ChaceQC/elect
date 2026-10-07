@@ -1,4 +1,4 @@
-"""总览组件聚合和本人查询；所有金额计算留在所属域。"""
+"""总览组件与已授权日消费合并；不跨库读取原始记录。"""
 
 import asyncio
 from datetime import date, timedelta
@@ -13,6 +13,7 @@ from services.common.http import ApiError
 from services.room.dto import HistoryRequest, Overview
 
 from .api import SESSION_COOKIE, session, success
+from .consumption import with_monitoring
 from .cookies import get_cookie
 
 router = APIRouter(prefix="/api/v1")
@@ -72,10 +73,10 @@ async def consumption(
             "binding_id": str(id),
             "start_date": start.isoformat(),
             "end_date": end.isoformat(),
-            "granularity": granularity,
+            "granularity": "day",
         },
     )
-    return success(request, value)
+    return success(request, await with_monitoring(request, principal, value, granularity))
 
 
 @router.post("/room-bindings/{id}/history-sync", status_code=202)
@@ -163,6 +164,8 @@ async def overview(request: Request, binding_id: UUID | None = None):
     if isinstance(monitor, Exception):
         monitor = None
     history = room["history"] if room else None
+    if history:
+        history = await with_monitoring(request, principal, history, "day")
     balance = room["balance"] if room else None
     result = Overview(
         viewing_binding_id=room["viewing_binding_id"] if room else binding_id,
