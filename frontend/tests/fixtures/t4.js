@@ -14,10 +14,10 @@ export const rooms = { ...bindings, default_binding_id: a, sync_status: 'ready',
 export function consumption(start, end, granularity = 'day') {
   const days = (Date.parse(end) - Date.parse(start)) / 86_400_000 + 1
   const buckets = Array.from({ length: days }, (_, i) => ({ start_date: addDays(start, i), end_date: addDays(start, i),
-    amount: i === 0 ? '0.00' : i === days - 1 ? '1.50' : null, energy_usage: null, known_days: i === 0 || i === days - 1 ? 1 : 0, expected_days: 1, complete: false }))
+    amount: i === 0 ? '0.00' : i === days - 1 ? '1.50' : null, energy_usage: null, known_days: i === 0 || i === days - 1 ? 1 : 0, expected_days: 1, complete: false, estimated_amount: null, estimated_days: 0 }))
   return { binding_id: a, start_date: start, end_date: end, granularity,
-    buckets: granularity === 'day' ? buckets : [{ start_date: start, end_date: end, amount: '1.50', energy_usage: null, known_days: 2, expected_days: days, complete: false }],
-    summary: { amount: '1.50', energy_usage: null, known_days: 2, expected_days: days, complete: false }, coverage: 'partial', sync_status: 'partial', sync_operation: null, version: 1 }
+    buckets: granularity === 'day' ? buckets : [{ start_date: start, end_date: end, amount: '1.50', energy_usage: null, known_days: 2, expected_days: days, complete: false, estimated_amount: null, estimated_days: 0 }],
+    summary: { amount: '1.50', energy_usage: null, known_days: 2, expected_days: days, complete: false, estimated_amount: null, estimated_days: 0 }, coverage: 'partial', sync_status: 'partial', sync_operation: null, version: 1, monitoring_status: null }
 }
 
 /** @param {number} index @returns {import('../../src/api/generated').components['schemas']['Sample']} */

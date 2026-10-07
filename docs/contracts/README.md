@@ -1,6 +1,8 @@
 # API 契约
 
-R6新增`GET /auth/session`及`LocalSession`，仅返回Identity本库用户ID、CSRF和同意记录；旧`/auth/me`及登录完整Me保持兼容。当前公开35个方法/路径，内部54个静态路由。失效401/依赖503与前端兼容规则见[本地会话与学校资料](../runbooks/本地会话与学校资料.md)。
+0.21.0的Consumption桶/汇总amount按日合并学校与监控余额变化估算：学校非零金额优先；缺失或0且有余额减少时补估算，之后聚合周/月。Bucket/ConsumptionSummary可选estimated_amount、estimated_days标明估算部分；Consumption可选monitoring_status标明降级，version包含所选范围样本数，complete仍为false。内部增加Monitoring的/browser/consumption，沿用monitor:browser；原余额变化/电表字段不变，规则见[消费趋势合并](../decisions/消费趋势合并监控估算.md)。
+
+R6新增`GET /auth/session`及`LocalSession`，仅返回Identity本库用户ID、CSRF和同意记录；旧`/auth/me`及登录完整Me保持兼容。当前公开35个方法/路径，内部55个静态路由。失效401/依赖503与前端兼容规则见[本地会话与学校资料](../runbooks/本地会话与学校资料.md)。
 
 R5.1公开DTO不变：会话每请求权威校验，续期每60秒合并（12小时滑动最多60秒粒度差异、7天绝对上限）。`/auth/me`在Identity一次校验，内部`/browser/me`允许已签名Gateway不携带用户上下文，由会话自行建立；若携带上下文仍检查归属。monitor GET返回独立一致性快照，规则见[读取与有界调度](../runbooks/读取与有界调度.md)。
 

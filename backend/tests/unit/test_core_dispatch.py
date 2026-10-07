@@ -35,9 +35,10 @@ def clients(runtime_factory):
 
 def test_every_core_endpoint_is_registered():
     dispatcher = Dispatcher(dict.fromkeys(CORE_DOMAINS))
-    assert len(dispatcher.routes) == 54
+    assert len(dispatcher.routes) == 55
     assert ("room", "POST", "/controls/payment-balance-refresh") in dispatcher.routes
     assert ("monitoring", "POST", "/alert-slots/authorize-send") in dispatcher.routes
+    assert ("monitoring", "POST", "/browser/consumption") in dispatcher.routes
     assert ("payment", "POST", "/controls/dispatch-proof") in dispatcher.routes
 
 

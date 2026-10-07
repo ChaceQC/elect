@@ -9,10 +9,11 @@ from pydantic import Field
 from services.common.dto import DTO
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.common.internal_dto import CancelRunQuery, RunQuery, SampleQuery
+from services.common.internal_dto import CancelRunQuery, HistoryWindowQuery, RunQuery, SampleQuery
 from services.common.security import Principal, require_user_principal
 from services.common.sql import first
 
+from .consumption import daily_estimates
 from .runs import cancel_run, run_view
 from .samples import list_samples
 from .scheduler import accept_run
@@ -71,3 +72,8 @@ async def samples(command: SampleQuery, request: Request, principal: Browser):
         request.app.state.database, principal.user_id, command,
         request.app.state.runtime.signing_key.get_secret_value().encode(),
     )
+
+
+@router.post("/consumption")
+async def consumption(command: HistoryWindowQuery, request: Request, principal: Browser):
+    return await daily_estimates(request.app.state.database, principal.user_id, command)

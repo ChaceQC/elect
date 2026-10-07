@@ -2,7 +2,7 @@
 openapi: 3.1.0
 info:
   title: 寝室电费学生端 API
-  version: 0.20.3
+  version: 0.21.0
   description: T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，时间戳带时区。202 仅表示持久受理。业务服务按 x-stage
     实现。
 servers:
@@ -5066,6 +5066,7 @@ components:
           - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
             type: string
           - type: 'null'
+          description: 按日学校非零金额优先，缺失或零金额以监控余额减少估算补充。
           title: Amount
         energy_usage:
           anyOf:
@@ -5084,6 +5085,20 @@ components:
         complete:
           title: Complete
           type: boolean
+        estimated_amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          default: null
+          description: 合计中来自余额变化估算的金额。
+          title: Estimated Amount
+        estimated_days:
+          default: 0
+          description: 使用余额变化估算的日期数。
+          minimum: 0
+          title: Estimated Days
+          type: integer
       required:
       - start_date
       - end_date
@@ -5102,6 +5117,7 @@ components:
           - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
             type: string
           - type: 'null'
+          description: 按日去重后的学校金额及监控余额变化估算合计。
           title: Amount
         energy_usage:
           anyOf:
@@ -5120,6 +5136,20 @@ components:
         complete:
           title: Complete
           type: boolean
+        estimated_amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          default: null
+          description: 合计中来自余额变化估算的金额。
+          title: Estimated Amount
+        estimated_days:
+          default: 0
+          description: 使用余额变化估算的日期数。
+          minimum: 0
+          title: Estimated Days
+          type: integer
       required:
       - amount
       - energy_usage
@@ -5183,6 +5213,15 @@ components:
           minimum: 1
           title: Version
           type: integer
+        monitoring_status:
+          anyOf:
+          - enum:
+            - ready
+            - unavailable
+            type: string
+          - type: 'null'
+          default: null
+          title: Monitoring Status
       required:
       - start_date
       - end_date
