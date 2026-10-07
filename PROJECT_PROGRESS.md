@@ -6,10 +6,12 @@
 - 增加会话内按寝室/请求类型去重，导航、粒度、资料及缓存刷新不重复提交；已有操作只恢复跟踪，受理未知或429沿用原键、原日期和退避时间，失败保留最近成功数据。
 - 前后端及锁文件/公开OpenAPI版本同步0.21.2；同步根README、AGENTS、前端README、文档索引/前端计划及自动查询决策。无AGENT.md；后端README所述领域实现不变，无须新增后端行为记录。
 - 用户追加要求按文档合入main；已fetch核对dev包含最新main（8412f58）、工作区干净，业务提交e2175f2已推送。服务器main严格GitHub Actions check（App ID 15368）、PR及管理员约束启用，禁止强推和删除。
+- 业务提交e2175f2的[快速CI37604302663](https://github.com/ChaceQC/elect/actions/runs/37604302663)已success；[PR #10](https://github.com/ChaceQC/elect/pull/10)最新候选6c61663132b0a7d41c7134c28dc366a00fe4c87c的[完整CI37604596917](https://github.com/ChaceQC/elect/actions/runs/37604596917)于2026-10-07 18:23:31（Asia/Shanghai）完成五组及check全部success，publish按普通PR设计跳过。
+- 合并前重新fetch并核对候选SHA、最新main祖先、CLEAN/MERGEABLE、全部检查所属运行及服务器保护，使用普通merge和match-head-commit于18:25:31合入main；合并提交375d5ace25e1e8803d45767d6685b56a9a6ee10d，未使用admin或绕过保护。本地main/dev已快进同步，最终纯Markdown进度收口在dev提交推送。
 
 ### 进行中
 
-- 源码与本地验证已完成，正在通过dev→main PR等待最新候选五组完整验证及check；业务提交的快速CI37604302663仍在运行，不能替代PR完整门禁。
+- 无进行中项，0.21.2自动查询已通过完整门禁并交付main。
 
 ### 阻塞与风险
 
@@ -17,7 +19,7 @@
 
 ### 下一步
 
-- 等最新PR完整CI通过后，重新核对候选SHA、main祖先与分支保护，通过普通merge commit合入main并同步本地dev/main；运行页面升级仍按后续明确部署要求执行。
+- 如需运行页面生效，按后续明确部署要求依据本机私网部署手册升级指定环境到0.21.2，核对登录/重载后的余额与趋势更新；本轮合并任务已完成，未创建标签、发布镜像或部署。
 
 ### 主要文件或模块
 
@@ -29,6 +31,7 @@
 - 本机Edge运行自动查询、刷新反馈、429恢复及T4查询11项浏览器检查全部通过（1440/375px）；生产构建随浏览器入口通过。初次启动因本机未安装对应Playwright内置浏览器失败，改用已安装Edge后通过。
 - OpenAPI生成校验通过；前端类型重新生成后以UTF-8、LF/CRLF归一化比对一致。原contract:check在Windows的npx子进程入口不可用；WSL挂载Windows检出时因换行差异拒绝，未改动生成类型或校验脚本。
 - git diff --check通过；只做上述相关验证，未执行真实学校登录/查询、学校写、支付、邮件或运行部署调整。
+- 本次合并依赖PR #10候选6c61663的完整CI五组/check全部成功，不复用快速或旧版本结果；main push按既有规则不重复CI，最终纯Markdown进度提交按路径规则不触发分支CI，不将该文档提交描述为CI成功。
 
 ## 2026-10-07 · 当天首次余额减少归入前一天
 
