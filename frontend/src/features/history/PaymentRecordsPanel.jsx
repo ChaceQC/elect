@@ -44,7 +44,7 @@ export function PaymentRecordsPanel({ bindingId, range }) {
       {!records.items.length && records.complete && <div className="empty"><ReceiptText size={29} /><p>所选范围内暂无学校已缴费记录。</p></div>}
       {!!records.items.length && <div className="table-scroll" tabIndex={0} role="region" aria-label="缴费明细数据表"><table className="samples-table"><caption className="sr-only">所选日期范围的学校已缴费记录</caption><thead><tr><th>缴费时间</th><th>实缴金额</th><th>支付方式</th><th>学校订单号</th></tr></thead>
         <tbody>{records.items.slice((currentPage - 1) * 10, currentPage * 10).map(item => <tr key={item.id}><td>{timestampLabel(item.paid_at)}{!item.paid_at && <small>创建于 {timestampLabel(item.created_at)}</small>}</td><td>{moneyLabel(item.amount)}</td><td>{item.method === '1' ? '微信' : item.method ? `其他（${item.method}）` : '—'}</td><td>{item.id}</td></tr>)}</tbody></table></div>}
-      <div className="samples-footer"><p className="muted">学校记录 · 共 {records.total} 条</p><div className="pagination"><button className="quiet" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>上一页</button><span>第{currentPage}页</span><button className="quiet" disabled={currentPage * 10 >= records.items.length} onClick={() => setPage(currentPage + 1)}>下一页</button></div></div>
+      {!!records.items.length && <div className="samples-footer"><p className="muted">学校记录 · 共 {records.total} 条</p><div className="pagination"><button className="quiet" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>上一页</button><span>第{currentPage}页</span><button className="quiet" disabled={currentPage * 10 >= records.items.length} onClick={() => setPage(currentPage + 1)}>下一页</button></div></div>}
     </>}
   </section>
 }

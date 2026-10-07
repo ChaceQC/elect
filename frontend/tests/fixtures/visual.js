@@ -44,6 +44,7 @@ export async function visualFixture(page) {
       daily_consumption: history('2026-09-17', '2026-09-30'), monitor: { enabled: true, state: 'active', health: 'healthy', interval_minutes: 60 },
       component_status: { profile: 'ready', balance: 'ready', history: 'ready', monitor: 'ready' } })
     if (path.endsWith('/balance')) return send(currentBalance)
+    if (path.endsWith('/payment-records')) return send({ items: [], total: 0, total_amount: '0.00', known_amount: '0.00', complete: true })
     if (path.endsWith('/consumption')) return send(history(url.searchParams.get('start_date'), url.searchParams.get('end_date'), url.searchParams.get('granularity')))
     if (path.endsWith('/monitor-samples')) return send({ binding_id: a, items: Array.from({ length: 10 }, (_, i) => ({ ...sample(i), balance: '86.42', captured_at: `2026-10-01T${String(23 - i).padStart(2, '0')}:00:00+08:00` })), total: 10, page: 1, page_size: 10, has_monitor_history: true, snapshot_token: 'visual-synthetic' })
     if (path === '/api/v1/monitor') return send({ ...monitor(), binding_id: a, health: 'healthy', config: { ...monitor().config, email: 'fixture@example.invalid' } })
