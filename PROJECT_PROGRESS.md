@@ -8,10 +8,12 @@
 - 更新总览/明细共用图表提示、根/前后端README、AGENTS、实施/架构文档及内部契约说明；API字段不变，前后端、锁文件及OpenAPI版本同步至0.21.1，无新迁移或存量改写。
 - 修正提交dd9ab6315c6c5e754cc4a1e7af771a49f17703cb已推送dev，[快速CI37595203283](https://github.com/ChaceQC/elect/actions/runs/37595203283)已success：前后端与check成功，三组完整验证按quick跳过。
 - 用户追加要求通过后按文档合入main；已fetch确认dev包含最新main（6c4bf46），工作区干净、差异检查通过，main严格check/PR/管理员保护及禁止强推删除保持启用。
+- [PR #9](https://github.com/ChaceQC/elect/pull/9)最新候选290d9b74fe5a7a392d3462e2d8092f67f5efbcf7的[完整CI37596137445](https://github.com/ChaceQC/elect/actions/runs/37596137445)于2026-10-07 17:06:32（Asia/Shanghai）完成success：前端、后端、business、compatibility、delivery五组与check全部成功，publish按普通PR设计跳过。
+- 合并前再次核对最新main祖先、候选SHA、CLEAN/MERGEABLE和本次运行每项检查，使用普通merge及match-head-commit，于17:08:09合入main，提交8412f580804e0770dbbad488cfe608a0be686b71；未使用admin或绕过保护。本地main与dev已快进同步，最终纯Markdown记录在dev提交推送。
 
 ### 进行中
 
-- 创建dev → main PR，等待本次最新候选五组完整验证与check全部success，再匹配head SHA正常merge。
+- 无进行中项，0.21.1日期归属修正已交付main。
 
 ### 阻塞与风险
 
@@ -19,7 +21,7 @@
 
 ### 下一步
 
-- PR完整门禁成功后复核最新main祖先、PR head及合并状态，合入main并同步本地分支，记录结果；部署仍待用户指定。
+- 如需运行页面生效，按用户后续部署要求升级指定环境到0.21.1，保留原Secret/卷并核对趋势日期归属；本轮实现与合并任务已完成。
 
 ### 主要文件或模块
 
@@ -30,7 +32,7 @@
 - WSL已有测试镜像、一次性MySQL 8.4.6内运行4项日归属集成验证和8项合并规则验证，12项全部通过；涵盖上海午夜、区间首日排除/末日回补、分段与整段一致、零/充值后的首次减少、多日间隔、跨周/月、学校金额按归属日优先及账号/寝室隔离。只使用合成空库，结束后自动清理容器/网络。
 - Ruff、ESLint和OpenAPI生成/同步检查通过；前端生产构建及1440/375px两项浏览器验证通过，确认总览/明细展示新的日期口径提示并保留刷新联动。
 - git diff --check通过；未重复全量本地测试，未读取真实凭据或执行学校/邮件/支付及部署操作。
-- 快速CI证据仅对应dd9ab63；本次纯Markdown准备提交按路径规则不触发分支CI，PR仍执行完整门禁，旧PR #8结果不替代本次修正验证。
+- 快速CI对应dd9ab63，最新完整CI对应PR #9候选290d9b7；本次修正已独立通过完整门禁，未复用旧PR #8结论。最终纯Markdown记录按路径规则未触发分支CI，不将文档提交描述为CI成功；main push按既有规则不重复运行。
 
 ## 2026-10-07 · 0.21.0合入main
 
