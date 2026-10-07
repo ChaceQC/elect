@@ -23,16 +23,23 @@ def bucket_end(day, granularity):
 def totals(rows, expected):
     amounts = [row["charged_amount"] for row in rows if row["charged_amount"] is not None]
     usage = [row["energy_usage"] for row in rows if row["energy_usage"] is not None]
+    known_days = len({row["record_date"] for row in rows if row["charged_amount"] is not None})
     return {
         "amount": format(sum(map(Decimal, amounts)), ".2f") if amounts else None,
         "energy_usage": format(sum(map(Decimal, usage)), ".4f") if usage else None,
-        "known_days": len(
-            {row["record_date"] for row in rows if row["charged_amount"] is not None}
-        ),
+        "known_days": known_days,
         "expected_days": expected,
-        # C02 成功/有记录尚不能证明全日完整。
-        "complete": False,
+        # 完整仅表示金额日期覆盖，来源质量由估算字段独立说明。
+        "complete": known_days == expected,
     }
+
+
+def coverage_status(summary):
+    if summary["complete"]:
+        return "complete"
+    if summary["amount"] is not None or summary["energy_usage"] is not None:
+        return "partial"
+    return "unknown"
 
 
 def aggregate(rows, start, end, granularity):
@@ -91,11 +98,7 @@ async def consumption(engine, owner, command):
             binding=command.binding_id.bytes,
         )
     buckets, summary = aggregate(rows, command.start_date, command.end_date, command.granularity)
-    coverage = (
-        "partial"
-        if summary["amount"] is not None or summary["energy_usage"] is not None
-        else "unknown"
-    )
+    coverage = coverage_status(summary)
     state = (
         "loading"
         if sync and sync["state"] in {"accepted", "running"}
@@ -103,6 +106,8 @@ async def consumption(engine, owner, command):
         if sync and sync["state"] == "failed" and rows
         else "failed"
         if sync and sync["state"] == "failed"
+        else "ready"
+        if summary["complete"]
         else "partial"
         if rows
         else "empty"

@@ -15,7 +15,7 @@ export function ConsumptionPanel({ bindingId, range, granularity, onGranularity 
     refetchIntervalInBackground: false })
   const history = query.data
   return <section className="card"><div className="card-heading"><div><h2>历史消费趋势</h2>
-    {history && !history.summary.complete && <p className="history-summary">已知合计 {moneyLabel(history.summary.amount)} · {history.summary.known_days}/{history.summary.expected_days} 天（数据不完整{history.summary.estimated_amount != null ? '，含余额变化估算' : ''}）</p>}</div>
+    {history && <p className="history-summary">已知合计 {moneyLabel(history.summary.amount)} · {history.summary.known_days}/{history.summary.expected_days} 天{!history.summary.complete && (history.summary.known_days === 0 ? '（暂无金额数据）' : '（数据不完整）')}{history.summary.estimated_amount != null && '，含余额变化估算'}</p>}</div>
     <div className="actions"><QueryAction compact autoRefresh={!!history} key={bindingId} path={`/room-bindings/${bindingId}/history-sync`} body={range} label="同步所选范围的学校历史" operationId={history?.sync_operation && ['accepted', 'running'].includes(history.sync_operation.state) ? history.sync_operation.id : undefined} />
     <div className="segments" role="group" aria-label="图表粒度">{[['month', '月'], ['week', '周'], ['day', '天']].map(([value, label]) => <button key={value} className={granularity === value ? 'selected' : ''} aria-pressed={granularity === value} onClick={() => onGranularity(value)}>{label}</button>)}</div></div></div>
     {query.isPending && <p role="status">正在读取消费趋势…</p>}

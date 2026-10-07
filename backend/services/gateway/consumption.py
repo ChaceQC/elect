@@ -3,7 +3,7 @@
 from decimal import Decimal
 
 from services.common.http import ApiError
-from services.room.consumption import aggregate
+from services.room.consumption import aggregate, coverage_status
 from services.room.dto import Consumption
 
 
@@ -36,11 +36,15 @@ def merge_consumption(history, estimates, granularity):
             row for row in rows if bucket["start_date"] <= row["record_date"] <= bucket["end_date"]
         ]))
     summary.update(estimate_totals(rows))
+    state = original.sync_status
+    if state in {"ready", "partial", "empty"}:
+        state = "ready" if summary["complete"] else (
+            "partial" if coverage_status(summary) != "unknown" else "empty"
+        )
     return Consumption.model_validate({
         **original.model_dump(), "granularity": granularity,
         "buckets": buckets, "summary": summary,
-        "coverage": "partial" if summary["amount"] is not None
-        or summary["energy_usage"] is not None else "unknown",
+        "coverage": coverage_status(summary), "sync_status": state,
         "version": original.version + estimates["sample_count"],
         "monitoring_status": "ready",
     }).model_dump(mode="json")
