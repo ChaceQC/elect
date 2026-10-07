@@ -6,10 +6,11 @@
 - Room与Gateway共用日期完整性和coverage规则，合并估算后重算普通数据状态，保留学校同步进行中/失败及Monitoring降级；桶、汇总和总览一致，估算来源独立可见。
 - 前后端及锁文件版本同步0.22.1，更新DTO说明、根/前后端README、AGENTS、契约、架构与消费趋势决策；无AGENT.md，无数据库迁移或Secret变更。
 - 业务提交0c3f12d2eda56a632068e3903b02615e34d7ee16已推送dev，本次[快速CI37627630009](https://github.com/ChaceQC/elect/actions/runs/37627630009)已success，前后端与check均通过；完整三组及publish按quick设计跳过，不替代main PR完整门禁。
+- 用户追加按文档合入main：fetch后确认dev包含最新main（a235589），起始工作区干净，差异仅本次0.22.1修复及已交付缴费功能的文档收口；服务器严格GitHub Actions check、PR、管理员保护及禁止强推/删除均已核对。
 
 ### 进行中
 
-- 无进行中项，0.22.1源码修复及dev交付完成。
+- 准备dev → main PR，等待该PR最新候选完整CI五组与check全部通过。
 
 ### 阻塞与风险
 
@@ -17,7 +18,7 @@
 
 ### 下一步
 
-- 若后续要求合入main，按协作流程创建dev → main PR并等待最新候选完整CI；若要求运行页面生效，依据指定环境部署手册升级至0.22.1。本轮未合并main或升级部署。
+- 创建PR并核对最新候选完整CI、main祖先及分支保护，全部满足后使用普通merge及match-head-commit合并，再同步本地main/dev并记录结果。本轮不部署或创建版本标签。
 
 ### 主要文件或模块
 
