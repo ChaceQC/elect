@@ -31,6 +31,11 @@ export async function visualFixture(page) {
     if (path === '/api/v1/auth/session') return logged ? send({ id: user.id, csrf_token: user.csrf_token, consent: user.consent }) : route.fulfill({ status: 401, json: { error: { code: 'APP_SESSION_EXPIRED' } } })
     if (path === '/api/v1/auth/agreement') return send(agreement)
     if (path === '/api/v1/auth/captcha') return send({ ...captcha(), image_data_url: captchaImage })
+    if (request.method() === 'POST' && /\/(balance-refresh|history-sync)$/.test(path)) {
+      const id = path.endsWith('/balance-refresh') ? '0199a10c-0000-7000-8000-000000000091' : '0199a10c-0000-7000-8000-000000000092'
+      return route.fulfill({ status: 202, json: wrap({ operation_id: id, state: 'accepted' }) })
+    }
+    if (/\/operations\/0199a10c-0000-7000-8000-00000000009[12]$/.test(path)) return send({ id: path.split('/').at(-1), state: 'succeeded' })
     if (request.method() !== 'GET') { unexpected.push(`${request.method()} ${path}`); return route.abort() }
     if (path === '/api/v1/room-bindings') return send({ ...bindings, items: [room], total: 1, default_binding_id: a, sync_status: 'ready' })
     if (path === '/api/v1/overview') return send({ viewing_binding_id: a,
