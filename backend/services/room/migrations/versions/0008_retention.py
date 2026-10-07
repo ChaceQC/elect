@@ -18,4 +18,3 @@ def upgrade():
 
 def downgrade():
     archive_schema_v1.downgrade(op)
-
