@@ -6,18 +6,21 @@
 - fetch后确认dev已包含最新main（208cba97bc3da0e8474925528728f69b365939d5），待合并范围仅本次0.21.0消费趋势与对应契约/文档/验证，差异检查通过，无冲突。
 - 核对main保护：严格GitHub Actions check（App ID 15368）、PR及管理员约束启用，禁止强推和删除；保留merge commit祖先关系。
 - 业务提交的[快速CI37589816135](https://github.com/ChaceQC/elect/actions/runs/37589816135)已成功：前后端与check通过，完整三组按quick跳过。这不能替代本次PR完整验证。
+- [PR #8](https://github.com/ChaceQC/elect/pull/8)最新候选a3bcb8ea667564df3d721589bd26624880e4bc42的[完整CI37590560833](https://github.com/ChaceQC/elect/actions/runs/37590560833)于2026-10-07 16:18:21（Asia/Shanghai）完成success：frontend、backend、business、compatibility、delivery五组及check全部成功；publish按普通PR设计跳过。
+- 合并前重新fetch并核对head SHA、最新main祖先、CLEAN/MERGEABLE及每项检查所属运行，使用普通`--merge --match-head-commit`于16:19:14合并。main合并提交为6c4bf46d74171df01f7fb5bc4c25fce74203d8fb，未使用admin或绕过保护。
+- 本地main与dev均已快进到该合并提交；最终进度收口仅修改本Markdown，并按开发分支流程提交推送dev。main push按既有规则不重跑CI。
 
 ### 进行中
 
-- 创建dev → main PR，等待其最新提交的前端、后端、business、compatibility、delivery五组和check全部成功，再匹配head SHA合并。
+- 无合并进行中项，0.21.0源码已交付main。
 
 ### 阻塞与风险
 
-- 无分支或权限阻塞；PR完整验证尚待执行。本轮仅Git交付，现有部署仍为0.20.3，不触发版本标签、镜像发布或真实业务测试。
+- 无合并阻塞；当前PR完整门禁已通过。本轮仅Git交付，现有部署仍为0.20.3，未创建版本标签、发布镜像或新增真实业务测试。
 
 ### 下一步
 
-- PR完整门禁成功后重新核对head、最新main祖先和合并状态，执行普通merge并同步本地main/dev及远端dev，登记最终结果。
+- 如需让运行页面使用新趋势，按用户后续部署要求，依据本机私网部署手册准备0.21.0镜像并升级指定环境；本轮合并任务已完成。
 
 ### 主要文件或模块
 
@@ -25,7 +28,8 @@
 
 ### 验证
 
-- 本轮检查Git状态、差异、祖先、服务器分支保护和业务提交CI；不额外重复本地测试。此进度提交仅修改Markdown，分支push按文档路径规则不触发CI，PR仍须完整验证。
+- 本轮检查Git状态、差异、祖先、服务器分支保护、业务提交快速CI及最新PR完整CI；不额外重复本地测试。完整验证五组/check全部success且PR状态为MERGED。
+- 最终收口仅修改Markdown，dev分支push按路径规则未触发CI，不能将该文档提交称为CI成功；验证证据追溯本次PR候选a3bcb8e及完整运行37590560833。
 
 ## 2026-10-07 · 消费趋势合并监控估算
 
@@ -48,7 +52,7 @@
 
 ### 下一步
 
-- 按页首流程完成PR完整验证并合入main；需要更新运行页面时，按用户后续部署要求将0.21.0部署到指定环境。
+- PR #8已按页首流程合入main；需要更新运行页面时，按用户后续部署要求将0.21.0部署到指定环境。
 
 ### 主要文件或模块
 
