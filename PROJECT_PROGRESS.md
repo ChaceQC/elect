@@ -1,3 +1,39 @@
+## 2026-10-07 · 按用户要求拉取dev并重部署本机
+
+### 已完成
+
+- 从干净dev `1b72b52` fast-forward拉取远端至`01eab8e835aa91674de4c490a9ffaf5772b9ea32`（0.20.3）；核对最终业务提交a4453ac的快速CI37501417607，前后端和check均success，完整三组和publish按quick跳过。
+- 确认实际目标为elect-local、local源码镜像、core组合加既有SMTP定向通道，入口10.8.0.88:6874，8个长期容器；保留原配置、29个Secret文件与三个数据卷。原WSL部署是独立环境。
+- 七域一致性快照已流式AES-GCM加密并通过backup-crypto完整认证；保存原env/Secret受限副本，备份位于`/opt/elect-local/redeploy-0.20.3-20261007T090347/`，沿用独立backup-keys目录中的既有密钥，不输出Secret或明文SQL。
+- 前后端镜像`elect-backend:v0.20.3-01eab8e`与`elect-frontend:v0.20.3-01eab8e`构建及版本/源提交校验通过；仅更新忽略配置中的两项镜像引用，原绑定、支付、真实SMTP和后台开关均保留。
+- Compose/Nginx预检后停止本项目全部旧应用角色，基础服务保留运行；09:06:14—09:07:05（Asia/Shanghai）依次完成七域迁移与Adapter、core、SMTP通道、邮件Worker、入口启动，8个长期容器全部healthy且无重启。保留旧0.20.2镜像供兼容回退。
+- 入口与内部TLS/领域后台检查通过，69条真实历史采集的只读DTO核对取得8.5000/0.0000差值，新前端产物含“电表止码 / 差值”且已移除“读数来源与质量”；原Secret和卷逐项比对一致。
+
+### 进行中
+
+- 无部署进行中项；本机按当前配置保持运行，部署记录以独立纯Markdown提交推送，不改变镜像来源。
+
+### 阻塞与风险
+
+- 无部署阻塞；已完成短暂切换并保持本机运行。最新快速CI不表示三组完整验证，既有完整证据不覆盖本次版本；本轮未读取auth.txt/email_auth.txt，未新增真实登录、学校写入、支付或邮件测试，独立WSL环境未操作。
+
+### 下一步
+
+- 后续正式交付前针对最终候选运行full五组/check门禁，再安排正式发布；本轮完成本机开发版部署，保留当前运行环境和本次加密备份。
+
+### 主要文件或模块
+
+- deploy/.env.local（忽略配置，仅更新应用镜像引用）、既有compose.sh/迁移/运维入口、docs/runbooks/本机私网部署.md、PROJECT_PROGRESS.md与AGENTS.md；README及子目录README版本/入口已正确，无需修改。
+
+### 验证
+
+- 拉取前后Git工作区干净；当前七域头为identity_0004、school_0008、room_0008、monitoring_0010、notification_0003、payment_0006、audit_0002，基线无待发Outbox/未知操作，监控关闭，历史69次成功采集、7封sent与2个paid_confirmed订单保留。
+- Compose配置、release check-config --allow-local、两镜像check-images、Nginx语法、七域重复迁移全部通过；迁移头保持原值，无新DDL。旧core/Adapter/mail-worker/nginx正常退出0，SMTP定向通道由SIGTERM结束为143。
+- `/healthz`、首页、`/history`及`/api/v1/auth/agreement`返回200，协议仍为2026-10-04.1/no-store；无Cookie的`/auth/session`返回预期401。生产JS/CSS两份资源与容器文件SHA-256相同，电表新字段/表头存在且已删除的列不在JS产物中。
+- core六域及Adapter两角色全部ready；69条现存样本只读计算/DTO检查通过，不建立样本快照或调用学校。29个Secret逐文件SHA-256、三个原卷与实际挂载、两项镜像外的全部env配置均一致；8容器healthy/RestartCount=0。
+- deploy/status.sh通过：七域迁移头保持不变，全部Outbox无待发，未知操作为0，监控关闭；69次成功采集、7封sent、2个paid_confirmed订单与升级前一致，MySQL连接上限40且无连接超额错误。
+- 三份本次文档UTF-8、5个本地链接、4段Shell示例语法及git diff --check通过；检查README/子目录README和AGENT.md适用范围，仅提交本次三份Markdown，env/备份/Secret/构建产物保持排除。
+
 ## 2026-10-07 · 监控电表止码与采集差值修正
 
 ### 已完成
