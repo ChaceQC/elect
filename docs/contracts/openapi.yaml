@@ -2,7 +2,7 @@
 openapi: 3.1.0
 info:
   title: 寝室电费学生端 API
-  version: 0.21.2
+  version: 0.22.0
   description: T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，时间戳带时区。202 仅表示持久受理。业务服务按 x-stage
     实现。
 servers:
@@ -3592,6 +3592,125 @@ paths:
               $ref: '#/components/schemas/OrderRequest'
       x-result-query: /payment-orders/{id}
       x-persistence: payment.payment_orders
+  /room-bindings/{id}/payment-records:
+    get:
+      operationId: get_payment_records
+      tags:
+      - payment
+      summary: get_payment_records
+      x-owner: payment
+      x-stage: T6
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: start_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: end_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PaymentRecords'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
   /payment-orders/{id}:
     get:
       operationId: get_order
@@ -6208,4 +6327,91 @@ components:
       - poll_url
       - retry_after_seconds
       title: QRPending
+      type: object
+    PaymentRecordsQuery:
+      additionalProperties: false
+      properties:
+        start_date:
+          format: date
+          title: Start Date
+          type: string
+        end_date:
+          format: date
+          title: End Date
+          type: string
+        binding_id:
+          format: uuid
+          title: Binding Id
+          type: string
+      required:
+      - start_date
+      - end_date
+      - binding_id
+      title: PaymentRecordsQuery
+      type: object
+    PaymentRecord:
+      additionalProperties: false
+      properties:
+        id:
+          title: Id
+          type: string
+        paid_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Paid At
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        amount:
+          pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+          title: Amount
+          type: string
+        method:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Method
+      required:
+      - id
+      - paid_at
+      - created_at
+      - amount
+      - method
+      title: PaymentRecord
+      type: object
+    PaymentRecords:
+      additionalProperties: false
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/PaymentRecord'
+          title: Items
+          type: array
+        total:
+          minimum: 0
+          title: Total
+          type: integer
+        total_amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          title: Total Amount
+        known_amount:
+          pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+          title: Known Amount
+          type: string
+        complete:
+          title: Complete
+          type: boolean
+      required:
+      - items
+      - total
+      - total_amount
+      - known_amount
+      - complete
+      title: PaymentRecords
       type: object

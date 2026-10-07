@@ -1,6 +1,7 @@
 """支付同源入口，全部读写均重新 introspect 当前应用会话。"""
 
 import base64
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import Response
 
 from services.common.browser_security import require_browser_write
+from services.common.dates import check_range
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.payment.dto import OrderCancelRequest, OrderRequest
@@ -34,6 +36,15 @@ async def call(request, path, payload, *, write=False):
 @router.get("/payments/capabilities")
 async def capabilities(request: Request, binding_id: UUID):
     return success(request, await call(request, "capabilities", {"binding_id": str(binding_id)}))
+
+
+@router.get("/room-bindings/{id}/payment-records")
+async def records(id: UUID, request: Request, start_date: date, end_date: date):
+    check_range(start_date, end_date)
+    return success(request, await call(request, "records", {
+        "binding_id": str(id), "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+    }))
 
 
 @router.post("/payment-orders", status_code=202)

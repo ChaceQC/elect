@@ -838,6 +838,8 @@ Authorization: Bearer <SDGL_TOKEN>
 <a id="d04"></a>
 ### D04 查询学校电费订单列表
 
+2026-10-07真实只读补验：省略payMethod可返回学校可见的多个渠道，近30天共17笔、实缴312.40元，渠道代码1/2/3；同范围payMethod=1只返回15笔。新增缴费列表使用不限渠道请求和payAmount精确合计。单查2026-10-05返回2笔且缴费日均为当天；创建日/支付日不同的边界仍未覆盖。生产解析与分类证据见[缴费列表规则](decisions/学校缴费明细列表.md)及[本次真实检查](acceptance/school/2026-10-07-payment-history.json)。不为代码2/3猜测渠道名称。
+
 2026-10-04已取得本人真实明细：orderId为19位字符串，userId/buildId/orderAmount/payAmount/createdTime/payTime均为字符串；已支付payStatus="2"、电费orderType="0"、微信payMethod="1"，tradeOrderNo本次为空。D01的64位prePayId不等于此orderId。原票据付款后E01的可见完整提示为“该订单已支付，无法再次交易,请返回系统重新发起交易”；与唯一本人/寝室/金额/建单后D04记录一起确认原单，不能单凭同金额匹配。指定1元及余额增量证据见[分类记录](acceptance/school/2026-10-04-meter-payment.json)。后文空数组为2026-09-30的历史结果。
 
 **请求**：`GET https://sdgl.hbue.edu.cn/api/base/order/page`
