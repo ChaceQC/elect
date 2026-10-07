@@ -19,9 +19,18 @@ from services.common.security import Principal, require_user_principal
 from .dto import Capabilities, OrderCancelRequest, OrderRequest, QRPending
 from .orders import accepted, create_order, get_order, order_view, reference, replay, unresolved
 from .policy import MAXIMUM, MINIMUM, STEP, unavailable, validate_amount
+from .records_dto import PaymentRecords, PaymentRecordsQuery
 
 router = APIRouter(prefix="/internal/v1")
 Browser = Annotated[Principal, Depends(require_user_principal("payment:browser"))]
+
+
+@router.post("/browser/records", response_model=PaymentRecords)
+async def records(command: PaymentRecordsQuery, request: Request, principal: Browser):
+    return await request.app.state.service_client.call(
+        "school_adapter", "/payments/records", "school:payment", principal.request_id,
+        command.model_dump(mode="json"), principal=principal,
+    )
 
 
 class CreateCommand(OrderRequest):

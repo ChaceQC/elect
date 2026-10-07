@@ -7,6 +7,7 @@ import { BalancePanel } from './BalancePanel.jsx'
 import { ConsumptionPanel } from './ConsumptionPanel.jsx'
 import { DateRangePicker } from './DateRangePicker.jsx'
 import { SamplesPanel } from './SamplesPanel.jsx'
+import { PaymentRecordsPanel } from './PaymentRecordsPanel.jsx'
 import { PageHeading } from '../../components/layout/PageHeading.jsx'
 
 export function HistoryPage() {
@@ -43,6 +44,7 @@ export function HistoryPage() {
     {!bindingId && bindings.data && <StatusBlock title="请先选择或绑定寝室"><Link to="/rooms">管理我的寝室</Link></StatusBlock>}
     {bindingId && <><BalancePanel key={bindingId} bindingId={bindingId} displayName={bindings.data?.items.find(item => item.id === bindingId)?.display_name ?? '所选寝室'} /><DateRangePicker key={`${range.start_date}:${range.end_date}`} range={range} onApply={value => update({ ...value, page: null })} />
       <ConsumptionPanel bindingId={bindingId} range={range} granularity={granularity} onGranularity={value => update({ granularity: value })} />
-      <SamplesPanel key={`${bindingId}:${range.start_date}:${range.end_date}`} bindingId={bindingId} range={range} page={page} onPageChange={value => update({ page: value === 1 ? null : String(value) })} /></>}
+      <SamplesPanel key={`${bindingId}:${range.start_date}:${range.end_date}`} bindingId={bindingId} range={range} page={page} onPageChange={value => update({ page: value === 1 ? null : String(value) })} />
+      <PaymentRecordsPanel key={`payments:${bindingId}:${range.start_date}:${range.end_date}`} bindingId={bindingId} range={range} /></>}
   </>
 }

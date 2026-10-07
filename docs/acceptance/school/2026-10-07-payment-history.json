@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-07",
+  "scope": "本人认证、B02、D04只读",
+  "external_business_writes": false,
+  "deployed_endpoint_verified": false,
+  "stage": "complete",
+  "bound_room_count": 1,
+  "start_date": "2026-09-08",
+  "end_date": "2026-10-07",
+  "rooms": [
+    {
+      "room_index": 1,
+      "total": 17,
+      "read_count": 17,
+      "total_amount": "312.40",
+      "complete": true,
+      "methods": [
+        "1",
+        "2",
+        "3"
+      ],
+      "paid_dates_in_range": true,
+      "missing_paid_time": 0,
+      "wechat_total": 15,
+      "wechat_first_page_in_all": true,
+      "single_day": "2026-10-05",
+      "single_day_count": 2,
+      "single_day_complete": true,
+      "single_day_includes_selected": true,
+      "single_day_paid_dates_match": true
+    }
+  ],
+  "result": "passed"
+}

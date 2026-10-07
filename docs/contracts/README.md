@@ -1,5 +1,7 @@
 # API 契约
 
+0.22.0新增GET /room-bindings/{id}/payment-records与PaymentRecords契约，当前公开36个方法/路径；内部新增Payment /browser/records与Adapter /payments/records，沿用payment:browser、school:payment。实缴金额全范围合计、部分结果null及学校渠道边界见[规则](../decisions/学校缴费明细列表.md)。
+
 0.21.1的Consumption桶/汇总amount按日合并学校与监控余额变化估算：学校非零金额优先；缺失或0且有余额减少时补估算，每日首次有效余额减少先归前一天，再按归属日期筛选、合并并聚合周/月。Bucket/ConsumptionSummary可选estimated_amount、estimated_days标明估算部分；Consumption可选monitoring_status标明降级，version包含归属所选范围的样本数，complete仍为false。内部增加Monitoring的/browser/consumption，沿用monitor:browser；原余额变化/电表字段不变，规则见[消费趋势合并](../decisions/消费趋势合并监控估算.md)。
 
 R6新增`GET /auth/session`及`LocalSession`，仅返回Identity本库用户ID、CSRF和同意记录；旧`/auth/me`及登录完整Me保持兼容。当前公开35个方法/路径，内部55个静态路由。失效401/依赖503与前端兼容规则见[本地会话与学校资料](../runbooks/本地会话与学校资料.md)。
@@ -8,7 +10,7 @@ R5.1公开DTO不变：会话每请求权威校验，续期每60秒合并（12小
 
 0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
 
-当前版本：0.20.0；T0 冻结基线 0.1.0，更新日期：2026-10-06。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.22.0；T0 冻结基线 0.1.0，更新日期：2026-10-06。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
 
 0.19.4公开DTO不变，Balance.fetched_at为最后成功取得学校结果的观察时间，未知旧缓存不伪造新鲜度。内部BalanceReading统一序号/结果时间/错误，三入口共用比较；HistoryExecutionQuery传剩余预算。支付余额业务失败终结自动跟踪，读取暂时失败保持pending/30秒。内部命令和schemas已同步，详见[执行与余额语义](../runbooks/余额观测与历史执行边界.md)。
 

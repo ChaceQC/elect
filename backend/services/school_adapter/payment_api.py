@@ -13,6 +13,7 @@ from services.common.internal_dto import (
     SchoolQRResult,
 )
 from services.common.security import Principal, authorize_owner, require_user_principal
+from services.payment.records_dto import PaymentRecords, PaymentRecordsQuery
 
 from .application.payment_flow import PaymentFlow
 from .application.payment_orders import SchoolOrders
@@ -20,6 +21,13 @@ from .infrastructure.payment_sessions import PaymentSessions
 
 router = APIRouter(prefix="/internal/v1/payments")
 Payment = Annotated[Principal, Depends(require_user_principal("school:payment"))]
+
+
+@router.post("/records", response_model=PaymentRecords)
+async def records(command: PaymentRecordsQuery, request: Request, principal: Payment):
+    from .application.payment_history import read
+
+    return await read(request.app.state, principal, command)
 
 
 @router.post("/dispatch", response_model=SchoolOrderResult)

@@ -256,6 +256,8 @@ ENDPOINTS = (
         recovery="/payment-orders/{id}",
         persistence="payment.payment_orders",
     ),
+    Endpoint("get", "/room-bindings/{id}/payment-records", "get_payment_records", "payment",
+             "T6", "PaymentRecords", query=("start_date", "end_date")),
     Endpoint("get", "/payment-orders/{id}", "get_order", "payment", "T6", "Order"),
     Endpoint(
         "post", "/payment-orders/{id}/cancel", "cancel_order", "payment", "T6", "Order",
