@@ -16,6 +16,8 @@ for (const width of [1440, 375]) {
     await page.setViewportSize({ width, height: 900 })
     await page.route('**/api/v1/**', async route => {
       const request = route.request(), path = new URL(request.url()).pathname
+      if (path.endsWith('/balance-refresh')) return route.fulfill({ status: 202, json: envelope({ operation_id: op }) })
+      if (path === `/api/v1/operations/${op}`) return route.fulfill({ json: envelope({ id: op, state: 'succeeded' }) })
       expect(request.method()).toBe('GET')
       if (path === '/api/v1/auth/me') return route.fulfill({ json: envelope(me) })
       if (path === '/api/v1/room-bindings') return route.fulfill({ json: envelope(rooms) })
@@ -48,10 +50,12 @@ for (const width of [1440, 375]) {
       if (path === '/api/v1/monitor') return route.fulfill({ json: envelope({ ...monitor(), binding_id: a }) })
       if (path.endsWith('/balance')) return route.fulfill({ json: envelope(balance(amounts[path.split('/')[4]])) })
       if (path.endsWith('/balance-refresh')) {
-        expect(path.split('/')[4]).toBe(b); refreshes += 1; amounts[b] = '93.12'
+        if (path.split('/')[4] === b) { refreshes += 1; amounts[b] = '93.12' }
         expect(request.headers()['idempotency-key']).toBeTruthy()
         return route.fulfill({ status: 202, json: envelope({ operation_id: op, state: 'accepted', poll_url: `/api/v1/operations/${op}` }) })
       }
+      if (path.endsWith('/history-sync')) return route.fulfill({ status: 202, json: envelope({ operation_id: runId }) })
+      if (path === `/api/v1/operations/${runId}`) return route.fulfill({ json: envelope({ id: runId, state: 'succeeded' }) })
       if (path === `/api/v1/operations/${op}`) return route.fulfill({ json: envelope({ id: op, state: 'succeeded' }) })
       if (path.endsWith('/consumption')) {
         historyReads.push(url)
@@ -70,6 +74,7 @@ for (const width of [1440, 375]) {
     await expect(page.getByText('¥12.34', { exact: true }).first()).toBeVisible()
     await expect(page.getByRole('img', { name: '学校消费记录趋势，未知日期保留断点' })).toBeVisible()
     await expect(page.getByText('数据不完整', { exact: false })).toBeVisible()
+    await expect(page.getByRole('button', { name: '同步所选范围的学校历史' })).toHaveAttribute('aria-busy', 'false')
     const count = historyReads.length
     await page.getByLabel('开始日期', { exact: true }).fill('2026-09-20')
     await page.getByLabel('结束日期', { exact: true }).fill('2026-09-30')
@@ -94,10 +99,11 @@ for (const width of [1440, 375]) {
     await expect(page.getByText('第1页')).toBeVisible()
     await expect(page.getByText('共 13 条')).toBeVisible()
     await page.getByLabel('查看寝室').selectOption(b)
-    await expect(page.locator('.balance-amount')).toHaveText('¥98.76')
-    await page.getByRole('button', { name: '刷新学校余额' }).click()
     await expect(page.locator('.balance-amount')).toHaveText('¥93.12')
     expect(refreshes).toBe(1)
+    await page.getByRole('button', { name: '刷新学校余额' }).click()
+    await expect(page.locator('.balance-amount')).toHaveText('¥93.12')
+    await expect.poll(() => refreshes).toBe(2)
     await expect(page.getByText('独立查看不会修改默认寝室或监控目标。')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await capture(page, `t4-details-${width}`)

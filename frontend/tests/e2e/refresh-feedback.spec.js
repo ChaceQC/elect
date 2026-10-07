@@ -16,7 +16,6 @@ for (const width of [1440, 375]) {
     await page.goto('/details')
     await expect(page.locator('.consumption-chart canvas')).toBeVisible()
     const refresh = page.getByRole('button', { name: '同步所选范围的学校历史' })
-    await refresh.click()
     await expect(refresh).toBeDisabled()
     await expect(refresh).toHaveAttribute('aria-busy', 'true')
     const spinner = refresh.locator('svg')
@@ -38,7 +37,6 @@ for (const width of [1440, 375]) {
     await expect(page.getByText('查询已完成')).toHaveCount(0)
     state = 'failed'
     await page.reload()
-    await page.getByRole('button', { name: '同步所选范围的学校历史' }).click()
     await expect(page.getByText('本次查询未完成，已保留最近成功数据。')).toBeVisible()
   })
 }

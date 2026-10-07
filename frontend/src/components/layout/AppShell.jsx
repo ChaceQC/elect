@@ -8,6 +8,7 @@ import { AccountContent } from '../../features/auth/AccountContent.jsx'
 import { RoomsBootstrap } from '../../features/rooms/RoomsBootstrap.jsx'
 import { useBindings } from '../../features/rooms/useBindings.js'
 import { Brand } from './Brand.jsx'
+import { QueryRefreshProvider } from '../../features/history/QueryRefreshProvider.jsx'
 
 const pages = [
   { path: '/overview', label: '总览', icon: LayoutDashboard },
@@ -38,7 +39,7 @@ export function AppShell() {
         action={{ label: '重新加载学校资料', onClick: () => { void refreshUser() } }}><p>仍可查看已有记录和关闭监控，学校相关操作暂不可用。</p></StatusBlock>}
       {profile?.credential_status === 'requires_reauth' && <StatusBlock title="学校认证需要修复"
         action={{ label: '重新认证', onClick: () => setAccountOpen(true) }}><p>你仍可查看已有记录。</p></StatusBlock>}
-      <Outlet /></main></div>
+      <QueryRefreshProvider><Outlet /></QueryRefreshProvider></main></div>
     <Modal open={accountOpen} title="我的账户" onClose={() => setAccountOpen(false)}>
       <AccountContent onClose={() => setAccountOpen(false)} />
     </Modal>

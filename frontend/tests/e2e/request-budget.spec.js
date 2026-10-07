@@ -18,11 +18,10 @@ test('429等待、刷新浏览器与恢复始终使用原余额请求键', async
   await page.route('**/api/v1/operations/' + id, route => route.fulfill({
     json: envelope({ id, type: 'balance_refresh', state: 'succeeded' }) }))
   await page.goto('/details')
-  await page.getByRole('button', { name: '刷新学校余额' }).click()
   await expect(page.getByText(/请至少等待 60 秒后用原请求重试/)).toBeVisible()
   await expect(page.getByRole('button', { name: '查询原请求的受理结果' })).toBeDisabled()
   await page.reload()
-  await page.getByRole('button', { name: '查询原请求的受理结果' }).click()
+  await expect(page.getByRole('button', { name: '查询原请求的受理结果' })).toBeDisabled()
   expect(keys).toHaveLength(1)
   await page.clock.fastForward(61000)
   await page.getByRole('button', { name: '查询原请求的受理结果' }).click()

@@ -56,7 +56,7 @@ export function OverviewPage() {
           <div className="stat-value">{overview.monitor ? overview.monitor.enabled ? '已开启' : '未开启' : '—'}</div>
           {overview.monitor?.enabled && overview.monitor.health !== 'healthy' && <p className="muted">{overview.monitor.health === 'degraded' ? '采集部分异常' : '采集暂不可用'} · <Link to="/monitor">查看状态</Link></p>}</section></div>
       <section className="card overview-trend"><div className="card-heading"><h2>历史每日消费</h2><div className="actions"><span className="pill">最近 14 天</span>
-        {bindingId && overview.daily_consumption && <QueryAction compact key={bindingId} path={`/room-bindings/${bindingId}/history-sync`} body={{ start_date: overview.daily_consumption.start_date, end_date: overview.daily_consumption.end_date }} label="同步最近14天学校历史" />}</div></div>
+        {bindingId && overview.daily_consumption && <QueryAction compact autoRefresh key={bindingId} path={`/room-bindings/${bindingId}/history-sync`} body={{ start_date: overview.daily_consumption.start_date, end_date: overview.daily_consumption.end_date }} label="同步最近14天学校历史" operationId={overview.daily_consumption.sync_operation && ['accepted', 'running'].includes(overview.daily_consumption.sync_operation.state) ? overview.daily_consumption.sync_operation.id : undefined} />}</div></div>
         {overview.daily_consumption?.buckets.some(b => b.amount !== null) ? <ConsumptionTrend buckets={overview.daily_consumption.buckets} /> : <div className="empty">暂无已知消费记录。</div>}
         {overview.daily_consumption?.monitoring_status === 'unavailable' && <p role="alert">监控估算暂时不可用，正在展示已有学校历史。</p>}
         {overview.component_status.history === 'failed' && <p role="alert">学校历史暂时不可用，余额和监控信息仍可独立读取。</p>}

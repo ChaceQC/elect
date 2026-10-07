@@ -34,7 +34,7 @@ export function BalancePanel({ bindingId, displayName, variant = 'details', isDe
         {balance.error_code && <p className="balance-warning" role="alert">最近刷新失败：{balance.error_code}，保留上次成功值。</p>}</>}
     </div>
     <div className="balance-bottom"><span>最近更新 · {timestampLabel(balance?.fetched_at ?? null)}</span><div className="actions">
-      <QueryAction compact path={`/room-bindings/${bindingId}/balance-refresh`} label="刷新学校余额" />
+      <QueryAction compact autoRefresh path={`/room-bindings/${bindingId}/balance-refresh`} label="刷新学校余额" />
       {overview ? <><PaymentEntry compact bindingId={bindingId} displayName={displayName ?? '所选寝室'} /><Link to={`/details?binding_id=${bindingId}`}>查看明细 <ArrowRight size={16} aria-hidden="true" /></Link></> :
         displayName && <PaymentEntry bindingId={bindingId} displayName={displayName} />}
     </div></div>
