@@ -2,15 +2,15 @@
 
 import hashlib
 from datetime import UTC, datetime
-from uuid import UUID
+from functools import partial
 
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.common.ids import new_id
 from services.common.sql import aware, execute, first
 
+from .balance_admission import check_budget
 from .dto import Balance
-from .preference_store import lock_preference, locked_operation
+from .preference_store import locked_operation
 from .query_jobs import accept_query, target
 
 
@@ -34,6 +34,7 @@ async def get_balance(engine, owner, binding):
         fetched_at=fetched,
         school_observed_at=aware(row["school_observed_at"]) if row else None,
         stale=not fetched
+        or row["observation_sequence"] is None
         or row["quality"] != "fresh"
         or (datetime.now(UTC) - fetched).total_seconds() > 300,
         refresh_state="pending"
@@ -47,11 +48,12 @@ async def get_balance(engine, owner, binding):
     )
 
 
-async def accept_refresh(engine, owner, binding, key):
+async def accept_refresh(engine, owner, binding, key, *, source="browser"):
     digest = hashlib.sha256(f"balance:{binding}".encode()).digest()
     async with engine.begin() as conn:
         operation, created = await accept_query(
-            conn, owner, binding, key, "balance_refresh", digest
+            conn, owner, binding, key, "balance_refresh", digest,
+            admission=partial(check_budget, owner=owner, source=source), source=source,
         )
         if not created:
             return operation
@@ -59,6 +61,7 @@ async def accept_refresh(engine, owner, binding, key):
             conn,
             "SELECT id FROM room_operations WHERE owner_user_id=:owner "
             "AND type='balance_refresh' AND state IN ('accepted','running') AND id<>:id "
+            "AND saga_step<>'merged' "
             "ORDER BY created_at,id LIMIT 1",
             owner=owner.bytes,
             id=operation.bytes,
@@ -72,7 +75,7 @@ async def accept_refresh(engine, owner, binding, key):
                 id=operation.bytes,
                 prior=pending["id"],
             )
-        else:
+        elif source == "browser":
             recent = await first(
                 conn,
                 "SELECT id FROM room_operations WHERE owner_user_id=:owner "
@@ -92,45 +95,18 @@ async def accept_refresh(engine, owner, binding, key):
         return operation
 
 
-async def claim_refresh(engine):
-    async with engine.begin() as conn:
-        candidate = await first(
-            conn,
-            "SELECT owner_user_id FROM room_operations WHERE type='balance_refresh' "
-            "AND state IN ('accepted','running') AND (lease_until IS NULL OR "
-            "lease_until<=UTC_TIMESTAMP(6)) ORDER BY created_at LIMIT 1",
-        )
-        if not candidate:
-            return None
-        await lock_preference(conn, UUID(bytes=candidate["owner_user_id"]))
-        row = await first(
-            conn,
-            "SELECT * FROM room_operations WHERE owner_user_id=:owner AND "
-            "type='balance_refresh' AND state IN ('accepted','running') AND "
-            "saga_step<>'merged' AND (lease_until IS NULL OR "
-            "lease_until<=UTC_TIMESTAMP(6)) ORDER BY created_at,id LIMIT 1 FOR UPDATE",
-            owner=candidate["owner_user_id"],
-        )
-        if not row:
-            return None
-        lease = str(new_id())
-        await execute(
-            conn,
-            "UPDATE room_operations SET "
-            "state='running',lease_owner=:lease,lease_until=DATE_ADD(UTC_TIMESTAMP(6),"
-            "INTERVAL 45 SECOND) WHERE id=:id",
-            id=row["id"],
-            lease=lease,
-        )
-        return {**row, "lease_owner": lease}
+async def claim_refresh(engine, schedule=None, *, stop=None):
+    from .read_claims import claim_operation
+
+    return await claim_operation(engine, "balance_refresh", schedule, stop=stop)
 
 
-async def finish_refresh(engine, row, records, error):
+async def finish_refresh(engine, row, records, error, observation=None):
     from .balance_store import finish_operations, update_balances
 
     async with engine.begin() as conn:
         if not await locked_operation(conn, row):
             return False
-        await update_balances(conn, row["owner_user_id"], records, error)
+        await update_balances(conn, row["owner_user_id"], records, error, observation)
         await finish_operations(conn, row["id"], records, error)
     return True

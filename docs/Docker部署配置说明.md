@@ -1,5 +1,13 @@
 # Docker 全栈部署与域名证书配置
 
+0.20.1恢复流程新增跨库观测水位门禁；无新迁移/Secret，原Secret与卷保持。见[集成恢复手册](runbooks/审计修复集成与恢复.md)。
+
+0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](runbooks/请求预算与保留归档.md)。
+
+0.19.5审计R3统一健康与协调退出：角色持续失败或意外结束会触发进程非零退出，沿用原容器重启策略，不依赖autoheal。standalone停止宽限与原领域drain加最终5秒保障对齐；core/combined预算及恢复false规则见[后台健康与协调退出](runbooks/后台健康与协调退出.md)。无新业务迁移，部署仍须按统一upgrade停止全部旧角色后切换，不自动升级现有环境。
+
+0.19.4先停止本项目全部旧profile写者，再执行`school_0007`、`room_0006`；余额内部DTO同步升级，旧缓存排序未知。保留Adapter序号与Room缓存高水位，旧支付失败调度维护不在迁移启动中运行。见[升级、维护与回退](runbooks/余额观测与历史执行边界.md)，现有部署未自动升级。
+
 0.19.1部署须由统一upgrade执行`monitoring_0006`、`room_0005`后再启动应用。原Secret不变；Monitoring recovery承担每60秒的小批快照清理，关闭后台时不清理，存量配额仍限制新写入。只清理到期快照成员/父行，不清理原始采集、学校历史、订单或operation。见[查询资源规则](decisions/查询资源受理与快照清理.md)。
 
 0.19.0新增`ELECT_DEPLOYMENT_MODE=core`，统一入口在low-resource后加入core覆盖，7个常驻容器、3个Python进程；combined保留13容器回退。核心使用原Identity内部TLS证书与`identity`网络别名，Nginx与外部Worker校验证书；各域签名身份不变。restore额外最后覆盖core/mail-worker，关闭所有后台和副作用。见[七容器方案](decisions/七容器核心组合.md)。
@@ -14,7 +22,7 @@
 
 ## 固定镜像交付（0.18.0）
 
-CI将前后端检查/构建和三组容器验证拆到独立运行器；每组各自创建Secret、数据库卷和网络，跨组只传带提交/版本/镜像ID/SHA-256的镜像包。环境准备可按依赖分组启动，无源码和原卷切换仍调用真实start/upgrade逐容器入口。标签发布依赖严格check，只加载本次受测runtime，恢复演练不重建ops。第二轮非main分支push仅快速检查且不导出镜像；main PR/版本标签和默认手动运行完整，手动分支可选quick，不做文档路径跳过。详见[CI并行验证](decisions/CI并行验证.md)。 main push按用户追加要求不触发CI，PR合并后不重复运行。
+CI将前后端检查/构建和三组容器验证拆到独立运行器；每组各自创建Secret、数据库卷和网络，跨组只传带提交/版本/镜像ID/SHA-256的镜像包。环境准备可按依赖分组启动，无源码和原卷切换仍调用真实start/upgrade逐容器入口。标签发布依赖严格check，只加载本次受测runtime，恢复演练不重建ops。非main分支push仅快速检查且不导出镜像；2026-10-06追加纯Markdown push不触发CI，含代码/配置/契约JSON或YAML仍检查。main PR/版本标签和默认手动运行完整，手动分支可选quick。详见[CI并行验证](decisions/CI并行验证.md)。main push不触发CI，PR合并后不重复运行。
 
 目标机使用开发版发布的摘要镜像和仅deploy包，不执行构建；首次/原卷升级用start.sh/upgrade.sh逐个等待基础服务、迁移、领域、后台和入口。发布与元数据/入口预检、私有registry登录及失败边界见[固定镜像手册](runbooks/固定镜像发布与启动.md)。第五步页面刷新/数据清理和2核2GB/50人24小时仍未完成。
 

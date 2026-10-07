@@ -1,7 +1,5 @@
 """邮件提示重建与投递回报；所有状态仍由本域 MySQL 决定。"""
 
-import asyncio
-
 from services.common.broker import verified_event
 from services.common.ids import new_id
 from services.common.logging import log
@@ -70,8 +68,9 @@ async def wake_tick(engine):
 
 
 async def report_tick(app, queue):
-    async with asyncio.timeout(3):
-        message = await queue.get(fail=False, timeout=1)
+    from services.common.transport_health import receive
+
+    message = await receive(queue)
     if message is None:
         return False
     try:

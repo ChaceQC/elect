@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import UUID
 
@@ -19,6 +19,7 @@ from services.room.history_store import finish_history
 from services.room.mirror import confirm_binding
 from services.room.query_worker import query_tick
 from services.room.worker import control_tick, sync_tick
+from services.school_adapter.infrastructure.balance_observations import observe
 
 
 class QuerySchool:
@@ -123,6 +124,8 @@ async def verify(apps, school):
             assert collected["balance"] == expected
         print("同账号不同房间/逆序B02：缓存与监控逐roomId匹配；账号合并一次读取：通过")
         before_null = (await client.get(f"/api/v1/room-bindings/{a}/balance")).json()["data"]
+        observed = await observe(apps["school_adapter"].state.database, owner, new_id(),
+                                 {"data": []}, None, datetime.now(UTC))
         async with engine.begin() as conn:
             await confirm_binding(
                 conn,
@@ -133,6 +136,7 @@ async def verify(apps, school):
                     "number": "001",
                     "balance": None,
                 },
+                observation=observed["observation"],
             )
         after_null = (await client.get(f"/api/v1/room-bindings/{a}/balance")).json()["data"]
         assert after_null["amount"] == before_null["amount"]

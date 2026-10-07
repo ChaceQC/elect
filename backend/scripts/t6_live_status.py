@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import json
 import os
-from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -97,7 +96,7 @@ async def verify(order, record):
         await adapter.service_client.call(
             "room", "/controls/balance-observed", "room:balance-commit", principal.request_id,
             {"binding_id": str(binding), "amount": amount,
-             "fetched_at": datetime.now(UTC).isoformat()}, principal=principal,
+             **observed["observation"]}, principal=principal,
         )
     finally:
         for app in apps.values():

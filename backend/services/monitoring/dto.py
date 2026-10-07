@@ -138,6 +138,10 @@ class Sample(DTO):
     meter_last_reading: Reading | None
     meter_reading: Reading | None
     meter_delta: Reading | None
+    meter_capture_delta: str | None = Field(
+        default=None, pattern=r"^-?(0|[1-9]\d{0,14})\.\d{4}$",
+        description="本次止码减上一条成功采集止码；沿用采集基线，任一缺失为null，负差保留。",
+    )
     meter_record_date: date | None
     meter_source: Literal["school_C02_daily_record"] | None
     meter_source_record_key: str | None

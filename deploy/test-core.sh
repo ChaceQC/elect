@@ -39,6 +39,8 @@ compose run -T --rm --no-deps -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1
   smoke python -m scripts.core_workload
 compose run -T --rm --no-deps -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1 \
   smoke python -m scripts.core_capacity
+compose run -T --rm --no-deps -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1 \
+  smoke python -m scripts.r7_mixed
 ELECT_DEPLOYMENT_MODE=combined sh "$task_root/deploy/upgrade.sh" "$task_dir/stack.env" "$task_project" --test
 count_running 13
 compose_combined() {

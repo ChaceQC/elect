@@ -2,6 +2,7 @@
 
 from uuid import UUID
 
+from services.common.archive_store import unpack
 from services.common.audit_events import record_audit
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
@@ -25,6 +26,18 @@ async def run_view(conn, row):
         .mappings()
         .all()
     )
+    archived = (await execute(conn, "SELECT * FROM archive_records WHERE kind='monitor_attempts' "
+        "AND object_key LIKE :prefix ORDER BY object_key", prefix=row["id"].hex() + ":%"
+    )).mappings().all()
+    combined = {item["id"]: item for item in attempts}
+    for record in archived:
+        item = unpack(record)
+        if item["run_id"] != row["id"]:
+            from services.common.archive_store import unavailable
+
+            raise unavailable()
+        combined[item["id"]] = item
+    attempts = sorted(combined.values(), key=lambda item: item["attempt_no"])
     return Run(
         id=UUID(bytes=row["id"]),
         version=row["version"],

@@ -37,7 +37,7 @@ x-python: &python
   mem_limit: 160m
   cpus: 0.5
   pids_limit: 128
-  stop_grace_period: 30s
+  stop_grace_period: 40s
   logging: *logging
 
 x-job: &job
@@ -284,7 +284,7 @@ services:
       ELECT_EMAIL_KEY_FILE: /run/secrets/monitoring_encryption_key_bundle
     secrets: [{source: monitoring_runtime, target: runtime}, internal_ca, monitoring_encryption_key_bundle]
     command: [python, -m, services.monitoring.job, --role, worker]
-    stop_grace_period: 100s
+    stop_grace_period: 110s
     healthcheck:
       <<: *api-health
       test: [CMD, python, -m, services.common.healthcheck, worker]
@@ -314,7 +314,7 @@ services:
       ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
     secrets: [{source: payment_runtime, target: runtime}, internal_ca]
     command: [python, -m, services.payment.process, --role, worker]
-    stop_grace_period: 180s
+    stop_grace_period: 190s
   payment-recovery:
     <<: *job
     environment:
@@ -358,6 +358,7 @@ services:
 
   identity-recovery:
     <<: *python
+    stop_grace_period: 135s
     environment:
       <<: *runtime-env
       ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca
@@ -369,6 +370,7 @@ services:
       test: [CMD, python, -m, services.common.healthcheck, worker]
   room-sync-worker:
     <<: *python
+    stop_grace_period: 135s
     environment:
       <<: *runtime-env
       ELECT_INTERNAL_CA_FILE: /run/secrets/internal_ca

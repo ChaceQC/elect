@@ -35,7 +35,8 @@ def test_heartbeats_are_independent_and_restarts_do_not_reuse_success():
     worker.finish("failed")
     assert scheduler.snapshot()["status"] == "ready" and not job_healthy()
     assert Heartbeat("monitoring", "worker").snapshot()["last_success"] == 0
-    scheduler.document["last_tick"] = time.time() - 21
+    scheduler.document["tick_monotonic"] = time.monotonic() - 21
+    scheduler._save()
     assert scheduler.snapshot()["status"] == "stale"
 
 
@@ -94,7 +95,7 @@ def test_combined_lifespan_shares_context_and_exposes_role_failure(runtime_facto
                 response = await browser.get("/health/ready")
                 assert response.status_code == 503
                 assert response.json()["background_roles"]["worker"]["status"] == "failed"
-                assert not supervisor.tasks["scheduler"].done()
+                assert supervisor.stop.is_set() and supervisor.tasks["scheduler"].done()
                 assert (await browser.get("/health/live")).status_code == 200
         closing.assert_awaited_once()
         engine.dispose.assert_awaited_once()
@@ -110,7 +111,8 @@ def test_required_roles_cannot_silently_stop_or_stall(failure):
             raise RuntimeError("sensitive-error-not-logged")
         if failure == "return":
             return
-        heartbeat.document["last_tick"] = time.time() - 21
+        heartbeat.document["tick_monotonic"] = time.monotonic() - 21
+        heartbeat._save()
         await stop.wait()
 
     async def verify():

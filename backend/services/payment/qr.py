@@ -3,6 +3,7 @@
 import hashlib
 from uuid import UUID
 
+from services.common.archive_store import request_key, unavailable
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
@@ -10,6 +11,7 @@ from services.common.operations import AcceptedOperation, Operation
 from services.common.sql import aware, execute, first
 
 from .orders import get_order, key_hash
+from .qr_admission import check_budget, lock_owner
 
 
 async def operation(engine, owner, operation_id):
@@ -46,6 +48,16 @@ async def refresh(engine, owner, order, key):
     await get_order(engine, owner, order)
     digest = hashlib.sha256(f"qr:{order}".encode()).digest()
     async with engine.begin() as conn:
+        await lock_owner(conn, owner)
+        cold = await request_key(conn, owner, "qr_refresh", key_hash(key), digest)
+        if cold:
+            prior = await first(conn, "SELECT id,state FROM payment_operations "
+                "WHERE id=:id AND owner_user_id=:owner AND order_id=:order",
+                id=cold, owner=owner.bytes, order=order.bytes)
+            if not prior:
+                raise unavailable()
+            return AcceptedOperation(operation_id=UUID(bytes=cold), state=prior["state"],
+                                     poll_url=f"/api/v1/operations/{UUID(bytes=cold)}")
         # 与回查/Worker一致先锁操作，避免持订单锁后引用被回查锁住的操作。
         await execute(
             conn, "SELECT id FROM payment_operations WHERE order_id=:id FOR UPDATE",
@@ -71,6 +83,7 @@ async def refresh(engine, owner, order, key):
                 raise ApiError(409, ErrorCode.IDEMPOTENCY_CONFLICT, "该键已用于另一个二维码请求")
             operation_id, state = UUID(bytes=previous["operation_id"]), previous["state"]
         else:
+            await check_budget(conn, owner)
             if row["state"] not in {"awaiting_payment", "status_unknown"}:
                 raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS, "订单状态不允许重新取得二维码")
             pending = await first(

@@ -138,7 +138,8 @@ def test_parallel_cleanup_skips_reader_lock_and_keeps_foreign_keys(monkeypatch):
         async with engine.begin() as conn:
             await execute(conn, "UPDATE sample_snapshots SET expires_at=UTC_TIMESTAMP(6)")
         async with engine.begin() as reader:
-            await execute(reader, "SELECT id FROM sample_snapshots FOR SHARE")
+            # 实际分页读取完整父行；仅投影id会被新增覆盖索引改成索引记录锁。
+            await execute(reader, "SELECT * FROM sample_snapshots FOR SHARE")
             assert not await snapshot_cleanup.cleanup_snapshots(engine)
             assert await counts(engine, TABLES) == [1, 3]
         await asyncio.gather(snapshot_cleanup.cleanup_snapshots(engine),

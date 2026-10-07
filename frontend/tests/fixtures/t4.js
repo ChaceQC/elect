@@ -23,7 +23,7 @@ export function consumption(start, end, granularity = 'day') {
 /** @param {number} index @returns {import('../../src/api/generated').components['schemas']['Sample']} */
 export const sample = index => ({ id: `0199a10c-0000-7000-8000-${String(index + 100).padStart(12, '0')}`, run_id: runId,
   captured_at: '2026-10-01T10:00:00+08:00', balance: '12.34', previous_captured_at: index === 10 ? null : '2026-10-01T09:00:00+08:00', balance_delta: index === 10 ? null : '-1.20', balance_delta_kind: 'net_balance_change',
-  gap_seconds: index === 10 ? null : 3600, gap_detected: false, meter_last_reading: null, meter_reading: null, meter_delta: null, meter_record_date: null, meter_source: null, meter_source_record_key: null, meter_is_repeated: false, quality: 'balance_only' })
+  gap_seconds: index === 10 ? null : 3600, gap_detected: false, meter_last_reading: null, meter_reading: null, meter_delta: null, meter_capture_delta: null, meter_record_date: null, meter_source: null, meter_source_record_key: null, meter_is_repeated: false, quality: 'balance_only' })
 
 /** @param {import('../../src/api/generated').components['schemas']['Run']['state']} state @returns {import('../../src/api/generated').components['schemas']['Run']} */
 export const run = state => ({ id: runId, binding_id: a, state, version: state === 'running' ? 2 : 3,

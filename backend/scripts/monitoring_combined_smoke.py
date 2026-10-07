@@ -176,6 +176,9 @@ async def verify_recovery(app, client):
     supervisor.tasks["worker"].cancel()
     await asyncio.gather(supervisor.tasks["worker"], return_exceptions=True)
     assert not await healthy(app) and not supervisor.available()
+    # R3角色失败会协调停止整个生命周期；旧恢复器不能继续领取。
+    await supervisor.close()
+    assert supervisor.stop.is_set() and all(task.done() for task in supervisor.tasks.values())
     crashed = await run_request(client)
     old = await claim_run(engine, crashed)
     assert old
@@ -185,15 +188,14 @@ async def verify_recovery(app, client):
             "UPDATE monitor_runs SET lease_until=UTC_TIMESTAMP(6) WHERE id=:id",
             id=crashed.bytes,
         )
+    await reject_old(engine, old)
+    await start_background(app, "monitoring")
     await until(lambda: run_state(engine, crashed, "retry_wait"))
     await due(engine, crashed)
-    await reject_old(engine, old)
-    await supervisor.close()
-    await start_background(app, "monitoring")
     await until(lambda: run_state(engine, crashed, "succeeded"))
     assert await sample_count(engine, crashed) == 1
     await until(lambda: healthy(app))
-    print("单角色退出健康失败、同进程恢复器接管、重启后旧epoch失效/同run单样本：通过")
+    print("单角色退出协调停止、重建生命周期后接管、旧epoch失效/同run单样本：通过")
 
 
 async def verify_shutdown(app, client, collection):

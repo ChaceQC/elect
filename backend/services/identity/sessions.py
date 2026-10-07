@@ -26,36 +26,45 @@ class AppSessions:
         if not isinstance(token, str) or len(token) != 43:
             return self.expired(required)
         async with self.engine.begin() as conn:
-            row = await first(
-                conn,
-                "SELECT s.*,u.credential_ref,u.status AS user_status,"
-                "u.session_version AS user_version FROM app_sessions s "
-                "JOIN users u ON s.user_id=u.id WHERE s.token_hash=:hash "
-                "FOR UPDATE",
-                hash=self.digest(token),
-            )
-            now = datetime.now(UTC)
-            if (
-                not row
-                or row["revoked_at"]
-                or row["user_status"] != "active"
-                or row["session_version"] != row["user_version"]
-                or aware(row["expires_at"]) <= now
-                or aware(row["absolute_expires_at"]) <= now
-            ):
+            row = await self.read(conn, token)
+            if not self.valid(row):
                 return self.expired(required)
             csrf = self.csrf(token)
             if not hmac.compare_digest(hashlib.sha256(csrf.encode()).digest(), row["csrf_hash"]):
                 return self.expired(required)
-            expiry = min(now + timedelta(hours=12), aware(row["absolute_expires_at"]))
-            await execute(
-                conn,
-                "UPDATE app_sessions SET last_seen_at=UTC_TIMESTAMP(6),"
-                "expires_at=:expiry,updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
-                expiry=expiry.replace(tzinfo=None),
-                id=row["id"],
-            )
-            return {**row, "expires_at": expiry, "csrf_token": csrf}
+            if row["last_seen_at"] <= row["checked_at"] - timedelta(seconds=60):
+                await execute(
+                    conn,
+                    "UPDATE app_sessions s JOIN users u ON u.id=s.user_id "
+                    "SET s.last_seen_at=UTC_TIMESTAMP(6),s.expires_at="
+                    "LEAST(DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 12 HOUR),s.absolute_expires_at),"
+                    "s.updated_at=UTC_TIMESTAMP(6) WHERE s.id=:id AND s.revoked_at IS NULL "
+                    "AND u.status='active' AND s.session_version=u.session_version "
+                    "AND s.expires_at>UTC_TIMESTAMP(6) AND s.absolute_expires_at>UTC_TIMESTAMP(6) "
+                    "AND s.last_seen_at<=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 60 SECOND)",
+                    id=row["id"],
+                )
+                # 条件失败可能是并发续期，也可能已撤销/禁用/过期；只返回权威结果。
+                row = await self.read(conn, token)
+                if not self.valid(row):
+                    return self.expired(required)
+            return {**row, "expires_at": aware(row["expires_at"]), "csrf_token": csrf}
+
+    async def read(self, conn, token):
+        return await first(
+            conn,
+            "SELECT s.*,u.credential_ref,u.status AS user_status,"
+            "u.session_version AS user_version,UTC_TIMESTAMP(6) AS checked_at "
+            "FROM app_sessions s JOIN users u ON s.user_id=u.id WHERE s.token_hash=:hash",
+            hash=self.digest(token),
+        )
+
+    @staticmethod
+    def valid(row):
+        return bool(row and not row["revoked_at"] and row["user_status"] == "active"
+                    and row["session_version"] == row["user_version"]
+                    and row["expires_at"] > row["checked_at"]
+                    and row["absolute_expires_at"] > row["checked_at"])
 
     @staticmethod
     def expired(required):

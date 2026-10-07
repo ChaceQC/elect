@@ -28,6 +28,7 @@ export async function visualFixture(page) {
     const send = data => route.fulfill({ json: wrap(data) })
     if (path === '/api/v1/auth/logout') { logged = false; return route.fulfill({ status: 204 }) }
     if (path === '/api/v1/auth/me') return logged ? send(user) : route.fulfill({ status: 401, json: { error: { code: 'APP_SESSION_EXPIRED' } } })
+    if (path === '/api/v1/auth/session') return logged ? send({ id: user.id, csrf_token: user.csrf_token, consent: user.consent }) : route.fulfill({ status: 401, json: { error: { code: 'APP_SESSION_EXPIRED' } } })
     if (path === '/api/v1/auth/agreement') return send(agreement)
     if (path === '/api/v1/auth/captcha') return send({ ...captcha(), image_data_url: captchaImage })
     if (request.method() !== 'GET') { unexpected.push(`${request.method()} ${path}`); return route.abort() }

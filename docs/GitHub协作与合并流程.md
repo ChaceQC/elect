@@ -1,10 +1,12 @@
 # GitHub 协作与合并流程
 
-更新日期：2026-10-05。适用于源码、文档、配置、修复和分支同步。
+更新日期：2026-10-06。适用于源码、文档、配置、修复和分支同步。
 
 ## 分支与 PR
 
 `main` 保存已交付内容，日常默认在 `dev` 开发。当前开发分支允许直接 commit 并 push，无需为提交或推送创建 PR，也不强制另建工作分支。每完成一个可验证小步，检查差异、同步受影响文档与 `PROJECT_PROGRESS.md`，再用中文说明提交推送。
+
+2026-10-06按用户最终更正，撤回“CI成功后不再更新文档”的新增AGENTS规则，改由Actions跳过纯Markdown分支push。文档仍按需要同步、提交和推送；纯文档提交记录“按路径规则未触发CI”，不能写成CI成功。含任何非`.md`文件的提交仍等待最新SHA的CI/check；文档收口须能追溯最近一次包含业务/配置改动且CI成功的提交，不能借文档提交掩盖此前失败。main PR不跳过，主分支必需检查保持可用。
 
 ```sh
 # 完成实现、文档与相关本地验证后：
@@ -22,7 +24,7 @@ gh pr create --base main --head dev --title 'fix: 本次修复的中文说明' -
 
 ## Actions 合并条件
 
-`.github/workflows/check.yaml` 对非main分支push执行前后端快速检查与构建（含查询配额数据库和浏览器），对目标为main的PR及vX.Y.Z标签push执行完整验证；手动默认full，分支可选quick，标签手动运行始终完整且不发布。不按文件路径跳过文档。前后端并行；完整场景镜像就绪后，业务消息、13/30兼容、七容器交付恢复三组使用独立运行器和空库并行。快速场景不导出/上传镜像。稳定作业check以always()独立判定场景：快速要求两组success及三组skipped，完整要求五组success；失败、取消、缺失或意外跳过均拒绝。界面仍为`容器验证 / check`，push快速成功不能替代PR完整门禁。覆盖、镜像清单与计时见[CI决策](decisions/CI并行验证.md)。 main push按用户追加要求不触发CI，PR合并后不重复运行。
+`.github/workflows/check.yaml` 对非main分支push使用`paths-ignore: ['**/*.md']`：只改Markdown时整个workflow不触发；含任意代码、配置、锁文件或契约JSON/YAML时执行前后端快速检查与构建（含查询配额数据库和浏览器）。不整目录忽略docs，以保留docs/contracts及schema-catalog等检查。目标为main的PR及vX.Y.Z标签push仍完整验证；GitHub不对标签push应用路径过滤，手动默认full，分支可选quick，标签手动运行始终完整且不发布。前后端并行；完整场景镜像就绪后，业务消息、13/30兼容、七容器交付恢复三组使用独立运行器和空库并行。快速场景不导出/上传镜像。稳定作业check以always()独立判定场景：快速要求两组success及三组skipped，完整要求五组success；失败、取消、缺失或意外跳过均拒绝。界面仍为`容器验证 / check`，push快速成功不能替代PR完整门禁。覆盖、镜像清单与计时见[CI决策](decisions/CI并行验证.md)。 main push按用户追加要求不触发CI，PR合并后不重复运行。
 
 分支、PR按事件和ref分别取消过时运行；标签独立分组且不自动取消正在发布的同标签运行。普通验证仅contents读取，标签发布作为独立作业依赖check成功，才获得contents/packages写权限。PR的构建和验证统一使用默认检出的合并结果，不混用源分支镜像。
 

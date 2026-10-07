@@ -131,7 +131,7 @@ def test_room_stop_during_sync_does_not_claim_history(monkeypatch):
     async def verify():
         stop = asyncio.Event()
 
-        async def controlled(app):
+        async def controlled(app, **kwargs):
             stop.set()
             return True
 
@@ -139,7 +139,8 @@ def test_room_stop_during_sync_does_not_claim_history(monkeypatch):
         query, drain = AsyncMock(), AsyncMock()
         monkeypatch.setattr(query_worker, "query_tick", query)
         monkeypatch.setattr(wakeups, "drain", drain)
-        assert await worker.room_tick(object(), stop=stop)
+        app = SimpleNamespace(state=SimpleNamespace())
+        assert await worker.room_tick(app, stop=stop)
         query.assert_not_awaited()
         drain.assert_not_awaited()
 
@@ -157,9 +158,10 @@ def test_identity_stop_between_attempts_does_not_start_next_attempt(monkeypatch)
         ]))
         monkeypatch.setattr(recovery, "execute", AsyncMock(return_value=rows))
         monkeypatch.setattr(revocation, "recover_revocation", AsyncMock(return_value=False))
+        monkeypatch.setattr(recovery, "require_healthy_recovery", AsyncMock())
 
         @asynccontextmanager
-        async def scope(*args):
+        async def scope(*args, **kwargs):
             yield object()
 
         async def advance(*args):

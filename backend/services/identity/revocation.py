@@ -179,7 +179,7 @@ async def recover_revocation(app):
         )
     if not row:
         return False
-    async with app.state.login_saga.locked(UUID(bytes=row["id"])):
+    async with app.state.login_saga.locked(UUID(bytes=row["id"]), background=True):
         async with app.state.database.connect() as conn:
             current = await first(
                 conn, "SELECT * FROM credential_operations WHERE id=:id", id=row["id"]
@@ -200,4 +200,5 @@ async def recover_revocation(app):
                     error=error.code,
                     id=row["id"],
                 )
+            raise
     return True

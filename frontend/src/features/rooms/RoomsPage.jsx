@@ -21,7 +21,7 @@ import { PageHeading } from '../../components/layout/PageHeading.jsx'
 import { Modal } from '../../components/Modal.jsx'
 
 export function RoomsPage() {
-  const { user } = useSession()
+  const { user, profile } = useSession()
   const location = useLocation()
   const [q, setQ] = useState('')
   const [pickerOpen, setPickerOpen] = useState(() => new URLSearchParams(location.search).get('bind') === '1')
@@ -35,7 +35,7 @@ export function RoomsPage() {
   const changingDefault = useRef(false)
   const query = useBindings({ q, page })
   const now = serverNow(useNow())
-  const bindingLimit = bindingUnavailableReason(query.data, user)
+  const bindingLimit = bindingUnavailableReason(query.data, profile)
   const cache = useQueryClient()
   useEffect(() => {
     if (!query.data) return
@@ -93,7 +93,7 @@ export function RoomsPage() {
     {data && data.items.length > 0 && <p className="field-hint">设为默认会同时改变已开启监控的采集与提醒目标。</p>}
     <div className="room-toolbar"><label className="search-box"><Search size={17} aria-hidden="true" /><span className="sr-only">搜索本人寝室</span><input value={q} maxLength={128}
       onChange={event => { setQ(event.target.value); setPage(1) }} placeholder="搜索已绑定的楼栋、寝室号" /></label>
-      <button className="quiet" onClick={() => { void sync() }} aria-busy={busy || !!pending} disabled={busy || !!pending || !!query.data?.binding_removal_operation_id}><RefreshCw className={busy || pending ? 'refresh-spinning' : undefined} size={14} aria-hidden="true" />同步学校绑定</button></div>
+      <button className="quiet" onClick={() => { void sync() }} aria-busy={busy || !!pending} disabled={!profile || busy || !!pending || !!query.data?.binding_removal_operation_id}><RefreshCw className={busy || pending ? 'refresh-spinning' : undefined} size={14} aria-hidden="true" />同步学校绑定</button></div>
     {data && <>
       {['failed', 'stale'].includes(data.sync_status) && <StatusBlock title={data.sync_status === 'stale' ? '学校数据未完成确认' : '尚未成功读取学校绑定'} error>
         <p>请重试同步；当前状态无法确认是否存在绑定。</p></StatusBlock>}

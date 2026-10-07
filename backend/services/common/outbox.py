@@ -99,5 +99,13 @@ async def consume_once(engine, consumer_name, event, handler):
         )
         if result.rowcount == 0:
             return False
+        # INSERT先锁住热唯一键；归档同样先锁热行，再插冷标识并删热行。
+        # 任何冷表故障使整个事务回滚，绝不绕过未知去重状态调用handler。
+        cold = await connection.execute(text(
+            "SELECT event_id FROM cold_inbox_events WHERE consumer_name=:consumer "
+            "AND event_id=:event"), {"consumer": consumer_name, "event": event.event_id.bytes})
+        if cold.first() is not None:
+            # 留下轻量热标识以吸收后续重复；不在重复插入竞争中再升级删除锁。
+            return False
         await handler(connection, event)
         return True

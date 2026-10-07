@@ -85,7 +85,7 @@ async def verify(args, record):
     adapter.state.school_protocol = protocol
     adapter.state.school_auth.protocol = protocol
     adapter.state.school_sessions.protocol = protocol
-    adapter.state.school_sessions.solver = solve_image
+    adapter.state.school_sessions.ocr_executor.solver = solve_image
     notification.state.smtp = SmtpTransport(smtp_config)
     try:
         async with browser(apps["gateway"]) as client:

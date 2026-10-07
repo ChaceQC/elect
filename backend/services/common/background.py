@@ -7,8 +7,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from .broker import BrokerHub
+from .health_state import AVAILABLE
 from .heartbeat import Heartbeat
-from .logging import log
+from .logging import log_failure
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,9 @@ class BackgroundSupervisor:
         self.shutdown_timeout = shutdown_timeout
         self.broker = BrokerHub(app.state.runtime)
         self.tasks, self.heartbeats = {}, {}
+        self.control = getattr(app.state, "process_control", None)
+        if self.control:
+            self.control.register(self)
 
     async def start(self):
         if self.tasks or self.stop.is_set():
@@ -64,33 +68,48 @@ class BackgroundSupervisor:
             self.tasks[role.name] = asyncio.create_task(
                 self._run(role, heartbeat), name=f"background:{role.name}"
             )
+            self.tasks[role.name].add_done_callback(
+                lambda task, name=role.name: self._finished(name, task),
+            )
         await asyncio.sleep(0)
+
+    def _finished(self, name, task):
+        if not self.stop.is_set():
+            self.heartbeats[name].finish("failed")
+            self.fail(name, "BACKGROUND_CANCELLED" if task.cancelled() else "BACKGROUND_RETURNED")
 
     async def _run(self, role, heartbeat):
         try:
             await role.run(self.app, self.stop, heartbeat, self.broker)
         except asyncio.CancelledError:
             heartbeat.finish("stopped" if self.stop.is_set() else "failed")
+            if not self.stop.is_set():
+                self.fail(role.name, "BACKGROUND_CANCELLED")
             raise
-        except Exception:
+        except Exception as error:
             heartbeat.finish("failed")
-            log(
-                "background_role_failed",
-                service=self.app.state.runtime.service,
-                error_code="BACKGROUND_ROLE_FAILED",
-            )
+            log_failure("background_role_failed", error,
+                        service=self.app.state.runtime.service, role=role.name)
+            self.fail(role.name, "BACKGROUND_ROLE_FAILED")
         else:
             heartbeat.finish("stopped" if self.stop.is_set() else "failed")
+            if not self.stop.is_set():
+                self.fail(role.name, "BACKGROUND_RETURNED")
+
+    def fail(self, role, reason):
+        if self.control:
+            self.control.fail(self.app.state.runtime.service, role, reason)
+        self.request_stop()
 
     def snapshot(self):
-        return {name: heartbeat.snapshot() for name, heartbeat in self.heartbeats.items()}
+        return {name: heartbeat.snapshot() for name, heartbeat in tuple(self.heartbeats.items())}
 
     def available(self):
         return (
             bool(self.tasks)
             and not self.stop.is_set()
             and all(
-                not self.tasks[name].done() and value["status"] in {"ready", "degraded"}
+                not self.tasks[name].done() and value["status"] in AVAILABLE
                 for name, value in self.snapshot().items()
             )
         )
@@ -108,6 +127,8 @@ class BackgroundSupervisor:
         try:
             if self.tasks:
                 _, pending = await asyncio.wait(self.tasks.values(), timeout=remaining)
+                if pending and self.control:
+                    self.control.fail(self.app.state.runtime.service, "process", "DRAIN_EXHAUSTED")
                 for task in pending:
                     task.cancel()
                 await asyncio.gather(*self.tasks.values(), return_exceptions=True)
@@ -132,4 +153,30 @@ async def start_background(app, service):
         return
     supervisor = BackgroundSupervisor(app, configured, shutdown_timeout=shutdown_timeout(service))
     app.state.background = supervisor
+    if supervisor.stop.is_set():
+        return
     await supervisor.start()
+
+
+async def run_standalone(app, configured, control=None):
+    """独立入口复用相同角色监督、停止时刻和退出预算。"""
+    import signal
+
+    service = app.state.runtime.service
+    app.state.process_control = control
+    supervisor = BackgroundSupervisor(app, configured, shutdown_timeout=(
+        control.drain_seconds if control else shutdown_timeout(service)
+    ))
+    app.state.background = supervisor
+    loop = asyncio.get_running_loop()
+    for signum in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(signum, control.request_stop
+                                if control else supervisor.request_stop)
+    try:
+        if not supervisor.stop.is_set():
+            await supervisor.start()
+        await supervisor.stop.wait()
+    finally:
+        await supervisor.close()
+        for signum in (signal.SIGTERM, signal.SIGINT):
+            loop.remove_signal_handler(signum)

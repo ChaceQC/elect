@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { bindings, envelope } from '../fixtures/t2.js'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ status: 404,
+    json: { error: { code: 'NOT_FOUND' } } }))
+})
+
 const user = { id: '0199a10c-0000-7000-8000-000000000001', student_id: 'synthetic', school: '合成测试学校',
   csrf_token: 'synthetic-csrf', credential_status: 'active', credential_version: 1,
   credential_revoke_operation: null,

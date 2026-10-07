@@ -23,7 +23,8 @@ case "$task_group" in
       -e ELECT_DB_POOL_SIZE=2 -e ELECT_DB_MAX_OVERFLOW=1 smoke python -m scripts.t7_capacity --plans 100 --workers 8
     sh deploy/test-t7-browser.sh "$task_dir" "$task_project";;
   compatibility)
-    sh deploy/test-low-resource.sh "$task_dir" "$task_project";;
+    sh deploy/test-low-resource.sh "$task_dir" "$task_project"
+    ELECT_QUERY_TEST_IMAGE=elect-backend-smoke:test sh deploy/test-r3-processes.sh;;
   delivery)
     sh deploy/test-image-delivery.sh "$task_dir" "$task_project"
     sh deploy/test-core.sh "$task_dir" "$task_project"

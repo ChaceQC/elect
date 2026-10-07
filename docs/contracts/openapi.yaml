@@ -2,7 +2,7 @@
 openapi: 3.1.0
 info:
   title: 寝室电费学生端 API
-  version: 0.19.2
+  version: 0.20.3
   description: T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，时间戳带时区。202 仅表示持久受理。业务服务按 x-stage
     实现。
 servers:
@@ -909,6 +909,107 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/Me'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS,
+            SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '410':
+          description: ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: PRECONDITION_REQUIRED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '502':
+          description: SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: SCHOOL_TIMEOUT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-cache-control: no-store
+  /auth/session:
+    get:
+      operationId: get_session
+      tags:
+      - identity
+      summary: get_session
+      x-owner: identity
+      x-stage: R6
+      security:
+      - SessionCookie: []
+      parameters: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LocalSession'
                   meta:
                     $ref: '#/components/schemas/Meta'
         '400':
@@ -4465,6 +4566,24 @@ components:
       - revoked_at
       title: Consent
       type: object
+    LocalSession:
+      additionalProperties: false
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        consent:
+          $ref: '#/components/schemas/Consent'
+        csrf_token:
+          title: Csrf Token
+          type: string
+      required:
+      - id
+      - consent
+      - csrf_token
+      title: LocalSession
+      type: object
     Me:
       additionalProperties: false
       properties:
@@ -5650,6 +5769,14 @@ components:
             type: string
           - type: 'null'
           title: Meter Delta
+        meter_capture_delta:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,14})\.\d{4}$
+            type: string
+          - type: 'null'
+          default: null
+          description: 本次止码减上一条成功采集止码；沿用采集基线，任一缺失为null，负差保留。
+          title: Meter Capture Delta
         meter_record_date:
           anyOf:
           - format: date

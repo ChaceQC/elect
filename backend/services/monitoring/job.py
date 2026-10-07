@@ -2,18 +2,18 @@
 
 import argparse
 import asyncio
-import signal
 import time
 from functools import partial
 
 from services.common.app import create_app
-from services.common.background import Role, require_standalone
+from services.common.background import Role, require_standalone, run_standalone
 from services.common.broker import Broker, BrokerHub, verified_event
-from services.common.heartbeat import Heartbeat
 from services.common.job import pause, transport_loop
 from services.common.logging import configure_logging, log
 from services.common.outbox import consume_once
+from services.common.process_control import run_managed
 from services.common.scheduling import IdleBackoff, retry_delay
+from services.common.transport_health import QueueUnavailable, degraded, receive
 
 from .execution import claim_run
 from .recovery import recovery_tick
@@ -29,8 +29,7 @@ async def registered(conn, event):
 
 
 async def message_tick(app, queue, heartbeat, stop=None):
-    async with asyncio.timeout(3):
-        message = await queue.get(fail=False, timeout=1)
+    message = await receive(queue)
     if message is None:
         return False
     if stop and stop.is_set():
@@ -57,20 +56,18 @@ async def message_tick(app, queue, heartbeat, stop=None):
     await message.ack()
     if execution:
         if heartbeat:
-            heartbeat.write(healthy=True)
+            heartbeat.tick()
         await execute_run(app, execution, heartbeat)
     return True
 
 
-async def run(role):
+async def run(role, *, control=None):
     require_standalone()
     app = create_app("monitoring", business=True, background=False)
-    stop = asyncio.Event()
-    heartbeat = Heartbeat("monitoring", role, max_age=45 if role == "recovery" else 20)
-    for signum in (signal.SIGTERM, signal.SIGINT):
-        asyncio.get_running_loop().add_signal_handler(signum, stop.set)
+    app.state.process_control = control
     async with app.router.lifespan_context(app):
-        await role_loop(role, app, stop, heartbeat)
+        await run_standalone(app, [Role(role, partial(role_loop, role),
+                                       max_age=45 if role == "recovery" else 20)], control)
 
 
 def roles():
@@ -122,16 +119,32 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
         async with asyncio.TaskGroup() as tasks:
             for slot in range(2):
                 tasks.create_task(
-                    scan_loop(role, app, stop, heartbeat, shared), name=f"monitor-slot:{slot}",
+                    slot_loop(app, stop, heartbeat.child(str(slot)), shared),
+                    name=f"monitor-slot:{slot}",
                 )
     finally:
         if hub is None:
             await shared.close()
 
 
+async def slot_loop(app, stop, heartbeat, hub):
+    try:
+        await scan_loop("worker", app, stop, heartbeat, hub)
+    except asyncio.CancelledError:
+        if not stop.is_set():
+            raise RuntimeError("监控执行槽意外取消") from None
+        raise
+    if not stop.is_set():
+        raise RuntimeError("监控执行槽意外返回")
+
+
 async def scan_loop(role, app, stop, heartbeat, hub=None):
+    from .snapshot_cleanup import SnapshotCleaner
+
+    cleaner = SnapshotCleaner()
     broker, queue, reconnect_at = None, None, 0
     next_snapshot_cleanup = 0
+    next_recovery = 0
     idle = IdleBackoff((1, 2, 5) if role == "worker" else (1, 2, 5, 10))
     try:
         while not stop.is_set():
@@ -145,27 +158,32 @@ async def scan_loop(role, app, stop, heartbeat, hub=None):
                             reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
                     try:
                         activity = await consumer_tick(role, app, queue, heartbeat, stop)
-                    except Exception:
+                    except QueueUnavailable:
                         if broker:
                             await broker.close()
                         broker, queue = None, None
                         reconnect_at = time.monotonic() + retry_delay(4, maximum=15)
-                        raise
+                        activity = await consumer_tick(role, app, None, heartbeat, stop)
                 else:
-                    activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
-                        app.state.database
-                    )
+                    activity = False
+                    if role == "scheduler" or time.monotonic() >= next_recovery:
+                        activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
+                            app.state.database
+                        )
+                        next_recovery = time.monotonic() + 15
                     if role == "recovery" and time.monotonic() >= next_snapshot_cleanup:
-                        from .snapshot_cleanup import cleanup_snapshots
-
-                        await cleanup_snapshots(app.state.database)
-                        next_snapshot_cleanup = time.monotonic() + 60
-                heartbeat.write(healthy=True, activity=activity)
+                        cleanup_delay = await cleaner.round(app.state.database, stop)
+                        next_snapshot_cleanup = time.monotonic() + cleanup_delay
+                heartbeat.write(healthy=True, activity=activity,
+                                degraded=degraded(broker, queue)
+                                if role in {"worker", "alerts"} else None)
             except Exception:
                 heartbeat.write(healthy=False)
                 log("monitor_job_retry", service="monitoring", error_code="DEPENDENCY_UNAVAILABLE")
                 activity = False
             delay = {"scheduler": 5, "recovery": 15}.get(role)
+            if role == "recovery":
+                delay = max(0.05, min(next_snapshot_cleanup, next_recovery) - time.monotonic())
             if delay is None:
                 delay = idle.next(activity)
             if queue:
@@ -186,7 +204,8 @@ def main():
     args = parser.parse_args()
     configure_logging()
     try:
-        asyncio.run(run(args.role))
+        run_managed("monitoring", lambda control: run(args.role, control=control),
+                    drain_seconds=100 if args.role == "worker" else 30)
     except Exception:
         raise SystemExit("监控进程启动失败，请检查Secret/迁移/内部TLS") from None
 

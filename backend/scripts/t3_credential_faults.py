@@ -1,14 +1,17 @@
 """合成学校 + 实际数据库：激活阶段故障、补偿、每用户串行和迟到缓存。"""
 
 import asyncio
+from types import SimpleNamespace
 from uuid import UUID
 
 from scripts.t2_smoke import browser, login, prepare
 from scripts.t3_control_fixtures import running
+from services.common.database import create_database
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
 from services.common.sql import execute, first
+from services.identity.application.login import LoginSaga
 from services.monitoring.fences import fenced_transaction
 
 
@@ -151,6 +154,12 @@ async def verify_faults(apps, ready_revoke):
 
 async def late_authentication(apps, ready_revoke):
     adapter = apps["school_adapter"].state
+    identity = apps["identity"].state
+    # R1本上下文正在登录时，恢复门必须跳过；独立恢复上下文模拟standalone进程边界。
+    engine = create_database(identity.runtime.db_url.get_secret_value())
+    recovery = SimpleNamespace(state=SimpleNamespace(
+        database=engine, service_client=identity.service_client,
+        login_saga=LoginSaga(engine, identity.service_client, identity.login_saga.sessions)))
     async with browser(apps["gateway"]) as client:
         name = f"synthetic-late-auth-{new_id()}"
         user = await login(client, await prepare(client, name))
@@ -173,7 +182,14 @@ async def late_authentication(apps, ready_revoke):
                 "DELETE", "/api/v1/auth/school-credential", json={"expected_version": 1}
             )
             assert response.status_code == 202
-            await ready_revoke(apps["identity"], response.json()["data"]["operation_id"])
+            operation = response.json()["data"]["operation_id"]
+            try:
+                await ready_revoke(apps["identity"], operation)
+            except ApiError as error:
+                assert error.status == 429
+            else:
+                raise AssertionError("同上下文恢复没有遵守登录执行门")
+            await ready_revoke(recovery, operation)
             resume.set()
             rejected = await task
             assert rejected.status_code == 409
@@ -186,4 +202,5 @@ async def late_authentication(apps, ready_revoke):
             if not task.done():
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
+            await engine.dispose()
     print("人工学校认证在撤回前开始、撤回后响应：旧认证不得暂存/激活：通过")

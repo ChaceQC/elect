@@ -32,13 +32,14 @@ def test_worker_has_exactly_two_shared_slots_and_stop_drains_both(monkeypatch):
     async def verify():
         stop, release, started = asyncio.Event(), asyncio.Event(), asyncio.Event()
         hub, app, heartbeat = object(), object(), Mock()
+        slot_beats = [Mock(), Mock()]
+        heartbeat.child.side_effect = slot_beats
         running, maximum, calls = 0, 0, []
 
         async def scan(role, seen_app, seen_stop, seen_heartbeat, seen_hub):
             nonlocal running, maximum
-            assert (role, seen_app, seen_stop, seen_heartbeat, seen_hub) == (
-                "worker", app, stop, heartbeat, hub,
-            )
+            assert (role, seen_app, seen_stop, seen_hub) == ("worker", app, stop, hub)
+            assert seen_heartbeat in slot_beats
             while not stop.is_set():
                 calls.append(True)
                 running += 1

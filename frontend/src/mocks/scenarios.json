@@ -1,4 +1,20 @@
 {
+  "local_session": [
+    {
+      "method": "get", "path": "/auth/session", "status": 200,
+      "body": {
+        "data": {
+          "id": "0199a10c-0000-7000-8000-000000000001",
+          "csrf_token": "fixture-only-csrf",
+          "consent": {
+            "agreement_version": "fixture-v1", "accepted_at": "2026-10-01T10:00:00+08:00",
+            "credential_use_allowed": true, "revoked_at": null
+          }
+        },
+        "meta": { "request_id": "0199a10c-0000-7000-8000-000000000001", "server_time": "2026-10-01T10:00:00+08:00" }
+      }
+    }
+  ],
   "empty_account": [
     {
       "method": "get",

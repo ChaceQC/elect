@@ -1,18 +1,22 @@
 # 数据结构与初始化
 
-更新日期：2026-10-05。七个库共有 55 张领域/事件表，每库另有独立 alembic_version；没有业务种子数据。
+0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
+
+更新日期：2026-10-06。七个库共有77张领域/事件/归档表，每库另有独立alembic_version；没有业务种子数据。R4新增每域3张冷归档/去重表，逐表保留与实际引用见[保留清单](保留与归档引用清单.md)。
 
 | 领域 | 数据库 | 当前 revision | 领域/事件表数 |
 | --- | --- | --- | --- |
-| Identity | elect_identity | identity_0003 | 7 |
-| School Adapter | elect_school | school_0006 | 10 |
-| Room | elect_room | room_0005 | 11 |
-| Monitoring | elect_monitoring | monitoring_0006 | 14 |
-| Payment | elect_payment | payment_0004 | 6 |
-| Notification | elect_notification | notification_0002 | 4 |
-| Audit | elect_audit | audit_0001 | 3 |
+| Identity | elect_identity | identity_0004 | 10 |
+| School Adapter | elect_school | school_0008 | 14 |
+| Room | elect_room | room_0008 | 14 |
+| Monitoring | elect_monitoring | monitoring_0010 | 17 |
+| Payment | elect_payment | payment_0006 | 9 |
+| Notification | elect_notification | notification_0003 | 7 |
+| Audit | elect_audit | audit_0002 | 6 |
 
 [schema-catalog.json](schema-catalog.json)按迁移链导出当前 head 的列类型、null、主键、唯一键、CHECK、外键、生成列与查询索引。可执行定义在 backend/services/{domain}/migrations/versions/0001_initial.py；后续变更使用新 revision，不改已发布迁移。
+
+R2新增Adapter owner余额计数表和Room观测序号/hash、最后成功序号/错误序号/时间/代码。旧行新增字段为null，金额与原fetched_at不回填。迁移不运行旧支付调度维护；计数表和Room高水位须一起保留，见[迁移与回退边界](../runbooks/余额观测与历史执行边界.md)。
 
 业务 ID 用 BINARY(16)，hash 用 BINARY(32)，UTC DATETIME(6)、Shanghai DATE、DECIMAL(14,2)/DECIMAL(18,4)。本库 FK 为 RESTRICT，不跨库 FK、不级联删除审计/任务历史。`created_at/updated_at` 有数据库默认值，后续写操作由领域服务更新 updated_at。
 

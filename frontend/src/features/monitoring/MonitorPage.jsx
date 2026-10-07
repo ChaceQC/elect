@@ -20,7 +20,7 @@ const editorFrom = saved => ({ draft: draftFrom(saved), baseline: draftFrom(save
 const when = value => value ? new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '暂无'
 
 export function MonitorPage() {
-  const { user } = useSession()
+  const { user, profile } = useSession()
   const cache = useQueryClient()
   const bindings = useBindings({ pageSize: 100 })
   const draftKey = ['monitor-draft', user?.id]
@@ -58,6 +58,7 @@ export function MonitorPage() {
   }
   async function save() {
     if (writing.current || !current || !editor) return
+    if (!profile && editor.draft.enabled) { setError('学校资料暂不可用，仍可关闭监控。'); return }
     const closeOnly = current.config.enabled && !editor.draft.enabled
     let body
     try { body = closeOnly ? { enabled: false, expected_version: current.version } :
@@ -112,7 +113,7 @@ export function MonitorPage() {
         <p id="monitor-switch-help" className="field-hint">开启或关闭后均需保存。当前：{current?.cancel_pending ? '正在停止后台任务' : current ? states[current.state] : '读取中'}。</p>
         <label>采集间隔（整数分钟）<input disabled={busy} inputMode="numeric" value={editor.draft.interval_minutes} aria-invalid={invalidField === 'interval_minutes'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ interval_minutes: event.target.value })} /></label>
         <label>提醒总次数（包含第一次）<select disabled={busy} value={editor.draft.repeat_limit} aria-invalid={invalidField === 'repeat_limit'} aria-describedby={error ? errorId : undefined} onChange={event => edit({ repeat_limit: event.target.value })}>{[1, 2, 3, 4, 5].map(count => <option key={count} value={String(count)}>{count} 次</option>)}</select></label>
-      </section></div><div className="save-row"><button disabled={busy || review && !(current?.config.enabled && !editor.draft.enabled)}><Check size={17} />{busy ? '正在保存…' : '保存设置'}</button></div>
+      </section></div><div className="save-row"><button disabled={busy || !profile && editor.draft.enabled || review && !(current?.config.enabled && !editor.draft.enabled)}><Check size={17} />{busy ? '正在保存…' : '保存设置'}</button></div>
     </form>}
     {current && <div className="monitor-alerts">
       {current.state !== 'active' && current.state !== 'disabled' && <p role="alert">{states[current.state]}</p>}

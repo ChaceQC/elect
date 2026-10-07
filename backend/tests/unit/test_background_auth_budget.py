@@ -64,5 +64,6 @@ def test_background_auth_enforces_shared_image_and_submission_budgets(
             assert await attempt == ("synthetic-token", "synthetic-user")
         assert (protocol.images, protocol.submissions) == (images, submissions)
         assert len(set(protocol.submitted_uids)) == submissions
+        await session.ocr_executor.close()
 
     asyncio.run(verify())

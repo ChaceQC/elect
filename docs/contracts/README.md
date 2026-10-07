@@ -1,6 +1,16 @@
 # API 契约
 
-当前版本：0.19.2；T0 冻结基线 0.1.0，更新日期：2026-10-05。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+R6新增`GET /auth/session`及`LocalSession`，仅返回Identity本库用户ID、CSRF和同意记录；旧`/auth/me`及登录完整Me保持兼容。当前公开35个方法/路径，内部54个静态路由。失效401/依赖503与前端兼容规则见[本地会话与学校资料](../runbooks/本地会话与学校资料.md)。
+
+R5.1公开DTO不变：会话每请求权威校验，续期每60秒合并（12小时滑动最多60秒粒度差异、7天绝对上限）。`/auth/me`在Identity一次校验，内部`/browser/me`允许已签名Gateway不携带用户上下文，由会话自行建立；若携带上下文仍检查归属。monitor GET返回独立一致性快照，规则见[读取与有界调度](../runbooks/读取与有界调度.md)。
+
+0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
+
+当前版本：0.20.0；T0 冻结基线 0.1.0，更新日期：2026-10-06。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+
+0.19.4公开DTO不变，Balance.fetched_at为最后成功取得学校结果的观察时间，未知旧缓存不伪造新鲜度。内部BalanceReading统一序号/结果时间/错误，三入口共用比较；HistoryExecutionQuery传剩余预算。支付余额业务失败终结自动跟踪，读取暂时失败保持pending/30秒。内部命令和schemas已同步，详见[执行与余额语义](../runbooks/余额观测与历史执行边界.md)。
+
+0.19.3修复历史合并请求的多窗口终态传播，登录增加进程内持锁执行门；公开DTO、幂等/授权和429重试格式不变。GET_LOCK获取前的资源等待至多250ms，沿用RATE_LIMITED及3秒重试提示；原challenge/attempt保留。运行与存量边界见[维护手册](../runbooks/历史合并修复与登录执行门.md)。
 
 0.19.2仅新增客户端协议阅读提示与成功登录后的本地版本/摘要记忆；LoginRequest、协议版本、明确同意及后台授权校验不变，不自动勾选同意。规则见[界面与登录](../decisions/界面状态与登录授权.md)。
 
@@ -12,13 +22,14 @@ core模式公开API和领域DTO不变。核心内部52个接口直接复用原�
 
 ## 公开 API
 
-[openapi.yaml](openapi.yaml)包含全部 34 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
+[openapi.yaml](openapi.yaml)包含全部 35 个方法/路径。由后端 Pydantic DTO 和 `backend/services/gateway/contract_routes.py` 生成，前端提交对应 `generated.d.ts`；不得只修改夹具绕过契约。变更在同一提交同步源、契约、类型、场景及验收。
 
 - 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。显式私网 HTTP 模式使用 elect_session_local/elect_browser_local（HttpOnly/SameSite=Lax/Path=/、不设 Domain）；模式由服务端校验的 Origin 决定，Origin/CSRF 与归属校验保留。
 - 匿名验证码/登录使用浏览器 nonce、Origin 与限流；已有会话的重认证还要校验当前会话与 CSRF，登录接口不得静默切账号，账号不同返回 `409 REAUTH_ACCOUNT_MISMATCH`。
 - 受保护写请求使用 Origin 和内存 `X-CSRF-Token`；每次实时 introspection，依赖不可用时拒绝新写入。对象不属于本人返回不可枚举 404。
 - 成功信封为 data/meta；失败为 error/meta，meta 包含 request_id 与带时区 server_time；logout 204 无正文。429 使用 Retry-After，错误中 retry_after_seconds 表达相同等待期。
 - 金额为 `DECIMAL(14,2)` 对应的固定两位十进制字符串，读数为 `DECIMAL(18,4)` 对应固定四位字符串；不接受 float、科学计数法、NaN/Infinity。未知为 null。
+- 0.20.3采集Sample新增可选meter_capture_delta，表示本次meter_reading减previous_sample_id对应止码；相同为0、首次/任一缺失为null、负差保留，固定四位小数（相减允许15位整数）。分页/日期筛选不改变基线，学校原始meter_delta等字段含义不变；旧后端缺字段时前端显示—。
 - 日期是上海自然日期，范围含首尾、最多 366 天、不能超过 server_time 对应上海今天；数据库边界转成 UTC 半开区间。日/周一至周日/月桶只计选中范围，缺失日保持 unknown。
 - 所有 202 均由 MySQL 事务持久受理后返回；操作、运行和订单分别用 `/operations/{id}`、`/monitor/runs/{id}`、`/payment-orders/{id}`查询。QR GET 的 202 代表原订单的持久二维码工作，不创建新订单。
 - 绑定、同步、余额/历史刷新、立即采集、建单及二维码刷新使用 Idempotency-Key，长度 16..128，按用户+操作类型分区。相同键不同摘要返回 `409 IDEMPOTENCY_CONFLICT`，网络重试保持原键；台账至少 180 天，unknown 不普通过期清除。

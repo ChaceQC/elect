@@ -3,15 +3,20 @@
 import random
 from collections import Counter
 
+from sqlalchemy import text
+
 from services.common.ids import new_id
 from services.common.sql import execute, first
+
+from .history_links import propagate
 
 
 async def finish_sync(conn, row):
     counts = await first(
         conn,
         "SELECT SUM(state IN ('pending','running','retry_wait')) AS "
-        "pending,SUM(state='failed') AS failed FROM history_sync_windows WHERE "
+        "pending,SUM(state='failed') AS failed,SUM(state='cancelled') AS cancelled,"
+        "COUNT(*) AS total FROM history_sync_windows WHERE "
         "sync_id=:id",
         id=row["sync_id"],
     )
@@ -22,10 +27,14 @@ async def finish_sync(conn, row):
         "AND r.record_date BETWEEN s.requested_start AND s.requested_end",
         sync=row["sync_id"],
     )
-    state = "running" if counts["pending"] else "failed" if counts["failed"] else "succeeded"
+    state = (
+        "running" if counts["pending"] or not counts["total"] else
+        "failed" if counts["failed"] else "cancelled" if counts["cancelled"] else "succeeded"
+    )
     error = await first(
         conn,
-        "SELECT error_code FROM history_sync_windows WHERE sync_id=:id AND state='failed' LIMIT 1",
+        "SELECT error_code FROM history_sync_windows WHERE sync_id=:id AND state='failed' "
+        "ORDER BY start_date,id LIMIT 1",
         id=row["sync_id"],
     )
     code = error["error_code"] if error else None
@@ -39,20 +48,11 @@ async def finish_sync(conn, row):
         coverage="partial" if known["n"] else "unknown",
         error=code,
     )
-    await execute(
-        conn,
-        "UPDATE room_operations SET "
-        "state=:state,error_code=:error,saga_step=IF(:state='running','read_school','c"
-        "omplete'),next_reconcile_at=IF(:state='running',UTC_TIMESTAMP(6),NULL),update"
-        "d_at=UTC_TIMESTAMP(6) WHERE id=:op OR (upstream_operation_id=:op AND "
-        "type='history_sync' AND saga_step='merged')",
-        op=row["operation_id"],
-        state=state,
-        error=code,
-    )
+    await propagate(conn, row["sync_id"], state, code)
 
 
-async def finish_history(engine, row, result, error, retryable=False, retry_after=None):
+async def finish_history(engine, row, result, error, retryable=False, retry_after=None,
+                         *, committing=None):
     from uuid import UUID
 
     from .preference_store import lock_preference
@@ -62,17 +62,20 @@ async def finish_history(engine, row, result, error, retryable=False, retry_afte
         await lock_preference(conn, UUID(bytes=row["owner_user_id"]))
         current = await first(
             conn,
-            "SELECT *,lease_until>UTC_TIMESTAMP(6) AS valid FROM history_sync_windows "
+            "SELECT * FROM history_sync_windows "
             "WHERE id=:id FOR UPDATE",
             id=row["id"],
         )
+        now = (await first(conn, "SELECT UTC_TIMESTAMP(6) AS now"))["now"]
         if (
-            current["state"] != "running"
+            not current or current["state"] != "running"
             or current["lease_owner"] != row["lease_owner"]
             or current["execution_epoch"] != row["execution_epoch"]
-            or not current["valid"]
+            or not current["lease_until"] or current["lease_until"] <= now
         ):
             return False
+        if committing:
+            committing.set()
         binding = await target(
             conn, UUID(bytes=row["owner_user_id"]), UUID(bytes=row["binding_id"])
         )
@@ -105,33 +108,28 @@ async def finish_history(engine, row, result, error, retryable=False, retry_afte
                 end=row["end_date"],
             )
             occurrences = Counter()
+            batch = []
             for record in result["items"]:
                 fingerprint = bytes.fromhex(record["row_hash"])
                 occurrences[fingerprint] += 1
-                await execute(
-                    conn,
+                batch.append(dict(
+                    id=new_id().bytes, binding=row["binding_id"], room=result["request_room_id"],
+                    date=record["record_date"], last=record["last_reading"],
+                    reading=record["reading"], usage=record["energy_usage"],
+                    amount=record["charged_amount"], status=record["charge_status"],
+                    hash=fingerprint, sync=row["sync_id"], occurrence=occurrences[fingerprint],
+                    version=current["execution_epoch"], quality=record["quality"],
+                ))
+            for offset in range(0, len(batch), 250):
+                await conn.execute(text(
                     "INSERT INTO school_history_records "
                     "(id,binding_id,request_room_id,source,record_date,source_timezone"
                     ",last_reading,reading,energy_usage,charged_amount,charge_status,r"
                     "ow_hash,sync_id,occurrence_index,snapshot_version,quality) "
                     "VALUES "
                     "(:id,:binding,:room,'C02',:date,'Asia/Shanghai',:last,:reading,:u"
-                    "sage,:amount,:status,:hash,:sync,:occurrence,:version,:quality)",
-                    id=new_id().bytes,
-                    binding=row["binding_id"],
-                    room=result["request_room_id"],
-                    date=record["record_date"],
-                    last=record["last_reading"],
-                    reading=record["reading"],
-                    usage=record["energy_usage"],
-                    amount=record["charged_amount"],
-                    status=record["charge_status"],
-                    hash=fingerprint,
-                    sync=row["sync_id"],
-                    occurrence=occurrences[fingerprint],
-                    version=current["execution_epoch"],
-                    quality=record["quality"],
-                )
+                    "sage,:amount,:status,:hash,:sync,:occurrence,:version,:quality)"
+                ), batch[offset:offset + 250])
             await execute(
                 conn,
                 "UPDATE history_sync_windows SET "

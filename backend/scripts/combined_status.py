@@ -45,7 +45,11 @@ async def verify(mode):
                             elif expected:
                                 assert value["status"] == "degraded"
                                 for role, state in roles.items():
-                                    if role not in {"relay", "audit"}:
+                                    if role == "cleanup":
+                                        # 60秒业务扫描与10秒连接tick分开，不能强迫探针伪造成功。
+                                        assert state["last_success"] > 0
+                                        assert state["last_tick"] > started
+                                    elif role not in {"relay", "audit"}:
                                         assert state["last_success"] > started
                         values[host] = {"status": value["status"], "roles": sorted(roles)}
                     print(values)

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from services.common.sql import execute, first
 from services.migrate_all_mysql import migration_urls
 
+from .recovery_observations import ObservationWatermarkError, verify_urls
 from .recovery_rules import OUTBOX_HOLD, RULES
 
 
@@ -33,7 +34,8 @@ async def run(mode):
     if mode != "inventory" and os.environ.get("ELECT_RECOVERY_ISOLATED") != "1":
         raise ValueError("恢复操作必须显式使用隔离覆盖配置")
     result = {}
-    for domain, url in migration_urls().items():
+    urls = migration_urls()
+    for domain, url in urls.items():
         engine = create_async_engine(
             url, pool_size=1, max_overflow=0, hide_parameters=True,
             isolation_level="READ COMMITTED",
@@ -42,6 +44,10 @@ async def run(mode):
             async with engine.begin() as conn:
                 await execute(conn, "SET time_zone='+00:00'")
                 if mode == "apply":
+                    from services.common.archive_verify import verify_archives, verify_cold_links
+
+                    await verify_archives(conn)
+                    await verify_cold_links(conn)
                     # 每域独立事务；网络隔离和停止Worker先行，部分失败可安全重入。
                     for statement in RULES.get(domain, []):
                         await execute(conn, statement)
@@ -59,6 +65,9 @@ async def run(mode):
                 result[domain] = value
         finally:
             await engine.dispose()
+    if mode == "apply":
+        # 先隔离所有域的旧执行/Outbox，再校验跨库水位；失败不得解除隔离。
+        await verify_urls(urls)
     return {"mode": mode, "domains": result}
 
 
@@ -68,6 +77,8 @@ def main():
     args = parser.parse_args()
     try:
         print(json.dumps(asyncio.run(run(args.mode))))
+    except ObservationWatermarkError:
+        raise SystemExit("恢复门禁失败：观测计数缺失或低于缓存高水位，保持隔离") from None
     except Exception as error:
         if os.environ.get("ELECT_TEST_DEBUG_FRAMES") == "1":
             import traceback

@@ -4,6 +4,7 @@ import asyncio
 import os
 from uuid import UUID
 
+from scripts.fixture_time import next_request_minute
 from scripts.t2_smoke import fixture_apps
 from scripts.t3_control_fixtures import running
 from services.common.ids import new_id
@@ -105,6 +106,8 @@ async def verify(app):
     view = await config.patch(
         owner, MonitorPatch(expected_version=view.version, repeat_limit=3), new_id()
     )
+    # 独立采集周期跨分钟；只推进合成受理时间，持久请求/每日计数保持。
+    await next_request_minute(engine, owner)
     await collect(engine, owner, "8.00")
     rows = await slots(engine, owner)
     assert rows[-1]["ordinal"] == 3 and rows[-1]["id"] != rows[-2]["id"]
@@ -130,6 +133,7 @@ async def verify(app):
     assert len(await slots(engine, owner)) == len(rows)
     print("严格阈值/负余额、回差重武装、样本防重、未知占名额、次数迁移/降低/释放、跨事件冷却：通过")
     baseline = None
+    await next_request_minute(engine, owner)
     for cycle in range(4):
         run = await accept_run(engine, owner, str(new_id()), new_id())
         execution = await claim_run(engine, UUID(bytes=run["id"]))

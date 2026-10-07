@@ -9,14 +9,17 @@ from pydantic import Field
 
 from services.common.dates import today
 from services.common.dto import DTO
+from services.common.errors import ErrorCode
+from services.common.http import ApiError
 from services.common.internal_dto import (
     BalanceObservation,
     BindingQuery,
     ConsumptionQuery,
     HistoryWindowQuery,
+    PaymentBalanceRefresh,
 )
 from services.common.security import Principal, require_user_principal
-from services.common.sql import execute, first
+from services.common.sql import first
 
 from .balance import accept_refresh, get_balance
 from .consumption import consumption
@@ -64,6 +67,18 @@ async def refresh(command: RefreshCommand, request: Request, principal: Browser)
     return await accepted(request, principal, operation)
 
 
+@router.post("/controls/payment-balance-refresh")
+async def payment_refresh(command: PaymentBalanceRefresh, request: Request, principal: Browser):
+    # scope沿用原payment权限；来源只信任已验证的签名issuer，不接受浏览器字段。
+    if principal.service != "payment":
+        raise ApiError(404, ErrorCode.NOT_FOUND, "内部用途不存在")
+    operation = await accept_refresh(
+        request.app.state.database, principal.user_id, command.binding_id,
+        f"payment-paid:{command.order_id}", source="payment",
+    )
+    return await accepted(request, principal, operation)
+
+
 @router.post("/browser/consumption")
 async def get_consumption(command: ConsumptionQuery, request: Request, principal: Browser):
     return await consumption(request.app.state.database, principal.user_id, command)
@@ -99,27 +114,17 @@ async def balance_observed(
     request: Request,
     principal: Annotated[Principal, Depends(require_user_principal("room:balance-commit"))],
 ):
-    from datetime import UTC
-
+    from .balance_observations import apply_observation
     from .preference_store import lock_preference
 
-    observed = command.fetched_at.astimezone(UTC).replace(tzinfo=None)
     async with request.app.state.database.begin() as conn:
         await lock_preference(conn, principal.user_id)
         await target(conn, principal.user_id, command.binding_id, active=True)
-        await execute(
-            conn,
-            "INSERT INTO room_balance_cache (binding_id,balance,fetched_at,source,quality) "
-            "VALUES (:id,:amount,:at,'school_bound_rooms','fresh') ON DUPLICATE KEY UPDATE "
-            "balance=IF(fetched_at IS NULL OR fetched_at<=:at,:amount,balance),"
-            "quality=IF(fetched_at IS NULL OR fetched_at<=:at,'fresh',quality),"
-            "error_code=IF(fetched_at IS NULL OR fetched_at<=:at,NULL,error_code),"
-            "fetched_at=IF(fetched_at IS NULL OR fetched_at<=:at,:at,fetched_at)",
-            id=command.binding_id.bytes,
-            amount=command.amount,
-            at=observed,
+        recorded = await apply_observation(
+            conn, command.binding_id.bytes, command.amount,
+            command.model_dump(exclude={"binding_id", "amount"}),
         )
-    return {"recorded": True}
+    return {"recorded": recorded}
 
 
 @router.post("/browser/overview")

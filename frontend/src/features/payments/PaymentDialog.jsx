@@ -28,7 +28,7 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
   const limits = rules ? { minimum: rules.min_amount, maximum: rules.max_amount, step: rules.amount_step } : null
   const valid = !!limits && validateAmount(normalized, limits)
   async function create() {
-    if (!controller || submitting.current || id || !intent && (!valid || !rules?.enabled)) return
+    if (!capability.profileAvailable || !controller || submitting.current || id || !intent && (!valid || !rules?.enabled)) return
     submitting.current = true; setError('')
     const request = intent ?? controller.create('/payment-orders', { binding_id: bindingId, amount: normalized }, 'order')
     setFrozen(request)
@@ -46,7 +46,7 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
   }
   return <Modal open title="充值电费" onClose={onClose}>
     <div className="payment-room"><Building2 size={23} /><span>充值寝室：<strong>{displayName}</strong></span></div>
-    {capability.isPending && <StatusBlock title="正在读取支付规则与原订单…" />}
+    {!capability.profileAvailable ? <StatusBlock title="学校资料暂不可用，缴费暂不可用" /> : capability.isPending && <StatusBlock title="正在读取支付规则与原订单…" />}
     {capability.error && <StatusBlock title={capability.error.message} error action={{ label: '重新读取支付规则', onClick: () => { void capability.refetch() } }} />}
     {rules && !rules.enabled && <StatusBlock title={rules.unavailable_reason ?? '支付暂未开放'} />}
     {id ? <OrderStatus key={id} id={id} onStartNew={() => {
@@ -61,7 +61,7 @@ export function PaymentDialog({ bindingId, displayName, onClose }) {
       {rules?.enabled && !intent && !valid && <p role="alert">请按当前金额范围和步长输入充值金额。</p>}
       {intent && <p role="status">原订单受理结果待确认，寝室和金额已固定；再次提交会保留原请求。</p>}
       {error && <StatusBlock title={error} error />}
-      <button disabled={busy || capability.isPending || !intent && (!rules?.enabled || !valid)} onClick={() => { void create() }}>
+      <button disabled={!capability.profileAvailable || busy || capability.isPending || !intent && (!rules?.enabled || !valid)} onClick={() => { void create() }}>
         {busy ? '正在受理…' : intent ? '重试原订单请求' : '确认创建充值订单'}</button>
     </>}
     {id && <p className="muted">关闭窗口不会取消订单。</p>}

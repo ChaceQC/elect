@@ -130,16 +130,9 @@ async def bindings(
     request: Request,
     principal: Annotated[Principal, Depends(require_user_principal("school:rooms"))],
 ):
-    from .infrastructure.rooms import bound_rooms
-
-    value = await request.app.state.school_sessions.read(
-        principal.user_id,
-        principal.request_id,
-        "/base/roomUser/selectRoomListByUserId",
-        {},
-        include_user=True,
+    return await request.app.state.school_sessions.read_bound(
+        principal.user_id, principal.request_id,
     )
-    return {"items": bound_rooms(value)}
 
 
 @router.post("/rooms/candidates")

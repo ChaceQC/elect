@@ -12,6 +12,22 @@ from services.common.sql import aware, execute, first
 from .dto import Sample, Samples
 from .sample_snapshots import create_or_reuse
 
+PAGE_SQL = (
+    "SELECT p.*,previous.captured_at AS previous_captured_at,"
+    "p.meter_reading-previous.meter_reading AS meter_capture_delta,"
+    "COALESCE(p.capture_interval_minutes,m.interval_minutes) AS interval_minutes,"
+    "CASE WHEN p.meter_source_record_key IS NULL OR p.meter_source_record_key='' THEN 0 "
+    "ELSE EXISTS(SELECT 1 FROM monitor_samples other WHERE "
+    "other.binding_id=p.binding_id AND other.owner_user_id=p.owner_user_id "
+    "AND other.meter_source_record_key=p.meter_source_record_key "
+    "AND other.captured_at<p.captured_at) END AS meter_is_repeated "
+    "FROM sample_snapshot_items i JOIN monitor_samples p ON p.id=i.sample_id "
+    "JOIN monitors m ON m.id=p.monitor_id "
+    "LEFT JOIN monitor_samples previous ON previous.id=p.previous_sample_id "
+    "WHERE i.snapshot_id=:snapshot AND i.position>:offset "
+    "ORDER BY i.position LIMIT :size"
+)
+
 
 def sample_view(row):
     gap = (
@@ -38,6 +54,9 @@ def sample_view(row):
         if row["meter_reading"] is not None
         else None,
         meter_delta=format(row["meter_delta"], ".4f") if row["meter_delta"] is not None else None,
+        meter_capture_delta=format(row["meter_capture_delta"], ".4f")
+        if row["meter_capture_delta"] is not None
+        else None,
         meter_record_date=row["meter_record_date"],
         meter_source="school_C02_daily_record" if row["meter_record_date"] else None,
         meter_source_record_key=row["meter_source_record_key"],
@@ -80,18 +99,7 @@ async def list_samples(engine, owner, command, token_key):
             (
                 await execute(
                     conn,
-                    "SELECT p.*,previous.captured_at AS previous_captured_at,"
-                    "COALESCE(p.capture_interval_minutes,m.interval_minutes) AS interval_minutes,"
-                    "EXISTS(SELECT 1 FROM monitor_samples other WHERE "
-                    "other.binding_id=p.binding_id "
-                    "AND other.owner_user_id=p.owner_user_id AND other.captured_at<p.captured_at "
-                    "AND other.meter_source_record_key=p.meter_source_record_key) AS "
-                    "meter_is_repeated "
-                    "FROM sample_snapshot_items i JOIN monitor_samples p ON p.id=i.sample_id "
-                    "JOIN monitors m ON m.id=p.monitor_id "
-                    "LEFT JOIN monitor_samples previous ON previous.id=p.previous_sample_id "
-                    "WHERE i.snapshot_id=:snapshot AND i.position>:offset "
-                    "ORDER BY i.position LIMIT :size",
+                    PAGE_SQL,
                     snapshot=fixed["id"],
                     offset=(command.page - 1) * command.page_size,
                     size=command.page_size,
@@ -105,10 +113,10 @@ async def list_samples(engine, owner, command, token_key):
             "SELECT first_enabled_at FROM monitors WHERE owner_user_id=:owner",
             owner=owner.bytes,
         )
-        count = await first(
+        history = await first(
             conn,
-            "SELECT COUNT(*) AS n FROM monitor_samples WHERE owner_user_id=:owner AND "
-            "binding_id=:binding",
+            "SELECT 1 AS found FROM monitor_samples WHERE owner_user_id=:owner AND "
+            "binding_id=:binding LIMIT 1",
             owner=owner.bytes,
             binding=command.binding_id.bytes,
         )
@@ -117,7 +125,7 @@ async def list_samples(engine, owner, command, token_key):
         page=command.page,
         page_size=command.page_size,
         total=fixed["total"],
-        has_monitor_history=bool(count["n"] or monitor and monitor["first_enabled_at"]),
+        has_monitor_history=bool(history or monitor and monitor["first_enabled_at"]),
         snapshot_token=token,
         snapshot_expires_at=fixed["expires_at"].replace(tzinfo=UTC),
     )

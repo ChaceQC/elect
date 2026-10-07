@@ -95,6 +95,11 @@ async def initialize(app, service):
         app.state.school_credentials = repository
         app.state.school_auth = Authentication(repository, store, protocol, lookup)
         app.state.school_sessions = SchoolSessions(repository, store, protocol, lookup)
+        control = getattr(app.state, "process_control", None)
+        if control:
+            executor = app.state.school_sessions.ocr_executor
+            control.watch(service, "ocr", executor.health_failure)
+            control.callbacks.append(executor.request_stop)
 
 
 def secret_file(app, name):
@@ -103,6 +108,11 @@ def secret_file(app, name):
 
 
 async def close(app):
+    if hasattr(app.state, "school_sessions"):
+        drained = await app.state.school_sessions.ocr_executor.close()
+        control = getattr(app.state, "process_control", None)
+        if not drained and control:
+            control.fail("school_adapter", "ocr", "OCR_DRAIN_EXHAUSTED", exhausted=True)
     if getattr(app.state, "payment_broker", None):
         await app.state.payment_broker.close()
     if getattr(app.state, "history_broker", None):

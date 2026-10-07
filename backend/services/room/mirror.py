@@ -24,7 +24,7 @@ async def upsert_room(conn, record):
     )
 
 
-async def confirm_binding(conn, owner, record):
+async def confirm_binding(conn, owner, record, observation=None):
     room = await upsert_room(conn, record)
     await execute(
         conn,
@@ -44,19 +44,9 @@ async def confirm_binding(conn, owner, record):
         owner=owner,
         room=room["id"],
     )
-    await execute(
-        conn,
-        "INSERT INTO room_balance_cache (binding_id,balance,fetched_at,source,quality) "
-        "VALUES (:id,:balance,IF(:balance IS NULL,NULL,UTC_TIMESTAMP(6)),"
-        "'school_bound_rooms',IF(:balance IS NULL,'unknown','fresh')) "
-        "ON DUPLICATE KEY UPDATE balance=IF(:balance IS NULL,balance,:balance),"
-        "fetched_at=IF(:balance IS NULL,fetched_at,UTC_TIMESTAMP(6)),"
-        "quality=IF(:balance IS NULL,'stale','fresh'),"
-        "error_code=IF(:balance IS NULL,'SCHOOL_INVALID_RESPONSE',NULL),"
-        "updated_at=UTC_TIMESTAMP(6)",
-        id=binding["id"],
-        balance=record["balance"],
-    )
+    from .balance_observations import apply_observation
+
+    await apply_observation(conn, binding["id"], record["balance"], observation)
     return binding["id"]
 
 
@@ -78,12 +68,6 @@ async def mirror_bindings(conn, owner, records):
         await execute(
             conn,
             "UPDATE room_bindings SET status='inactive',updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
-            id=binding,
-        )
-        await execute(
-            conn,
-            "UPDATE room_balance_cache SET quality='stale',updated_at=UTC_TIMESTAMP(6) WHERE "
-            "binding_id=:id",
             id=binding,
         )
     return "ready" if records else "empty"

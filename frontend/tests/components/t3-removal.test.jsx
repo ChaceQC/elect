@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { setupServer } from 'msw/node'
+import { setupServer } from '../fixtures/server.js'
 import { AppProviders } from '../../src/app/providers.jsx'
 import { RemoveBindingDialog } from '../../src/features/rooms/RemoveBindingDialog.jsx'
 import { RoomOperationStatus } from '../../src/features/rooms/RoomOperationStatus.jsx'

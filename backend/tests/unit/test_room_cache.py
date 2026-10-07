@@ -20,7 +20,11 @@ def test_independent_binding_read_preserves_explicit_cache_quality(quality, stal
         "balance": Decimal("25.50"),
         "quality": quality,
         "error_code": None,
+        "observation_sequence": 1,
     }
     binding = RoomQueries.binding(row, "ready")
     assert binding["balance"]["stale"] is stale
     assert binding["balance"]["amount"] == "25.50"
+    assert RoomQueries.binding(row, "stale")["balance"]["stale"] is stale
+    row["observation_sequence"] = None
+    assert RoomQueries.binding(row, "ready")["balance"]["stale"] is True

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, SecretStr, model_validator
 
-from services.identity.dto import LoginRequest
+from services.identity.dto import LocalSession, LoginRequest  # noqa: F401 -- 内部响应契约导出
 from services.payment.dto import OrderState, QRStatus
 
 from .dto import DTO, Count, DateRange, Money, PositiveMoney, Timestamp, Version
@@ -88,9 +88,20 @@ class HistoryWindowQuery(BindingQuery, DateRange):
     pass
 
 
-class BalanceObservation(BindingQuery):
-    amount: Money
-    fetched_at: Timestamp
+class HistoryExecutionQuery(HistoryWindowQuery):
+    budget_seconds: Annotated[float, Field(gt=0, le=90)] = 90
+
+
+class BalanceReading(DTO):
+    sequence: Annotated[int, Field(ge=1, le=9223372036854775807)]
+    observed_at: Timestamp
+    request_id: UUID
+    source: Literal["school_bound_rooms"] = "school_bound_rooms"
+    error_code: str | None = None
+
+
+class BalanceObservation(BindingQuery, BalanceReading):
+    amount: Money | None
 
 
 class SampleQuery(BindingQuery, DateRange):
@@ -126,6 +137,7 @@ class CandidateQuery(DTO):
 
 
 class SchoolBindingRecord(DTO):
+    balance_observation: BalanceReading | None = None
     room_id: Annotated[str, Field(min_length=1, max_length=128)]
     building: str
     number: str
@@ -338,6 +350,10 @@ class SessionContext(DTO):
     session_version: Version | None
     expires_at: Timestamp | None
     csrf_token: str | None
+
+
+class PaymentBalanceRefresh(BindingQuery):
+    order_id: UUID
 
 
 class EventEnvelope(DTO):
