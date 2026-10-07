@@ -1,3 +1,40 @@
+## 2026-10-08 · 拉取最新dev并完成本机0.22.1重部署
+
+### 已完成
+
+- 从干净dev `3a64add` fast-forward拉取至`b51a897f4a73758daf9ac1d1c6d3c6905109b0eb`，前后端当前版本为0.22.1；核对本次新增消费趋势、自动查询及学校缴费读取的部署边界，无新增迁移或Secret。
+- 独立核对最终候选df835d4的[完整CI37629390328](https://github.com/ChaceQC/elect/actions/runs/37629390328)：前端、后端、business、compatibility、delivery五组及check全部success，普通PR的publish按设计skipped；本次拉取源与该候选在backend/frontend/deploy中无差异，仅新增进度记录。
+- 确认目标为既有elect-local、local源码镜像、core加SMTP定向通道，入口10.8.0.88:6874；保存原env/Secret受限副本与七域AES-GCM加密一致性快照，备份完整认证通过，目录为`/opt/elect-local/redeploy-0.22.1-20261008T003827/`，沿用独立backup-keys目录中的既有密钥。
+- 构建`elect-backend:v0.22.1-b51a897`与`elect-frontend:v0.22.1-b51a897`并通过版本/源提交校验；候选配置及Nginx预检通过后，仅更新忽略配置的两项镜像引用，保留原绑定、支付、真实SMTP及后台开关。
+- 00:41:13—00:41:59（Asia/Shanghai）完成停止本项目旧应用、七域重复迁移及Adapter→core→SMTP通道→邮件Worker→Nginx串行启动；8个长期容器全部healthy、RestartCount=0，原三个基础服务容器保持运行，旧0.20.3镜像保留。
+- 入口、生产静态资源、内部TLS及后台角色均通过检查；29个Secret逐文件SHA-256、三个原卷及挂载与升级前一致。69次成功采集、7封sent与2个paid_confirmed订单保留，原监控仍关闭；新消费聚合只读覆盖69条现存样本、7个金额日期。
+
+### 进行中
+
+- 无部署进行中项；本机按原配置保持运行，部署记录通过独立Markdown提交推送dev，镜像来源仍为b51a897。
+
+### 阻塞与风险
+
+- 无部署阻塞；已完成短暂入口切换。本次为本机源码开发版部署，不创建发布标签或发布镜像；未读取auth.txt/email_auth.txt，未新增真实登录、学校写、付款、SMTP认证或邮件投递测试，学校缴费新接口本轮只检查路由及会话拒绝，不声明新的真实端到端学校验收。独立WSL环境未操作。
+
+### 下一步
+
+- 保持elect-local 0.22.1运行及本次备份；用户下一次登录后核对自动更新、消费日期完整性/估算提示和学校缴费列表。正式发布另按固定摘要及标签CI流程执行。
+
+### 主要文件或模块
+
+- deploy/.env.local（忽略配置，仅两项应用镜像引用）、既有compose.sh/迁移/备份/状态入口、PROJECT_PROGRESS.md、AGENTS.md及docs/runbooks/本机私网部署.md；根与前后端README已准确描述0.22.1和部署入口，无需修改，仓库无AGENT.md。
+
+### 验证
+
+- 拉取前后Git工作区干净，实际Docker/Compose可用，8个现有容器healthy；远端增量迁移文件只删除末尾空行，迁移内容和版本不变。
+- Compose config、release check-config --allow-local、check-version、两张实际镜像check-images及Nginx语法检查全部通过；七域迁移成功，无新增DDL，迁移头仍为identity_0004、school_0008、room_0008、monitoring_0010、notification_0003、payment_0006、audit_0002。
+- `/healthz`、首页、`/history`及`/api/v1/auth/agreement`均200；协议保持2026-10-04.1/no-store。无Cookie的`/auth/session`、新缴费明细与消费趋势路由均为预期401；未调用学校。
+- 首页JS/CSS响应与Nginx内文件SHA-256一致，新产物含“缴费明细列表”“总缴费”“含余额变化估算”和既有电表止码/差值；已移除的来源质量列不在产物中。core六域及全部后台角色ready，Adapter两角色ready，内部证书链/主机名校验通过，邮件Worker健康探针通过。
+- 新Monitoring聚合在现有本库只读运行，覆盖全部69条样本和7个金额日期；升级前后七域迁移/Outbox/未知操作/监控状态/采集/邮件/订单统计一致。MySQL max_connections=40、Connection_errors_max_connections=0，原数据与凭据未改写。
+- 旧core/Adapter/mail-worker/Nginx正常退出0，SMTP定向通道按SIGTERM结束为143；新应用均无重启。验证报告、迁移日志和构建日志仅保存于上述受限备份目录，未纳入Git。
+- deploy/status.sh完整入口通过；三份部署文档UTF-8、4个本地链接、4段Shell示例语法及git diff --check通过。提交前重新fetch确认dev未有新增远端提交，根/子目录README无需修改；仅提交三份Markdown，env、Secret、真实凭据、备份及构建产物均保持排除。
+
 ## 2026-10-07 · 消费趋势按日期覆盖判断完整性
 
 ### 已完成
