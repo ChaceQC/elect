@@ -7,19 +7,20 @@
 - 版本元数据同步0.22.2，完成状态模型/生成契约、根README/AGENTS、后端README、文档索引、后端架构、健康运行手册和专项决策的同步，并补注旧验收边界。无AGENT.md；前端仅版本元数据变动，无页面行为修改。
 - 新增限流、旧记录/重启和提交前查询故障回归，扩展已提交/激活阶段边界；定向MySQL24项及相邻单元/契约15项通过。
 - 提交前fetch发现远端新增纯部署记录d8f7dcb，已快进同步并保留其完整AGENTS/进度/本机部署文档；只解决两处页首追加冲突，业务与测试文件不受影响。按该记录，本机已部署0.22.1，本次0.22.2修复仍未部署。
+- 修复提交5948ba5eea9219cb2c22a86a1721c163b1508c48已推送origin/dev；对应[快速CI37706104737](https://github.com/ChaceQC/elect/actions/runs/37706104737)于2026-10-08 08:15:01（Asia/Shanghai）完成必需check，backend / build、frontend / build与check全部success，完整business/compatibility/delivery三组及publish按quick规则skipped。
 
 ### 进行中
 
-- 实现、文档和本地定向验证完成，正在检查差异并准备dev提交推送及该提交快速CI核对。
+- 无实现进行中项；问题1修复、定向验证、dev提交推送与快速CI/check已完成，最终仅提交本Markdown验证记录。
 
 ### 阻塞与风险
 
 - 无实现阻塞。隔离MySQL测试在WSL独立Docker执行，已确认一次性容器/网络清理完成；未读取真实配置/凭据，未调用学校、支付或邮件。
-- 现有部署未升级；问题2—6不在本轮范围。本轮未运行完整容器验收，快速CI不能替代main PR完整门禁。
+- 本次0.22.2未部署；问题2—6不在本轮范围。本轮未运行完整容器验收，快速CI不能替代main PR完整门禁。
 
 ### 下一步
 
-- 提交推送dev后核对本次源码SHA的快速CI；若后续要求合入main，针对最终候选走PR完整五组/check门禁。本轮不自动部署或发布。
+- 本轮问题1修复交付完成。若后续要求合入main，针对最终候选创建dev→main PR并核对完整五组/check门禁；本次不自动合并、部署或发布。
 
 ### 主要文件或模块
 
@@ -31,6 +32,8 @@
 - 一次性MySQL8.4.6、internal网络及生产2+1池：test_identity_recovery_health与test_login_resources共24 passed（36.18秒），含真实Saga/持久事务/命名锁、生产Authentication/SharedStore.rate和健康监督判定。Redis及学校为合成，可控时钟不等于真实等待60秒或容器退出。
 - 本机uv/Python3.12.10：test_login_gate、test_health_progress、公开契约及内部协议共15 passed（5.21秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过，git diff --check通过。
 - WSL首次直接执行CRLF脚本在set处退出、未运行测试；改用内存去CR的stdin后测试完成，但PowerShell追加尾部回车导致外层sh返回1。已独立确认测试24 passed及EXIT清理后无elect-test-query容器/网络，未据外层返回码冒称整条命令成功，部署脚本未修改。
+- 最终源码5948ba5的CI后端普通入口378 passed/115 skipped（119.97秒），一次性MySQL111 passed（144.92秒，包含本次登录恢复专项）；前端67 passed，浏览器52 passed（41.9秒）。跳过项不计通过；本次MySQL入口在CI正常退出成功。
+- 提交前UTF-8/无冲突标记/差异检查通过；收尾fetch确认origin/dev仍为本次源码SHA。最终Markdown记录按当前workflow的paths-ignore不触发额外push CI，业务验证追溯5948ba5及上述运行。
 
 ## 2026-10-08 · 拉取最新dev并完成本机0.22.1重部署
 
