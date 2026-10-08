@@ -6,18 +6,20 @@
 - 确认Room受理前绑定缺失或inactive返回404 NOT_FOUND，Payment误将其保持pending并每30秒重试；已有operation的状态读取失败需要继续保留关联与重试。
 - Payment仅在尚无operation且受理返回404 NOT_FOUND时沿用failed终结，订单保留paid_confirmed，错误保留NOT_FOUND，原终态提交清空下一次回查与租约。旧pending记录下轮正常恢复可终结；429/503、解绑中409和已受理任务查询404仍保留重试。
 - 新增9项Room/Payment MySQL专项并加入既有CI入口；同步0.22.6前后端/锁文件/OpenAPI版本、根与前后端README、AGENTS、文档索引、契约、架构、运行手册及专项决策。无AGENT.md，无API字段、新迁移、Secret、资源池或部署配置变更。
+- 修复提交5d65321072475496164ec7e4bb06e16c4bc07c95已推送origin/dev；[快速CI37714524776](https://github.com/ChaceQC/elect/actions/runs/37714524776)于2026-10-08 09:51:23（Asia/Shanghai）完成check，backend / build、frontend / build与check全部success，business/compatibility/delivery和publish按quick规则skipped。
 
 ### 进行中
 
-- 实现及定向验证完成，正在检查差异并准备dev提交推送和快速CI。
+- 无实现进行中项；问题5修复、定向验证、dev提交推送和快速CI/check均已完成，最终仅提交本Markdown验证记录。
 
 ### 阻塞与风险
 
 - 无实现阻塞；不读取真实配置或凭据，不调用学校、支付、邮件，不升级现有部署。问题6不在本轮范围。
+- 快速CI不替代main PR完整五组门禁或真实学校验收；本次0.22.6尚未部署。
 
 ### 下一步
 
-- 提交推送本轮0.22.6修复并核对源码提交的快速CI/check，将最终结果补入本记录。本轮不自动合入main、部署或发布。
+- 本轮问题5交付完成。问题6的缴费列表入口超时仍待另行指定；若后续要求合入main，针对最终候选创建dev→main PR并通过完整五组/check。本轮不自动合并、部署或发布。
 
 ### 主要文件或模块
 
@@ -28,6 +30,8 @@
 - 修改前新增inactive绑定回归按预期失败，复现余额pending而非failed；不计作通过。
 - 一次性MySQL8.4.6/internal网络、随机Room/Payment新库及生产2+1池：新增受理边界9项、既有余额终态4项和付款后独立读取8项，共21 passed（34.01秒）。覆盖首次确认/旧pending、绑定inactive/缺失、无操作创建/重启停止领取、429/503/409恢复、已受理查询404保留关联及问题4原规则；学校确认与B02均为合成。
 - 本机uv/Python3.12.10：支付调度及公开/内部契约共7 passed（2.99秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过。首轮OpenAPI检查发现生成器版本未同步，补齐0.22.6后通过；Windows时区由uv --with tzdata临时提供，未改变依赖。
+- 最终源码5d65321的CI后端普通入口378 passed/158 skipped（76.57秒），一次性MySQL154 passed（120.73秒，包含本次9项专项）；前端67 passed、浏览器52 passed（43.6秒）。跳过项不计通过，完整三组按quick设计跳过。
+- 20个变更文件UTF-8/无冲突标记、6处版本元数据和6个专项文档链接检查通过，git diff --check通过；收尾fetch确认origin/dev与修复源码一致、工作区干净。最后仅提交本Markdown记录，按当前paths-ignore不触发额外push CI，业务验证追溯5d65321及上述运行。
 - 已独立确认一次性容器/网络清理完成；未启动真实业务服务、读取真实配置/凭据或调用学校、支付、邮件，未运行完整容器验收。快速CI与真实验收分别记录，现有部署未升级。
 
 ## 2026-10-08 · 问题4：付款后余额刷新独立读取
