@@ -134,3 +134,56 @@ def test_school_only_full_coverage_survives_monitor_unavailable():
     assert value["coverage"] == "complete" and value["sync_status"] == "ready"
     assert value["monitoring_status"] == "unavailable"
     assert value["summary"]["estimated_amount"] is None
+
+
+@pytest.mark.parametrize(("school", "estimate", "expected", "estimated"), [
+    ("3.90", "4.41", "3.90", None),
+    ("0.00", "4.41", "4.41", "4.41"),
+    (None, "4.41", "4.41", "4.41"),
+    (None, "0.00", "0.00", "0.00"),
+    ("0.00", None, "0.00", None),
+    ("-0.30", "4.41", "-0.30", None),
+    (None, None, None, None),
+])
+def test_overview_yesterday_uses_same_merged_day_even_when_range_is_partial(
+    monkeypatch, school, estimate, expected, estimated,
+):
+    from services.gateway import query_api
+
+    original = history(["1.00", None, "8.00", school, "2.00"])
+    principal = Principal("gateway", new_id(), 1, new_id())
+
+    async def call(domain, path, *args, **kwargs):
+        if domain == "monitoring" and path == "/browser/consumption":
+            return estimates([None, None, None, estimate, None])
+        raise ApiError(503, ErrorCode.DEPENDENCY_UNAVAILABLE, "合成资料不可用")
+
+    request = SimpleNamespace(cookies={}, app=SimpleNamespace(state=SimpleNamespace(
+        service_client=SimpleNamespace(call=AsyncMock(side_effect=call)),
+        public_origin="https://synthetic.example",
+    )))
+    monkeypatch.setattr(query_api, "session", AsyncMock(return_value=(principal, None)))
+    monkeypatch.setattr(query_api, "room_call", AsyncMock(return_value={
+        "viewing_binding_id": original["binding_id"], "default_binding": None,
+        "balance": None, "history": original,
+    }))
+    monkeypatch.setattr(query_api, "success", lambda request, value: value)
+
+    value = asyncio.run(query_api.overview(request))
+    yesterday = next(item for item in value["daily_consumption"]["buckets"]
+                     if item["start_date"] == "2026-10-01")
+    assert value["summary"]["yesterday_amount"] == yesterday["amount"] == expected
+    assert value["summary"]["yesterday_estimated_amount"] == estimated
+    assert value["summary"]["complete"] is False
+    assert (
+        value["summary"]["last_14_days_amount"] == value["daily_consumption"]["summary"]["amount"]
+    )
+
+
+def test_overview_summary_missing_yesterday_does_not_reuse_another_day():
+    from services.gateway.consumption import overview_summary
+
+    value = merge_consumption(history(["8.00", "4.41", "2.00"]), estimates([]), "day")
+    value["buckets"] = [value["buckets"][2], value["buckets"][0]]
+    assert overview_summary(value)["yesterday_amount"] is None
+    assert overview_summary(value)["yesterday_estimated_amount"] is None

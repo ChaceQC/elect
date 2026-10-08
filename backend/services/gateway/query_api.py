@@ -13,7 +13,7 @@ from services.common.http import ApiError
 from services.room.dto import HistoryRequest, Overview
 
 from .api import SESSION_COOKIE, session, success
-from .consumption import with_monitoring
+from .consumption import overview_summary, with_monitoring
 from .cookies import get_cookie
 
 router = APIRouter(prefix="/api/v1")
@@ -177,13 +177,7 @@ async def overview(request: Request, binding_id: UUID | None = None):
         if me
         else None,
         balance=balance,
-        summary={
-            "yesterday_amount": None,
-            "last_14_days_amount": history["summary"]["amount"],
-            **{key: history["summary"][key] for key in ("known_days", "expected_days", "complete")},
-        }
-        if history
-        else None,
+        summary=overview_summary(history) if history else None,
         daily_consumption=history,
         monitor={
             "enabled": monitor["config"]["enabled"],

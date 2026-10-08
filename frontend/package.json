@@ -1,7 +1,7 @@
 {
   "name": "elect-frontend",
   "private": true,
-  "version": "0.22.7",
+  "version": "0.22.9",
   "type": "module",
   "engines": {
     "node": "22.23.2",

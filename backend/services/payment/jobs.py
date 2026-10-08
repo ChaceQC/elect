@@ -5,6 +5,8 @@ from uuid import UUID
 from services.common.ids import new_id
 from services.common.sql import execute, first
 
+from .check_window import deadline_sql, expired
+
 
 async def claim(engine, order_id=None):
     lease = str(new_id())
@@ -19,6 +21,17 @@ async def claim(engine, order_id=None):
             order=order_id.bytes if order_id else None,
         )
         if not operation:
+            return None
+        row = await first(conn, "SELECT *,UTC_TIMESTAMP(6) AS observed_at FROM payment_orders "
+                          "WHERE id=:id FOR UPDATE", id=operation["order_id"])
+        if row["cancel_requested_at"] or expired(row):
+            await execute(
+                conn, "UPDATE payment_operations SET next_attempt_at=NULL,"
+                "state=IF(state='running','reconciling',state),lease_owner=NULL,lease_until=NULL "
+                "WHERE id=:id", id=operation["id"],
+            )
+            await execute(conn, "UPDATE payment_orders SET next_check_at=NULL WHERE id=:id",
+                          id=row["id"])
             return None
         await execute(
             conn,
@@ -88,9 +101,11 @@ async def update(
             conn,
             "UPDATE payment_orders SET state=COALESCE(:state,state),"
             "qr_status=COALESCE(:qr,qr_status),error_code=:error,qr_error_code=:qr_error,"
-            "next_check_at=LEAST(COALESCE(next_check_at,"
+            "next_check_at=IF(cancel_requested_at IS NOT NULL OR "
+            "state IN ('paid_confirmed','rejected','expired_confirmed','closed_confirmed') OR "
+            f"{deadline_sql()}<=UTC_TIMESTAMP(6),NULL,LEAST(COALESCE(next_check_at,"
             "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :check_delay SECOND)),"
-            "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :check_delay SECOND)),"
+            "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :check_delay SECOND))),"
             "version=version+1,updated_at=UTC_TIMESTAMP(6) WHERE id=:id "
             "AND state NOT IN ('paid_confirmed','rejected','expired_confirmed','closed_confirmed')",
             id=row["id"],
@@ -103,10 +118,13 @@ async def update(
         if operation_state:
             await execute(
                 conn,
-                "UPDATE payment_operations SET state=:state,error_code=:error,"
-                "lease_owner=NULL,lease_until=NULL,"
-                "next_attempt_at=DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :delay SECOND),"
-                "updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
+                "UPDATE payment_operations o JOIN payment_orders p ON p.id=o.order_id "
+                "SET o.state=:state,o.error_code=:error,o.lease_owner=NULL,o.lease_until=NULL,"
+                "o.next_attempt_at=IF(:state IN ('accepted','reconciling','unknown') AND "
+                "p.cancel_requested_at IS NULL AND "
+                f"{deadline_sql('p.')}>UTC_TIMESTAMP(6),"
+                "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :delay SECOND),NULL),"
+                "o.updated_at=UTC_TIMESTAMP(6) WHERE o.id=:id",
                 id=row["operation_id"],
                 state=operation_state,
                 error=qr_error or error,
@@ -122,9 +140,11 @@ async def recover(engine):
     async with engine.begin() as conn:
         result = await execute(
             conn,
-            "UPDATE payment_operations SET state='reconciling',"
-            "lease_owner=NULL,lease_until=NULL,next_attempt_at=UTC_TIMESTAMP(6) "
-            "WHERE state='running' AND lease_until<=UTC_TIMESTAMP(6)",
+            "UPDATE payment_operations o JOIN payment_orders p ON p.id=o.order_id "
+            "SET o.state='reconciling',o.lease_owner=NULL,o.lease_until=NULL,"
+            "o.next_attempt_at=IF(p.cancel_requested_at IS NULL AND "
+            f"{deadline_sql('p.')}>UTC_TIMESTAMP(6),UTC_TIMESTAMP(6),NULL) "
+            "WHERE o.state='running' AND o.lease_until<=UTC_TIMESTAMP(6)",
         )
         await execute(
             conn,

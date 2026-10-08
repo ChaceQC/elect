@@ -1,5 +1,9 @@
 # API 契约
 
+0.22.9：Order新增可选`check_deadline_at: timestamp|null`和`check_paused: boolean=false`，旧响应缺字段兼容；前者为本系统自动处理窗口，不能解释为学校二维码有效期。未付款订单受理或显式恢复后自动处理15分钟，后续回查和任务领取到期暂停；在途结束后check_paused才为true，学校终态与占位保持。新增`POST /payment-orders/{id}/resume-check`，本人Cookie/Origin/CSRF及expected_version保护，返回Order；活动窗口内重放不续期，缺版本428、冲突或终态/主动停止/在途409、跨用户404。GET不恢复、QR新请求不绕过，付款后的余额刷新规则不变，见[订单自动回查时限](../decisions/订单自动回查时限.md)。
+
+0.22.8总览summary.yesterday_amount从daily_consumption的同一份合并日桶取值：以该响应上海日期范围end_date的前一天按日期查找，不受14天汇总complete影响；0与负数均保留，缺桶或金额未知为null。OverviewSummary新增可选yesterday_estimated_amount，默认null，非null（含0）表示昨日使用余额变化估算；其他日期的估算不影响昨日标记。公开方法/路径不变，旧响应缺可选字段兼容，见[合并口径](../decisions/消费趋势合并监控估算.md)。
+
 0.22.6沿用balance_refresh_state=failed：尚无operation时，余额刷新受理返回404 NOT_FOUND视为绑定明确失效，订单保持paid_confirmed、balance_refresh_operation_id为null、error_code保留NOT_FOUND，并结束自动回查。429/503、解绑处理中409与已受理operation的状态查询失败仍pending/30秒重试；见[余额受理失败终结](../decisions/付款后余额受理失败终结.md)。不新增接口字段或枚举。
 
 0.22.5付款后余额任务必须独立读取B02，不能复用付款确认前的余额根结果；同订单原键仍返回同一operation，旧未终结payment别名按原ID恢复独立读取。公开/内部字段与状态保持，succeeded表示付款确认后重新查询学校余额，不保证余额已增加；见[付款后余额独立读取](../decisions/付款后余额独立读取.md)。
@@ -16,7 +20,7 @@ R5.1公开DTO不变：会话每请求权威校验，续期每60秒合并（12小
 
 0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
 
-当前版本：0.22.0；T0 冻结基线 0.1.0，更新日期：2026-10-06。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.22.8；T0 冻结基线 0.1.0，更新日期：2026-10-08。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
 
 0.19.4公开DTO不变，Balance.fetched_at为最后成功取得学校结果的观察时间，未知旧缓存不伪造新鲜度。内部BalanceReading统一序号/结果时间/错误，三入口共用比较；HistoryExecutionQuery传剩余预算。支付余额业务失败终结自动跟踪，读取暂时失败保持pending/30秒。内部命令和schemas已同步，详见[执行与余额语义](../runbooks/余额观测与历史执行边界.md)。
 

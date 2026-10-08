@@ -534,6 +534,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payment-orders/{id}/resume-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** resume_order_check */
+        post: operations["resume_order_check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/payment-orders/{id}/qr": {
         parameters: {
             query?: never;
@@ -1175,8 +1192,17 @@ export interface components {
         };
         /** OverviewSummary */
         OverviewSummary: {
-            /** Yesterday Amount */
+            /**
+             * Yesterday Amount
+             * @description 总览上海日期范围结束日前一天的合并日金额，与同日曲线一致；未知为null。
+             */
             yesterday_amount: string | null;
+            /**
+             * Yesterday Estimated Amount
+             * @description 昨日金额中来自余额变化估算的金额；0也是有效估算。
+             * @default null
+             */
+            yesterday_estimated_amount: string | null;
             /** Last 14 Days Amount */
             last_14_days_amount: string | null;
             /** Known Days */
@@ -1599,6 +1625,16 @@ export interface components {
             /** Last Checked At */
             last_checked_at: string | null;
             /**
+             * Check Deadline At
+             * @default null
+             */
+            check_deadline_at: string | null;
+            /**
+             * Check Paused
+             * @default false
+             */
+            check_paused: boolean;
+            /**
              * Qr Status
              * @enum {string}
              */
@@ -1626,6 +1662,11 @@ export interface components {
         };
         /** OrderCancelRequest */
         OrderCancelRequest: {
+            /** Expected Version */
+            expected_version: number;
+        };
+        /** OrderResumeCheckRequest */
+        OrderResumeCheckRequest: {
             /** Expected Version */
             expected_version: number;
         };
@@ -6230,6 +6271,146 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OrderCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Order"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description CAPTCHA_INVALID, CAPTCHA_EXPIRED, SNAPSHOT_MISMATCH */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description APP_SESSION_EXPIRED, SCHOOL_LOGIN_REJECTED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF_REJECTED, ORIGIN_REJECTED, PAYMENT_UNAVAILABLE, FEATURE_DISABLED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, OPERATION_IN_PROGRESS, SCHOOL_REAUTH_REQUIRED, REAUTH_ACCOUNT_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ROOM_CANDIDATE_EXPIRED, SNAPSHOT_EXPIRED */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_ARGUMENT, INVALID_INTERVAL, INVALID_DATE_RANGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description PRECONDITION_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_PROTOCOL_CHANGED, SCHOOL_INVALID_RESPONSE */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_UNAVAILABLE, CIRCUIT_OPEN, DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description SCHOOL_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    resume_order_check: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderResumeCheckRequest"];
             };
         };
         responses: {

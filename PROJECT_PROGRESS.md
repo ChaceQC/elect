@@ -1,3 +1,111 @@
+## 2026-10-08 · 0.22.9 主分支合并
+
+### 已完成
+
+- 按用户要求依据docs/GitHub协作与合并流程.md准备dev → main；起始工作区干净，dev与origin/dev同为77c6ef949cbb59ca2237170129c8dc3f53dfa5f7，包含最新main（63a006efb4b73059d276d46be2acc7db8ff6468b）。
+- 核对待合入的6个提交与55个文件：0.22.8昨日消费卡片与曲线一致、0.22.9订单15分钟自动处理/原单恢复，以及相关测试、契约、迁移和前次合并记录；新增payment_0007，Secret及容器数不变。
+- 核对服务器main要求PR、严格GitHub Actions check（App ID 15368）、管理员保护与禁止强推/删除；dev允许直接提交推送但禁止强推/删除。已有快速CI不替代本次PR完整门禁。
+- 根README、AGENTS、前后端README及相关契约/决策已与0.22.9同步，无AGENT.md；本轮合并准备只更新进度，不变更业务规则、版本或部署。
+
+### 进行中
+
+- 创建dev → main PR，等待最新候选的前后端及业务消息、兼容、交付恢复五组完整CI和check全部成功。
+
+### 阻塞与风险
+
+- 无准备阻塞。完整检查、最新main祖先或冲突条件未满足前不合并；追加提交后重新等待检查。
+- 现有部署本轮不升级；payment_0007及新窗口需要后续配套部署，真实学校、支付和邮件验收边界保持。
+
+### 下一步
+
+- PR最新候选五组与check成功后，重新核对源SHA、main祖先和服务器保护，使用普通merge及match-head-commit合入main；随后快进本地main/dev并在dev记录合并结果。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md、GitHub PR/Actions及dev/main分支；待合入业务范围见下文0.22.8/0.22.9记录。
+
+### 验证
+
+- git diff --check、分支状态、待合入差异、版本/迁移清单和服务器保护核对通过；真实凭据和部署配置未读取。
+- 本轮不重复本地业务套件，以本次PR完整CI作为合并门禁；准备记录为纯Markdown，按既有路径规则不触发push CI，不能记为新的验证成功。
+
+## 2026-10-08 · 0.22.9 订单自动回查时限
+
+### 已完成
+
+- 核对干净dev / 066e7a0；确认未付款订单回查与原建单/二维码重试缺少总时限，学校过期/关闭没有实际确认映射。
+- 按用户明确选择15分钟，先记录自动处理窗口、暂停与原订单恢复规则，再完成实现，见docs/decisions/订单自动回查时限.md。
+- Payment受理/显式恢复持久保存期限，回查和建单/二维码后续领取、重启恢复及迟到任务写入共同执行期限；旧订单按原创建时间计算，到期保留状态、原任务、学校台账和未解决占位。在途付款证据仍可落库，付款后余额刷新保持原规则。
+- 新增本人版本保护的resume-check接口；活动窗口重复请求不续期。页面以服务端暂停字段停止订单/二维码轮询，保留原单恢复与停止处理，重开只读；恢复响应丢失先GET原单对账，旧响应缺字段兼容。
+- 同步0.22.9版本、Order可选期限/暂停字段、公开OpenAPI/前端类型、内部路由说明、payment_0007与七域迁移/结构/保留清单，以及根/子目录README、AGENTS、计划和部署说明。未发现AGENT.md，无Secret、依赖版本或容器数变化。
+- 修复提交68c10de3c1af04d5e86910d80c1c13431398961a已推送origin/dev；[首次快速CI37737041099](https://github.com/ChaceQC/elect/actions/runs/37737041099)前端成功，后端暴露新增恢复接口后核心路由数量断言仍为56，实际已为57；本次补齐数量与resume-check注册断言，业务规则不变。
+- 最终业务/测试候选68b8b377d91f2e36fe44cf36e9a4b3121da4a91c已推送origin/dev；[快速CI37738593031](https://github.com/ChaceQC/elect/actions/runs/37738593031)于2026-10-08 14:42:19（Asia/Shanghai）完成，frontend / build、backend / build与check均success，包含10项新增MySQL期限/恢复专项。
+
+### 进行中
+
+- 无实现进行中项；源码、定向验证、dev提交推送和快速CI/check均完成，收尾仅提交本Markdown验证记录及决策中的证据链接。
+
+### 阻塞与风险
+
+- 无实现阻塞。本机Docker Linux引擎当前未运行，实际MySQL专项由既有GitHub快速CI的隔离环境执行；不启动现有业务环境，不读取真实配置/凭据，不调用学校、支付或邮件。
+- 暂停不表示学校订单取消/过期，未解决占位保留；已领取任务沿原预算结束，真实付款证据仍可落库。
+
+### 下一步
+
+- 本轮源码交付完成；后续上线先为dev → main执行PR完整门禁，再按部署手册停旧Payment后台、执行payment_0007并升级配套镜像，核对旧未付款订单已暂停及原单恢复入口。当前未合入main或升级部署。
+
+### 主要文件或模块
+
+- backend/services/payment/、backend/services/gateway/payment_api.py、frontend/src/features/payments/、公开契约与Payment迁移、相关定向验证。
+
+### 验证
+
+- uv/Python3.12.10使用临时tzdata环境执行期限规则与公开/内部/数据库契约，13 passed（3.89秒）；变更Python Ruff、五类契约/结构/迁移/保留生成一致性与前端类型/定向ESLint通过。
+- Node22.23.2执行既有支付组件文件，5 passed（4.04秒）。本机Node24首次5项失败，定向诊断确认为原生fetch拒绝jsdom的AbortSignal；移除临时诊断后改用项目固定Node版本全部通过，无生产代码或测试环境配置绕过。
+- 浏览器首轮新暂停/恢复与既有长等待/隐藏/付款后余额行为共3 passed（17.7秒）。随后将视口高度与参考统一为1000，用Node22.23.2/Edge对1440和375宽度执行新流程2 passed（19.2秒），核对同视口参考的弹窗宽度、浅蓝样式和内容可读性，无横向溢出。
+- 本机contract:check入口因Windows无法直接spawn npx失败，等价openapi-typescript --check通过；固定Linux入口由CI再次验证。未更改无关工具脚本。
+- git diff --check及47个变更文件UTF-8解码通过；fetch后dev与origin/dev一致。新增MySQL专项纳入现有隔离查询CI，未在本机启动Docker或执行真实学校/支付/邮件操作。
+- 首次CI后端离线检查为1 failed、391 passed、168 skipped；唯一失败为test_every_core_endpoint_is_registered的旧数量断言，MySQL专项尚未进入，不能将跳过记作通过。前端固定容器检查已成功；首次check失败，不作为交付通过证据。
+- 核心路由补正的Ruff与单项注册检查通过（1 passed，1.45秒）；只更新该测试及进度记录，README、AGENTS和业务契约无需再次改变。
+- 第二轮CI后端离线392 passed、168 skipped（74.39秒），随后一次性MySQL查询/状态/迁移专项164 passed（120.03秒），包含本轮新增10项期限/恢复检查；学校/Room调用均为合成，旧库升级与新库迁移实际执行成功。
+- 第二轮固定Node前端16个单元/组件文件共67 passed，浏览器56 passed（45.6秒），包含新增桌面/手机暂停恢复及旧字段兼容；类型、lint、契约、生产构建和check均通过。business/compatibility/delivery及publish按quick规则skipped，不视为完整CI、真实学校验收或发布。
+- 最终仅补充Markdown证据；按现有路径规则不触发新push CI，业务/测试验证追溯68b8b37与上述成功运行。现有部署、业务数据和Secret保持，本轮没有真实学校、支付或邮件调用。
+
+## 2026-10-08 · 0.22.8 昨日消费与曲线一致
+
+### 已完成
+
+- 确认干净dev / b0e97df与origin/dev一致；定位总览网关将yesterday_amount固定置空，导致昨日曲线已有金额但卡片仍显示未取得。
+- 按用户要求，昨日卡片改为读取同一份学校历史与监控估算合并后的日金额，并单独标记昨日估算来源；0金额保持有效，其他日期缺失不阻断昨日展示。
+- 同步OverviewSummary可选yesterday_estimated_amount、公开OpenAPI/前端类型、0.22.8版本及根/子目录README、AGENTS、设计/计划/合并决策；无AGENT.md，无迁移、内部协议或依赖版本变更。
+- 完成后端33项定向/公开契约检查、桌面与手机2项页面回归、前端类型/定向ESLint、变更Python的Ruff及契约一致性检查。
+- 修复提交dcd8985deee6be058b2e343ac53341404d0aa5f2已推送origin/dev；[快速CI37731461395](https://github.com/ChaceQC/elect/actions/runs/37731461395)于2026-10-08 13:22:33（Asia/Shanghai）完成，frontend / build、backend / build及check均success。
+
+### 进行中
+
+- 无实现进行中项；本轮修复、本地定向验证、dev提交推送和快速CI/check已完成，收尾仅提交本Markdown验证记录。
+
+### 阻塞与风险
+
+- 无实现阻塞。现有部署未升级，本轮不读取真实凭据或配置，不调用学校、支付或邮件；估算来源保持可见，不宣称学校结算或完整日精度。
+
+### 下一步
+
+- 本轮源码修复与dev交付完成；后续发布任务先为dev → main执行PR完整门禁，再按本机私网部署手册升级elect-local并核对昨日卡片与同日曲线。当前未合入main或升级部署。
+
+### 主要文件或模块
+
+- backend/services/gateway/consumption.py、query_api.py、backend/services/room/dto.py、frontend/src/features/history/OverviewPage.jsx，以及公开契约、合并口径文档和定向回归。
+
+### 验证
+
+- uv/Python3.12.10定向执行tests/unit/test_consumption_merge.py与tests/contract/test_public_contract.py，33 passed（4.64秒）；覆盖实际总览组装、学校金额替换估算、学校0补估算、估算0、学校0/负数、昨日未知和缺桶不借邻日、范围不完整仍显示昨日。
+- 本机Windows首次收集因缺少IANA时区库而未执行测试；使用uv run --locked --with tzdata临时环境后通过，未修改项目依赖。Ruff首次提示新断言超过100列，折行后全部通过。
+- 本机Node24.13.0与Edge执行overview-yesterday.spec.js，1440px/375px共2 passed（24.8秒），包含生产构建；覆盖估算、学校金额、估算0、学校0和未知切换，且无横向溢出。已核对两种宽度截图与同宽参考的卡片布局；截图为合成响应，页面其他接口的未登记404不代表真实服务故障。
+- 前端typecheck、变更文件ESLint、变更Python的Ruff、OpenAPI/内部协议--check、openapi-typescript --check均通过；未重复本地全量业务/容器套件，固定容器验证结果见下文CI记录。
+- git diff --check、版本/文档及生成差异检查通过；fetch后dev与origin/dev一致，工作区仅本轮源码、测试、契约和文档。未读取真实凭据/配置或执行部署。
+- GitHub快速CI针对dcd8985运行前后端固定容器检查并通过check；business、compatibility、delivery及publish按quick规则skipped，不计作完整验证或发布。收尾仅更新PROJECT_PROGRESS.md，按现有路径规则不触发新CI，业务/测试验证追溯上述修复提交。
+
 ## 2026-10-08 · 0.22.7 六项审查修复合入 main
 
 ### 已完成
@@ -9,18 +117,20 @@
 - [PR #13](https://github.com/ChaceQC/elect/pull/13)首轮候选fb9ca2706218ee49b9077b3448006177f6ff9878的[完整CI37717227470](https://github.com/ChaceQC/elect/actions/runs/37717227470)暴露旧合成脚本与立即受理规则不一致：stale_hints取消了配置创建的run，随后仅将next_run_at改为当前时间仍命中已取消逻辑槽，等待学校调用30秒超时；未合并该失败候选。
 - 仅补正monitoring_combined_smoke的合成时间：同一事务内将该合成用户已有run的scheduled_for、监控锚点与next_run_at回拨一个间隔，保留已取消记录和原积压/共享池/续租/恢复/退出断言。生产调度、用户预算和0.22.7版本不变，专项决策同步说明；根/子目录README和AGENTS所述业务规则不受影响。
 - 首轮完整运行已结束：前端、后端、business、delivery四组success，compatibility与check失败，publish按普通PR设计跳过；失败记录不作为最终通过证据。
+- 最终候选f1c3db40ef64696c3b3e43e1ddff03d224938f1a的[快速CI37718722493](https://github.com/ChaceQC/elect/actions/runs/37718722493)及[完整CI37718726809](https://github.com/ChaceQC/elect/actions/runs/37718726809)均success；完整五组与check于2026-10-08 10:56:19（Asia/Shanghai）全部通过，publish按普通PR设计跳过。
+- 合并前重新fetch并核对候选SHA、最新main祖先、CLEAN/MERGEABLE、检查所属运行及服务器严格保护；于10:57:41使用普通merge及match-head-commit完成PR #13，合并提交63a006efb4b73059d276d46be2acc7db8ff6468b。未使用admin或绕过保护，本地main/dev已快进到该提交，最终结果记录按开发分支流程提交推送dev。
 
 ### 进行中
 
-- 上述验收脚本定向静态检查及首轮诊断已完成；提交推送dev，让PR #13针对修正后的最新候选重新执行五组完整验证及check。
+- 无进行中项；0.22.7六项审查修复已通过最新完整门禁并交付main。
 
 ### 阻塞与风险
 
-- 首轮兼容组失败，修正后的完整PR门禁待验证，当前未达到合并条件。既有部署状态仍以本机私网部署手册为准。
+- 无合并阻塞。首轮合成脚本问题已修正并通过完整兼容验证；本轮未升级现有部署，真实学校/付款后余额与目标机长期容量等验收边界保持。
 
 ### 下一步
 
-- 最新PR完整门禁成功后，重新核对候选SHA、main祖先、合并状态与保护规则，用merge commit及match-head-commit合入main；再快进本地main/dev，并在dev提交推送实际结果记录。
+- 本轮合并任务已完成。如需让六项修复在运行环境生效，按后续指定部署要求升级至0.22.7并重新渲染Nginx缴费列表配置，再核对入口与后台健康；本轮不创建标签、发布镜像或执行部署。
 
 ### 主要文件或模块
 
@@ -31,6 +141,9 @@
 - git diff --check、工作区及远端一致性、main祖先、变更范围和服务器保护核对通过；auth.txt、email_auth.txt与deploy/.env不受Git跟踪且受忽略规则保护，未读取其内容。
 - 本轮不重复本地业务套件，以当前PR完整CI作为合并门禁；纯Markdown准备提交按现有路径规则不触发push CI，不能记为新CI通过。
 - 合成脚本补正使用uv/Python3.12.10执行变更文件Ruff、UTF-8解码和AST语法检查，全部通过，git diff --check通过；完整容器结果仍以修正后PR运行作为最终依据。
+- 最终PR运行的后端普通入口378 passed/158 skipped（79.71秒），一次性MySQL154 passed（126.07秒）；前端67 passed、浏览器52 passed（44.1秒）。跳过项不计通过。
+- 完整兼容组通过合并角色调度、50并发控制读取期间续租、签名重复积压、请求中取消、旧epoch恢复、协调退出，以及MQ降级/恢复禁用和原卷13→30→13切换；business与delivery各自独立空库的完整组也成功。五组及check均针对f1c3db4对应PR合并结果，不复用首轮或push快速证据替代。
+- 最终收口仅修改PROJECT_PROGRESS.md；按现有路径规则不触发新的push CI，main push按规则不重复运行，验证追溯最终候选与上述完整运行。未读取真实凭据或配置，未调用真实学校、支付或邮件。
 
 ## 2026-10-08 · 问题6：缴费列表入口超时
 
