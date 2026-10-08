@@ -69,11 +69,10 @@ async def recover_attempts(saga, rows, stop):
         except LoginBusy:
             continue
         except ApiError as error:
-            current = await saga.read(attempt_id)
-            if (error.code not in {ErrorCode.NOT_FOUND, ErrorCode.RATE_LIMITED}
+            # 提交身份前的暂存404可终结旧尝试；状态查询限流/依赖故障仍需恢复。
+            if (error.code != ErrorCode.RATE_LIMITED
                     and error.status < 500
-                    and current["state"] not in {"identity_committed", "activating"}):
-                await saga.state(attempt_id, "failed", error=error.code)
+                    and await saga.reject_uncommitted(attempt_id, error.code)):
                 activity = True
             else:
                 # 不回写旧阶段；前台可能已推进或终结。只给仍待恢复的行保存失败和退避。
