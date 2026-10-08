@@ -7,7 +7,8 @@ from services.common.sql import execute, first
 OP_DUE = {
     "binding_sync": "o.type='binding_sync' AND (o.state='accepted' OR "
                     "(o.state='running' AND o.lease_until<=UTC_TIMESTAMP(6)))",
-    "balance_refresh": "o.type='balance_refresh' AND o.saga_step<>'merged' "
+    "balance_refresh": "o.type='balance_refresh' AND "
+                       "(o.saga_step<>'merged' OR o.request_source='payment') "
                        "AND o.state IN ('accepted','running') AND "
                        "(o.lease_until IS NULL OR o.lease_until<=UTC_TIMESTAMP(6))",
 }
@@ -65,6 +66,11 @@ async def claim_operation(engine, kind, schedule=None, *, stop=None):
             )
             if not row or stop and stop.is_set():
                 continue
+            if kind == "balance_refresh" and row["saga_step"] == "merged":
+                # 旧版本未终结的支付别名改为独立读取；不复用付款前的根结果。
+                await execute(conn, "UPDATE room_operations SET saga_step='read_school',"
+                              "upstream_operation_id=NULL WHERE id=:id", id=row["id"])
+                row = {**row, "saga_step": "read_school", "upstream_operation_id": None}
             lease = str(new_id())
             await execute(conn, "UPDATE room_operations SET state='running',lease_owner=:lease,"
                           "lease_until=TIMESTAMPADD(SECOND,:seconds,UTC_TIMESTAMP(6)),"

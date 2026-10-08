@@ -1,5 +1,7 @@
 # API 契约
 
+0.22.5付款后余额任务必须独立读取B02，不能复用付款确认前的余额根结果；同订单原键仍返回同一operation，旧未终结payment别名按原ID恢复独立读取。公开/内部字段与状态保持，succeeded表示付款确认后重新查询学校余额，不保证余额已增加；见[付款后余额独立读取](../decisions/付款后余额独立读取.md)。
+
 0.22.4沿用已有SchoolOrderResult、订单rejected与操作failed，不新增接口字段。Adapter在本库事务中将尚未发送的凭据版本/授权失效持久化为rejected，Payment收到台账结果后终结并释放未解决槽；旧键仍返回原订单。已有发送台账优先，通用SCHOOL_REAUTH_REQUIRED或NOT_FOUND错误本身不能证明未发送，发送后继续未知保护；见[发送边界](../decisions/建单凭据失效与发送边界.md)。
 
 0.22.0新增GET /room-bindings/{id}/payment-records与PaymentRecords契约，当前公开36个方法/路径；内部新增Payment /browser/records与Adapter /payments/records，沿用payment:browser、school:payment。实缴金额全范围合计、部分结果null及学校渠道边界见[规则](../decisions/学校缴费明细列表.md)。

@@ -34,10 +34,12 @@ async def finish_operations(conn, root, records, error):
 
 
 async def finish_batch(conn, root, summary):
+    # 旧版支付别名由领取器恢复为独立读取，不能继承旧根的成功或失败。
     operations = (await execute(conn, "SELECT o.id,o.target_binding_id FROM room_operations o "
         "JOIN room_operations root ON root.id=:id WHERE o.owner_user_id=root.owner_user_id "
         "AND o.type='balance_refresh' AND o.state IN ('accepted','running') "
-        "AND (o.id=:id OR (o.upstream_operation_id=:id AND o.saga_step='merged')) "
+        "AND (o.id=:id OR (o.upstream_operation_id=:id AND o.saga_step='merged' "
+        "AND o.request_source<>'payment')) "
         "ORDER BY (o.id=:id) DESC,o.id LIMIT 250", id=root)).mappings().all()
     for operation in operations:
         failure = summary["error"] or (ErrorCode.SCHOOL_INVALID_RESPONSE
@@ -58,7 +60,7 @@ async def settle_aliases(engine):
             "AND a.owner_user_id=r.owner_user_id AND a.type=r.type "
             "WHERE r.type='balance_refresh' AND r.state IN ('succeeded','failed') "
             "AND r.balance_result IS NOT NULL AND a.state IN ('accepted','running') "
-            "AND a.saga_step='merged' ORDER BY r.id LIMIT 1")
+            "AND a.saga_step='merged' AND a.request_source<>'payment' ORDER BY r.id LIMIT 1")
         if not root:
             return False
         await lock_preference(conn, root["owner_user_id"])
