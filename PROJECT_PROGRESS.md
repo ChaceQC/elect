@@ -6,10 +6,11 @@
 - 核对Adapter45秒整体预算、浏览器55秒等待及内部ServiceClient100秒传输超时，确认两份Nginx模板的35秒普通API超时会提前截断缴费结果。
 - HTTPS/私网HTTP模板仅为缴费列表增加嵌套location和50秒读取超时，显式沿用原proxy_pass，继承TLS/请求头/no-store/禁止重试；普通API35秒与登录70秒保持。
 - 同步0.22.7版本、部署说明、缴费规则与专项决策；无API字段、迁移或Secret变更，无AGENT.md。
+- 修复提交4c2db727a993f08c3d615cc532d2219f9d979d01已推送origin/dev；[快速CI37716079183](https://github.com/ChaceQC/elect/actions/runs/37716079183)于2026-10-08 10:13:04（Asia/Shanghai）完成check，backend / build、frontend / build与check全部success；business/compatibility/delivery及publish按quick规则skipped。
 
 ### 进行中
 
-- 实现、定向入口、版本与文档检查完成，待dev提交推送及该配置提交的快速CI/check。
+- 无实现进行中项；问题6修复、定向验证、dev提交推送和快速CI/check均已完成，本次收尾仅提交本Markdown验证记录。
 
 ### 阻塞与风险
 
@@ -18,7 +19,7 @@
 
 ### 下一步
 
-- 完成问题6定向验证及dev提交推送；本轮不自动合并main、部署或发布。后续若要求合入main，为最终候选创建dev→main PR并通过完整五组/check。
+- 本轮问题6交付完成。后续若要求合入main，为最终候选创建dev→main PR并通过完整五组/check；若要求部署，需应用新模板并重新渲染、重建Nginx。本轮不自动合并、部署或发布。
 
 ### 主要文件或模块
 
@@ -29,7 +30,9 @@
 - 官方Nginx1.28.0的两份渲染模板语法通过；真实等待7项定向检查通过：旧模板缴费路径35.00秒返回504；新HTTPS/HTTP模板均在40.03秒返回完整200、46.03秒返回部分200且total_amount为null；普通API均在35.03秒返回504。完整路径/查询参数、两种Host格式、转发协议/来源/请求ID和no-store均核实。
 - 首轮定向验证发现嵌套正则location仅覆盖timeout时未建立代理处理器，补齐原proxy_pass后上述7项全部通过；近似/附加子路径不匹配与普通API35秒、登录70秒由静态检查核实。临时进程、监听、下载文件及合成证书已清理，未新增业务测试。
 - uv/Python3.12.10：uv lock --check、OpenAPI与DTO/端点生成一致性、变更生成器Ruff通过；OpenAPI首轮遇Windows默认GBK读取错误，使用python -X utf8重跑通过，未修改无关生成器逻辑。
-- 17个本轮文件UTF-8/无冲突标记、前后端与锁版本、根/子目录README和6个专项文档入口检查通过，git diff --check通过。GitHub快速CI待提交后记录；未运行本地完整业务套件或访问真实学校、支付、邮件、密钥。
+- 17个修复文件UTF-8/无冲突标记、前后端与锁版本、根/子目录README和6个专项文档入口检查通过，git diff --check通过；未运行本地完整业务套件或访问真实学校、支付、邮件、密钥。
+- 配置提交4c2db72的CI后端普通入口378 passed/158 skipped（126.18秒），一次性MySQL154 passed（195.75秒）；前端67 passed、浏览器52 passed（33.8秒）。跳过项不计通过，完整三组按quick设计跳过；本次未发布镜像或升级部署。
+- 收尾仅更新PROJECT_PROGRESS.md，按现有paths-ignore规则不触发额外push CI；最新配置的验证追溯4c2db72及上述运行，不能将纯Markdown收尾描述为新的CI通过。
 
 ## 2026-10-08 · 问题5：付款后余额刷新受理失败终结
 
