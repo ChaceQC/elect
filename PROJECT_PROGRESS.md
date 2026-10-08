@@ -1,3 +1,298 @@
+## 2026-10-08 · 0.22.7 六项审查修复合入 main
+
+### 已完成
+
+- 按用户要求依据docs/GitHub协作与合并流程.md准备dev → main；起始工作区干净，dev与origin/dev同为d60ec260a4b78e94a7e32d456249fd209d45e0f7，已包含最新main（fe4ea15a5783a50b87855faa6b8464675bcf9a2b）。
+- 核对待合入的14个提交、53个文件及差异，范围为0.22.2—0.22.7六项审查修复、专项回归和相关文档，以及此前部署/合并记录；无新增迁移或Secret变更。
+- 核对服务器main要求PR、严格GitHub Actions check（App ID 15368）、管理员保护和禁止强推/删除，普通PR发布作业按设计跳过；原有六次push快速CI均success，不能替代本次PR完整门禁。
+- 根README、AGENTS、前后端README和专项契约/决策已与0.22.7实现同步，无AGENT.md；合并准备阶段仅新增进度记录，不改变业务代码、版本或部署。
+- [PR #13](https://github.com/ChaceQC/elect/pull/13)首轮候选fb9ca2706218ee49b9077b3448006177f6ff9878的[完整CI37717227470](https://github.com/ChaceQC/elect/actions/runs/37717227470)暴露旧合成脚本与立即受理规则不一致：stale_hints取消了配置创建的run，随后仅将next_run_at改为当前时间仍命中已取消逻辑槽，等待学校调用30秒超时；未合并该失败候选。
+- 仅补正monitoring_combined_smoke的合成时间：同一事务内将该合成用户已有run的scheduled_for、监控锚点与next_run_at回拨一个间隔，保留已取消记录和原积压/共享池/续租/恢复/退出断言。生产调度、用户预算和0.22.7版本不变，专项决策同步说明；根/子目录README和AGENTS所述业务规则不受影响。
+- 首轮完整运行已结束：前端、后端、business、delivery四组success，compatibility与check失败，publish按普通PR设计跳过；失败记录不作为最终通过证据。
+
+### 进行中
+
+- 上述验收脚本定向静态检查及首轮诊断已完成；提交推送dev，让PR #13针对修正后的最新候选重新执行五组完整验证及check。
+
+### 阻塞与风险
+
+- 首轮兼容组失败，修正后的完整PR门禁待验证，当前未达到合并条件。既有部署状态仍以本机私网部署手册为准。
+
+### 下一步
+
+- 最新PR完整门禁成功后，重新核对候选SHA、main祖先、合并状态与保护规则，用merge commit及match-head-commit合入main；再快进本地main/dev，并在dev提交推送实际结果记录。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md、backend/scripts/monitoring_combined_smoke.py、docs/decisions/监控配置采集统一计额.md、dev/main分支和GitHub PR；不修改生产服务实现。
+
+### 验证
+
+- git diff --check、工作区及远端一致性、main祖先、变更范围和服务器保护核对通过；auth.txt、email_auth.txt与deploy/.env不受Git跟踪且受忽略规则保护，未读取其内容。
+- 本轮不重复本地业务套件，以当前PR完整CI作为合并门禁；纯Markdown准备提交按现有路径规则不触发push CI，不能记为新CI通过。
+- 合成脚本补正使用uv/Python3.12.10执行变更文件Ruff、UTF-8解码和AST语法检查，全部通过，git diff --check通过；完整容器结果仍以修正后PR运行作为最终依据。
+
+## 2026-10-08 · 问题6：缴费列表入口超时
+
+### 已完成
+
+- 核对干净dev / 01de90c与origin/dev一致，保留问题1—5修复；本轮仅处理问题6。
+- 核对Adapter45秒整体预算、浏览器55秒等待及内部ServiceClient100秒传输超时，确认两份Nginx模板的35秒普通API超时会提前截断缴费结果。
+- HTTPS/私网HTTP模板仅为缴费列表增加嵌套location和50秒读取超时，显式沿用原proxy_pass，继承TLS/请求头/no-store/禁止重试；普通API35秒与登录70秒保持。
+- 同步0.22.7版本、部署说明、缴费规则与专项决策；无API字段、迁移或Secret变更，无AGENT.md。
+- 修复提交4c2db727a993f08c3d615cc532d2219f9d979d01已推送origin/dev；[快速CI37716079183](https://github.com/ChaceQC/elect/actions/runs/37716079183)于2026-10-08 10:13:04（Asia/Shanghai）完成check，backend / build、frontend / build与check全部success；business/compatibility/delivery及publish按quick规则skipped。
+
+### 进行中
+
+- 无实现进行中项；问题6修复、定向验证、dev提交推送和快速CI/check均已完成，本次收尾仅提交本Markdown验证记录。
+
+### 阻塞与风险
+
+- 无实现阻塞。Docker Desktop Linux Engine当前不可用，本机未预装nginx；使用官方Nginx1.28.0 Windows临时目录、本机回环监听和合成证书/上游完成定向验证，结束已清理，不替代Linux容器完整验收。
+- 现有部署未升级；不读取真实配置/凭据，不调用学校、支付或邮件。本次快速CI不替代main PR完整门禁或真实学校验收。
+
+### 下一步
+
+- 本轮问题6交付完成。后续若要求合入main，为最终候选创建dev→main PR并通过完整五组/check；若要求部署，需应用新模板并重新渲染、重建Nginx。本轮不自动合并、部署或发布。
+
+### 主要文件或模块
+
+- deploy/nginx/default.conf.template、local.conf.template、前后端/公开契约版本、部署与缴费列表文档。
+
+### 验证
+
+- 官方Nginx1.28.0的两份渲染模板语法通过；真实等待7项定向检查通过：旧模板缴费路径35.00秒返回504；新HTTPS/HTTP模板均在40.03秒返回完整200、46.03秒返回部分200且total_amount为null；普通API均在35.03秒返回504。完整路径/查询参数、两种Host格式、转发协议/来源/请求ID和no-store均核实。
+- 首轮定向验证发现嵌套正则location仅覆盖timeout时未建立代理处理器，补齐原proxy_pass后上述7项全部通过；近似/附加子路径不匹配与普通API35秒、登录70秒由静态检查核实。临时进程、监听、下载文件及合成证书已清理，未新增业务测试。
+- uv/Python3.12.10：uv lock --check、OpenAPI与DTO/端点生成一致性、变更生成器Ruff通过；OpenAPI首轮遇Windows默认GBK读取错误，使用python -X utf8重跑通过，未修改无关生成器逻辑。
+- 17个修复文件UTF-8/无冲突标记、前后端与锁版本、根/子目录README和6个专项文档入口检查通过，git diff --check通过；未运行本地完整业务套件或访问真实学校、支付、邮件、密钥。
+- 配置提交4c2db72的CI后端普通入口378 passed/158 skipped（126.18秒），一次性MySQL154 passed（195.75秒）；前端67 passed、浏览器52 passed（33.8秒）。跳过项不计通过，完整三组按quick设计跳过；本次未发布镜像或升级部署。
+- 收尾仅更新PROJECT_PROGRESS.md，按现有paths-ignore规则不触发额外push CI；最新配置的验证追溯4c2db72及上述运行，不能将纯Markdown收尾描述为新的CI通过。
+
+## 2026-10-08 · 问题5：付款后余额刷新受理失败终结
+
+### 已完成
+
+- 核对干净dev / 83aee7d与origin/dev一致，保留问题1—4修复；本轮仅处理问题5。
+- 确认Room受理前绑定缺失或inactive返回404 NOT_FOUND，Payment误将其保持pending并每30秒重试；已有operation的状态读取失败需要继续保留关联与重试。
+- Payment仅在尚无operation且受理返回404 NOT_FOUND时沿用failed终结，订单保留paid_confirmed，错误保留NOT_FOUND，原终态提交清空下一次回查与租约。旧pending记录下轮正常恢复可终结；429/503、解绑中409和已受理任务查询404仍保留重试。
+- 新增9项Room/Payment MySQL专项并加入既有CI入口；同步0.22.6前后端/锁文件/OpenAPI版本、根与前后端README、AGENTS、文档索引、契约、架构、运行手册及专项决策。无AGENT.md，无API字段、新迁移、Secret、资源池或部署配置变更。
+- 修复提交5d65321072475496164ec7e4bb06e16c4bc07c95已推送origin/dev；[快速CI37714524776](https://github.com/ChaceQC/elect/actions/runs/37714524776)于2026-10-08 09:51:23（Asia/Shanghai）完成check，backend / build、frontend / build与check全部success，business/compatibility/delivery和publish按quick规则skipped。
+
+### 进行中
+
+- 无实现进行中项；问题5修复、定向验证、dev提交推送和快速CI/check均已完成，最终仅提交本Markdown验证记录。
+
+### 阻塞与风险
+
+- 无实现阻塞；不读取真实配置或凭据，不调用学校、支付、邮件，不升级现有部署。问题6不在本轮范围。
+- 快速CI不替代main PR完整五组门禁或真实学校验收；本次0.22.6尚未部署。
+
+### 下一步
+
+- 本轮问题5交付完成。问题6的缴费列表入口超时仍待另行指定；若后续要求合入main，针对最终候选创建dev→main PR并通过完整五组/check。本轮不自动合并、部署或发布。
+
+### 主要文件或模块
+
+- backend/services/payment/reconciliation.py、支付后余额受理定向回归、余额终态契约与运行文档。
+
+### 验证
+
+- 修改前新增inactive绑定回归按预期失败，复现余额pending而非failed；不计作通过。
+- 一次性MySQL8.4.6/internal网络、随机Room/Payment新库及生产2+1池：新增受理边界9项、既有余额终态4项和付款后独立读取8项，共21 passed（34.01秒）。覆盖首次确认/旧pending、绑定inactive/缺失、无操作创建/重启停止领取、429/503/409恢复、已受理查询404保留关联及问题4原规则；学校确认与B02均为合成。
+- 本机uv/Python3.12.10：支付调度及公开/内部契约共7 passed（2.99秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过。首轮OpenAPI检查发现生成器版本未同步，补齐0.22.6后通过；Windows时区由uv --with tzdata临时提供，未改变依赖。
+- 最终源码5d65321的CI后端普通入口378 passed/158 skipped（76.57秒），一次性MySQL154 passed（120.73秒，包含本次9项专项）；前端67 passed、浏览器52 passed（43.6秒）。跳过项不计通过，完整三组按quick设计跳过。
+- 20个变更文件UTF-8/无冲突标记、6处版本元数据和6个专项文档链接检查通过，git diff --check通过；收尾fetch确认origin/dev与修复源码一致、工作区干净。最后仅提交本Markdown记录，按当前paths-ignore不触发额外push CI，业务验证追溯5d65321及上述运行。
+- 已独立确认一次性容器/网络清理完成；未启动真实业务服务、读取真实配置/凭据或调用学校、支付、邮件，未运行完整容器验收。快速CI与真实验收分别记录，现有部署未升级。
+
+## 2026-10-08 · 问题4：付款后余额刷新独立读取
+
+### 已完成
+
+- 核对干净dev / 3cca3f9与origin/dev一致；问题1—3修复保留，本轮仅处理付款后余额刷新复用付款前查询的问题4。
+- 确认Payment在学校确认付款后受理刷新，Room却无条件合并到已有余额根任务；现有owner串行领取与Adapter每次B02读取可承接独立付款后任务。
+- 支付来源新请求保留独立read_school根任务，同订单固定键重放、owner串行、系统6/60/8预算和浏览器合并/冷却保持；旧payment别名不继承根结果，在原owner/操作锁内按原ID恢复独立读取，历史终态不重写。
+- 新增8项MySQL专项并加入既有CI入口；同步0.22.5前后端/锁文件/OpenAPI版本、根与前后端README、AGENTS、文档索引、内部契约注释、架构、运行手册及专项决策。无AGENT.md，无API字段、新迁移、Secret、资源池或部署配置变更。
+- 修复提交612911e351aa69a8acf71e25be150dc4a1ba5c6c已推送origin/dev；[快速CI37712906079](https://github.com/ChaceQC/elect/actions/runs/37712906079)于2026-10-08 09:34:43（Asia/Shanghai）完成check，backend / build、frontend / build与check全部success，business/compatibility/delivery和publish按quick规则skipped。
+
+### 进行中
+
+- 无实现进行中项；问题4修复、定向验证、dev提交推送和快速CI/check均已完成，最终仅提交本Markdown验证记录。
+
+### 阻塞与风险
+
+- 无实现阻塞；问题5、6不在本轮范围，现有部署不升级，不读取真实配置或凭据，不调用学校、支付或邮件。
+- 快速CI不替代main PR完整五组门禁或真实学校验收；本次0.22.5尚未部署。
+
+### 下一步
+
+- 本轮问题4交付完成。问题5的余额刷新受理失败分类与问题6的入口超时仍待另行指定；若后续要求合入main，针对最终候选创建dev→main PR并通过完整五组/check。本轮不自动合并、部署或发布。
+
+### 主要文件或模块
+
+- backend/services/room/balance.py、balance_store.py、read_claims.py、支付后余额定向回归、余额/支付契约和版本元数据。
+
+### 验证
+
+- 修改前新增回归按预期失败：付款前的B02响应提交后，Payment余额状态错误变成succeeded；不计作通过。
+- 一次性MySQL8.4.6/internal网络、随机Room/Payment新库、生产2+1池：新增支付余额专项8项、相邻余额终态/请求预算/余额观测/读取调度17项，共25 passed（36.08秒）。覆盖旧响应迟到、不同订单、付款后读取失败、排队、并发重放、响应丢失/执行器重建、旧别名恢复、owner串行与失租栅栏；学校确认/B02均为合成。
+- 首轮新请求独立读取与相邻检查19 passed（26.73秒）；随后发现持久旧别名仍可传播旧结果，补齐该恢复路径后执行上述25项最终定向集。
+- 本机uv/Python3.12.10：余额缓存、支付调度及公开/内部契约共10 passed（3.27秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过，git diff --check通过。Windows时区由uv --with tzdata临时提供，未改变依赖。
+- 最终源码612911e的CI后端普通入口378 passed/149 skipped（114.30秒），一次性MySQL145 passed（156.25秒，包含本次8项专项）；前端67 passed、浏览器52 passed（44.1秒）。跳过项不计通过，完整三组按quick设计跳过。
+- 22个变更文件UTF-8/无冲突标记、6处版本一致与6个专项文档链接检查通过；独立核对一次性容器/网络均已清理。收尾fetch确认origin/dev与修复源码一致、工作区干净。最后仅Markdown记录按当前paths-ignore不触发额外push CI，业务验证追溯612911e及上述运行。
+- 未读取真实配置/凭据，未启动真实业务服务或调用学校、支付、邮件；未运行完整容器验收。现有部署未升级，合成验证不代表真实付款后学校余额验收。
+
+## 2026-10-08 · 问题3：建单排队期间凭据变化的明确终结
+
+### 已完成
+
+- 核对干净dev / 4e99c4b及Payment Worker、Adapter建单/台账、凭据版本和订单占位规则；问题1、2修复保留，本轮仅处理问题3。
+- 确认凭据校验在创建发送台账前抛出SCHOOL_REAUTH_REQUIRED，Worker通用错误恢复保留旧版本，导致未发送订单持续重试。
+- Adapter将无既有台账的凭据拒绝与订单密文同事务写为rejected；既有台账优先且保留owner/摘要冲突检查。发送前拒绝在settle台账行锁内复核prepared且dispatched_at为空，已发送错误继续unknown。
+- Payment沿用原rejected/failed处理、原键重放及占位释放，旧submitting/submit_unknown与reconciling记录可按原上游编号恢复终结；未修改Worker通用重试或付款后余额逻辑。
+- 同步0.22.4前后端与锁文件、OpenAPI版本、状态模型说明、根/前后端README、AGENTS、文档索引/契约/后端架构及专项决策；无AGENT.md，无API字段、迁移、Secret或部署配置变更。
+- 新增16项支付建单MySQL专项并纳入既有CI入口，结合相邻余额终态4项全部通过；本机29项支付单元/公开与内部契约通过。
+- 修复提交bb019a980f6036624dc3ad1652193ccfe14d0d12已推送origin/dev；[快速CI37709796146](https://github.com/ChaceQC/elect/actions/runs/37709796146)于2026-10-08 08:57:07（Asia/Shanghai）完成check，backend / build、frontend / build及check全部success，business/compatibility/delivery与publish按quick规则skipped。
+
+### 进行中
+
+- 无实现进行中项；问题3修复、定向验证、dev提交推送及快速CI/check已完成，最后仅提交本Markdown验证记录。
+
+### 阻塞与风险
+
+- 无实现阻塞；不读取真实配置/凭据，不调用真实学校、支付或邮件，不升级现有部署。问题4—6不在本轮范围。
+- 快速CI不替代main PR完整五组门禁或真实学校验收；0.22.4本轮未部署。
+
+### 下一步
+
+- 本轮问题3交付完成。后续若要求合入main，针对最终候选创建dev→main PR并核对完整五组/check门禁；问题4—6仍待另行指定，本次不自动合并、部署或发布。
+
+### 主要文件或模块
+
+- backend/services/school_adapter/application/payment_orders.py、infrastructure/payment_ledger.py、支付定向回归与契约/决策文档。
+
+### 验证
+
+- 修复前2项新增回归按预期失败，复现新订单submitting与遗留订单submit_unknown持续占位；不计作通过。
+- 一次性MySQL8.4.6/internal网络、Payment与Adapter随机新库、生产2+1池：新增支付专项16项与相邻支付后余额终态4项，共20 passed（27.03秒）。覆盖排队/旧记录、无发送与已发送边界、原键/新键、凭据缺失/撤回/禁用/引用变化、台账冲突、拒绝响应丢失/执行器重建、依赖恢复、回滚及并发重复prepare。
+- 本机uv/Python3.12.10：支付调度/付款证据单元及公开/内部契约共29 passed（2.73秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过，git diff --check通过。
+- Windows第一次单元检查因缺少tzdata在收集阶段停止；以uv --with tzdata临时提供时区数据后通过，未改变项目依赖。首次WSL包装因Python文本stdin转换CRLF在set处退出；改用UTF-8字节stdin后脚本正常退出0，一次性容器/网络已独立确认清理。
+- 前端既有contract:check在Windows启动npx子进程失败；直接以Node执行同一openapi-typescript工具、内存生成并规范CRLF后，与已提交类型完全一致。前后端/锁文件版本一致，23个变更文件UTF-8及无冲突标记检查通过。
+- 最终源码bb019a9的CI后端普通入口378 passed/141 skipped（122.92秒）、一次性MySQL137 passed（170.56秒，包含本次16项支付专项）；前端67 passed、浏览器52 passed（43.0秒），Linux原contract:check通过。跳过项不计通过。
+- 提交后6个专项文档链接检查通过；收尾fetch确认origin/dev仍为本次源码SHA，工作区干净。最后仅修改本Markdown，按既有paths-ignore不触发额外push CI，业务验证追溯bb019a9及上述运行。
+- 未读取真实配置或凭据，未运行完整容器套件、未启动真实业务服务或调用学校、支付、邮件；合成学校会话及本库事务验证不代表真实支付/生产验收。
+
+## 2026-10-08 · 问题2：监控配置立即采集统一计额
+
+### 已完成
+
+- 核对干净dev / 27dbe78及远端一致状态；问题1修复保留，本轮仅处理修改监控间隔绕过手动采集额度。
+- 确定保留开启监控、修改间隔后的立即采集，将这两类用户操作与手动采集统一按owner使用6次/分钟、48次/滚动24小时、8个非终态映射的持久预算。
+- 完成monitor锁内先校验预算，再同事务改代、创建run/Outbox和180天计额映射；立即任务受理时推进下一定期槽，拒绝保留原配置、任务、版本与计划，关闭及无变化保存仍可执行。正常Scheduler不消费用户额度。
+- 同步版本元数据0.22.3、根/前后端README、AGENTS、文档索引、接口约定、后端架构、预算手册及专项决策；无AGENT.md，无新增迁移、Secret或前端页面变更。
+- 新增10项配置采集MySQL回归并纳入已有查询预算CI入口；既有T5合成场景显式推进下一分钟后继续配置采集，保留原键和每日计数，未放宽生产限额。
+- 修复提交2a05c5e93e25186b18f212b75d9582762a35cab2已推送origin/dev；[快速CI37708095480](https://github.com/ChaceQC/elect/actions/runs/37708095480)于2026-10-08 08:36:47（Asia/Shanghai）完成check，backend / build、frontend / build与check全部success，完整business/compatibility/delivery及publish按quick规则skipped。
+
+### 进行中
+
+- 无实现进行中项；问题2修复、定向验证、dev推送及快速CI/check已完成，最终仅提交本Markdown验证记录。
+
+### 阻塞与风险
+
+- 无实现阻塞；只操作源码和独立合成测试环境，不读取真实配置或凭据，不调用学校、支付或邮件。本机现有部署本轮不升级。
+- 问题3—6不在本轮范围；完整容器验收与真实学校验收未执行。
+
+### 下一步
+
+- 本轮问题2交付完成。后续若要求合入main，针对最终候选创建dev→main PR并核对完整五组/check门禁；本次不自动合并、部署或发布。
+
+### 主要文件或模块
+
+- backend/services/monitoring/configuration.py、run_admission.py、scheduler.py、配置受理定向测试及预算/契约文档。
+
+### 验证
+
+- 修改前新增定向回归复现手动额度已耗尽仍能通过配置安排采集，两项回归按预期失败，不计作通过。
+- 一次性MySQL8.4.6、internal网络和生产2+1连接池：配置采集10项、既有三域受理5项、Monitoring归档原键恢复1项，共16 passed（25.51秒）。覆盖连续60↔61、分钟/每日/待办上限、开启/关闭/无变化/不可执行设置、配置与手动并发、事务回滚、正常调度以及既有低余额事件/提醒计数。合成日期推进不等于实际等待24小时。
+- 本机uv/Python3.12.10：监控控制/双槽及公开/内部契约共15 passed（3.58秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议生成校验通过，前后端/锁文件版本一致，git diff --check通过。
+- 首轮修复后回归有1项失败：合成时间只回拨monitor锚点，命中既有run逻辑槽；同步回拨该合成run后定向集全部通过，生产逻辑未因此修改。Windows首次契约读取因Python默认GBK失败，显式PYTHONUTF8=1后重新检查通过。
+- 测试脚本通过Python UTF-8读取并在内存规范换行后传给WSL sh，无临时明文配置或脚本文件；一次性容器和网络已清理。未启动真实业务服务、读取真实配置/凭据或调用学校、支付、邮件；未运行完整容器验收。
+- 最终源码2a05c5e的CI后端普通入口378 passed/125 skipped（87.33秒），一次性MySQL121 passed（113.45秒，包含本次10项配置采集专项）；前端67 passed、浏览器52 passed（41.7秒）。跳过项不计通过，快速CI不替代main PR完整门禁。
+- 提交前UTF-8/无冲突标记/差异检查通过；收尾fetch确认origin/dev仍为本次源码SHA。最终仅Markdown记录按当前workflow的paths-ignore不触发额外push CI，业务验证追溯2a05c5e及上述运行。
+
+## 2026-10-08 · 问题1：登录拒绝与恢复健康隔离
+
+### 已完成
+
+- 核对干净dev / b51a897与登录、Adapter暂存、Identity恢复及健康监督调用链，确认认证限流429遗留authenticating，暂存404持续进入60秒失败预算。
+- 身份提交前的前台明确认证拒绝（含429）现在终结为failed；后台确认暂存404也终结旧authenticating/staged记录。共用SQL条件更新保护并发身份提交和终态；状态查询429/5xx、已提交/激活中404/429及撤回依赖失败保持原60秒监督，公共健康/退出实现不变。
+- 版本元数据同步0.22.2，完成状态模型/生成契约、根README/AGENTS、后端README、文档索引、后端架构、健康运行手册和专项决策的同步，并补注旧验收边界。无AGENT.md；前端仅版本元数据变动，无页面行为修改。
+- 新增限流、旧记录/重启和提交前查询故障回归，扩展已提交/激活阶段边界；定向MySQL24项及相邻单元/契约15项通过。
+- 提交前fetch发现远端新增纯部署记录d8f7dcb，已快进同步并保留其完整AGENTS/进度/本机部署文档；只解决两处页首追加冲突，业务与测试文件不受影响。按该记录，本机已部署0.22.1，本次0.22.2修复仍未部署。
+- 修复提交5948ba5eea9219cb2c22a86a1721c163b1508c48已推送origin/dev；对应[快速CI37706104737](https://github.com/ChaceQC/elect/actions/runs/37706104737)于2026-10-08 08:15:01（Asia/Shanghai）完成必需check，backend / build、frontend / build与check全部success，完整business/compatibility/delivery三组及publish按quick规则skipped。
+
+### 进行中
+
+- 无实现进行中项；问题1修复、定向验证、dev提交推送与快速CI/check已完成，最终仅提交本Markdown验证记录。
+
+### 阻塞与风险
+
+- 无实现阻塞。隔离MySQL测试在WSL独立Docker执行，已确认一次性容器/网络清理完成；未读取真实配置/凭据，未调用学校、支付或邮件。
+- 本次0.22.2未部署；问题2—6不在本轮范围。本轮未运行完整容器验收，快速CI不能替代main PR完整门禁。
+
+### 下一步
+
+- 本轮问题1修复交付完成。若后续要求合入main，针对最终候选创建dev→main PR并核对完整五组/check门禁；本次不自动合并、部署或发布。
+
+### 主要文件或模块
+
+- backend/services/identity/application/login.py、backend/services/identity/recovery.py、身份恢复定向测试及对应契约/运行文档；公共进程监督无需改动。
+
+### 验证
+
+- 修复前新增4项回归全部按预期失败，复现400×5→429遗留authenticating与暂存404不能终结；不把此轮失败计作验收通过。
+- 一次性MySQL8.4.6、internal网络及生产2+1池：test_identity_recovery_health与test_login_resources共24 passed（36.18秒），含真实Saga/持久事务/命名锁、生产Authentication/SharedStore.rate和健康监督判定。Redis及学校为合成，可控时钟不等于真实等待60秒或容器退出。
+- 本机uv/Python3.12.10：test_login_gate、test_health_progress、公开契约及内部协议共15 passed（5.21秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过，git diff --check通过。
+- WSL首次直接执行CRLF脚本在set处退出、未运行测试；改用内存去CR的stdin后测试完成，但PowerShell追加尾部回车导致外层sh返回1。已独立确认测试24 passed及EXIT清理后无elect-test-query容器/网络，未据外层返回码冒称整条命令成功，部署脚本未修改。
+- 最终源码5948ba5的CI后端普通入口378 passed/115 skipped（119.97秒），一次性MySQL111 passed（144.92秒，包含本次登录恢复专项）；前端67 passed，浏览器52 passed（41.9秒）。跳过项不计通过；本次MySQL入口在CI正常退出成功。
+- 提交前UTF-8/无冲突标记/差异检查通过；收尾fetch确认origin/dev仍为本次源码SHA。最终Markdown记录按当前workflow的paths-ignore不触发额外push CI，业务验证追溯5948ba5及上述运行。
+
+## 2026-10-08 · 拉取最新dev并完成本机0.22.1重部署
+
+### 已完成
+
+- 从干净dev `3a64add` fast-forward拉取至`b51a897f4a73758daf9ac1d1c6d3c6905109b0eb`，前后端当前版本为0.22.1；核对本次新增消费趋势、自动查询及学校缴费读取的部署边界，无新增迁移或Secret。
+- 独立核对最终候选df835d4的[完整CI37629390328](https://github.com/ChaceQC/elect/actions/runs/37629390328)：前端、后端、business、compatibility、delivery五组及check全部success，普通PR的publish按设计skipped；本次拉取源与该候选在backend/frontend/deploy中无差异，仅新增进度记录。
+- 确认目标为既有elect-local、local源码镜像、core加SMTP定向通道，入口10.8.0.88:6874；保存原env/Secret受限副本与七域AES-GCM加密一致性快照，备份完整认证通过，目录为`/opt/elect-local/redeploy-0.22.1-20261008T003827/`，沿用独立backup-keys目录中的既有密钥。
+- 构建`elect-backend:v0.22.1-b51a897`与`elect-frontend:v0.22.1-b51a897`并通过版本/源提交校验；候选配置及Nginx预检通过后，仅更新忽略配置的两项镜像引用，保留原绑定、支付、真实SMTP及后台开关。
+- 00:41:13—00:41:59（Asia/Shanghai）完成停止本项目旧应用、七域重复迁移及Adapter→core→SMTP通道→邮件Worker→Nginx串行启动；8个长期容器全部healthy、RestartCount=0，原三个基础服务容器保持运行，旧0.20.3镜像保留。
+- 入口、生产静态资源、内部TLS及后台角色均通过检查；29个Secret逐文件SHA-256、三个原卷及挂载与升级前一致。69次成功采集、7封sent与2个paid_confirmed订单保留，原监控仍关闭；新消费聚合只读覆盖69条现存样本、7个金额日期。
+
+### 进行中
+
+- 无部署进行中项；本机按原配置保持运行，部署记录通过独立Markdown提交推送dev，镜像来源仍为b51a897。
+
+### 阻塞与风险
+
+- 无部署阻塞；已完成短暂入口切换。本次为本机源码开发版部署，不创建发布标签或发布镜像；未读取auth.txt/email_auth.txt，未新增真实登录、学校写、付款、SMTP认证或邮件投递测试，学校缴费新接口本轮只检查路由及会话拒绝，不声明新的真实端到端学校验收。独立WSL环境未操作。
+
+### 下一步
+
+- 保持elect-local 0.22.1运行及本次备份；用户下一次登录后核对自动更新、消费日期完整性/估算提示和学校缴费列表。正式发布另按固定摘要及标签CI流程执行。
+
+### 主要文件或模块
+
+- deploy/.env.local（忽略配置，仅两项应用镜像引用）、既有compose.sh/迁移/备份/状态入口、PROJECT_PROGRESS.md、AGENTS.md及docs/runbooks/本机私网部署.md；根与前后端README已准确描述0.22.1和部署入口，无需修改，仓库无AGENT.md。
+
+### 验证
+
+- 拉取前后Git工作区干净，实际Docker/Compose可用，8个现有容器healthy；远端增量迁移文件只删除末尾空行，迁移内容和版本不变。
+- Compose config、release check-config --allow-local、check-version、两张实际镜像check-images及Nginx语法检查全部通过；七域迁移成功，无新增DDL，迁移头仍为identity_0004、school_0008、room_0008、monitoring_0010、notification_0003、payment_0006、audit_0002。
+- `/healthz`、首页、`/history`及`/api/v1/auth/agreement`均200；协议保持2026-10-04.1/no-store。无Cookie的`/auth/session`、新缴费明细与消费趋势路由均为预期401；未调用学校。
+- 首页JS/CSS响应与Nginx内文件SHA-256一致，新产物含“缴费明细列表”“总缴费”“含余额变化估算”和既有电表止码/差值；已移除的来源质量列不在产物中。core六域及全部后台角色ready，Adapter两角色ready，内部证书链/主机名校验通过，邮件Worker健康探针通过。
+- 新Monitoring聚合在现有本库只读运行，覆盖全部69条样本和7个金额日期；升级前后七域迁移/Outbox/未知操作/监控状态/采集/邮件/订单统计一致。MySQL max_connections=40、Connection_errors_max_connections=0，原数据与凭据未改写。
+- 旧core/Adapter/mail-worker/Nginx正常退出0，SMTP定向通道按SIGTERM结束为143；新应用均无重启。验证报告、迁移日志和构建日志仅保存于上述受限备份目录，未纳入Git。
+- deploy/status.sh完整入口通过；三份部署文档UTF-8、4个本地链接、4段Shell示例语法及git diff --check通过。提交前重新fetch确认dev未有新增远端提交，根/子目录README无需修改；仅提交三份Markdown，env、Secret、真实凭据、备份及构建产物均保持排除。
+
 ## 2026-10-07 · 消费趋势按日期覆盖判断完整性
 
 ### 已完成
@@ -7,10 +302,12 @@
 - 前后端及锁文件版本同步0.22.1，更新DTO说明、根/前后端README、AGENTS、契约、架构与消费趋势决策；无AGENT.md，无数据库迁移或Secret变更。
 - 业务提交0c3f12d2eda56a632068e3903b02615e34d7ee16已推送dev，本次[快速CI37627630009](https://github.com/ChaceQC/elect/actions/runs/37627630009)已success，前后端与check均通过；完整三组及publish按quick设计跳过，不替代main PR完整门禁。
 - 用户追加按文档合入main：fetch后确认dev包含最新main（a235589），起始工作区干净，差异仅本次0.22.1修复及已交付缴费功能的文档收口；服务器严格GitHub Actions check、PR、管理员保护及禁止强推/删除均已核对。
+- [PR #12](https://github.com/ChaceQC/elect/pull/12)候选df835d4810e41573cad5458572f86342dc7df800的[完整CI37629390328](https://github.com/ChaceQC/elect/actions/runs/37629390328)于2026-10-07 21:52:08（Asia/Shanghai）五组及check全部success，publish按普通PR设计跳过。
+- 合并前重新fetch并核对最新候选、main祖先、CLEAN/MERGEABLE、全部检查所属运行及服务器保护；于21:55:46使用普通merge与match-head-commit合入main，合并提交fe4ea15a5783a50b87855faa6b8464675bcf9a2b。未使用admin或绕过保护，本地main/dev已快进到合并提交，最终Markdown记录在dev提交推送。
 
 ### 进行中
 
-- 准备dev → main PR，等待该PR最新候选完整CI五组与check全部通过。
+- 无进行中项，0.22.1消费完整性修复已通过完整门禁并交付main。
 
 ### 阻塞与风险
 
@@ -18,7 +315,7 @@
 
 ### 下一步
 
-- 创建PR并核对最新候选完整CI、main祖先及分支保护，全部满足后使用普通merge及match-head-commit合并，再同步本地main/dev并记录结果。本轮不部署或创建版本标签。
+- 如需运行页面生效，依据后续指定环境部署要求升级至0.22.1并核对日期完整性和估算提示；本轮合并任务已完成，未部署、创建版本标签或发布镜像。
 
 ### 主要文件或模块
 
@@ -30,6 +327,7 @@
 - Edge桌面1440px/手机375px两项专项通过，构建随浏览器入口通过；覆盖1/1及14/14隐藏部分提示、估算独立保留、0/1暂无数据、缺日期提示与采集刷新/降级。与同宽参考截图核对了趋势卡片、控件和新增文案的适配，无横向溢出；合成夹具的其他未登记接口报错不代表真实服务状态。
 - Windows后端定向检查临时通过uv --with tzdata补时区数据，未修改依赖；PowerShell的npm.ps1签名限制改用npm.cmd执行。git diff --check通过；本轮未执行真实学校、支付、SMTP或部署操作。
 - 业务提交快速CI通过；最终收口仅更新本Markdown，按路径规则不触发push CI，验证追溯上述0c3f12d和对应运行。
+- 本轮合并独立核对PR #12最新候选的完整五组/check、分支祖先与保护规则，不重复本地业务测试；最终文档收口追溯df835d4及完整运行37629390328，main push按规则不重复CI。
 
 ## 2026-10-07 · 学校缴费明细列表与总缴费
 

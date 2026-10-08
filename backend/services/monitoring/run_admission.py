@@ -1,7 +1,22 @@
-"""手动请求映射预算；Scheduler不插入映射、不消费此额度。"""
+"""用户触发采集共用映射预算；定期Scheduler不插入映射、不消费此额度。"""
+
+import hashlib
 
 from services.common.admission import enforce_budget
-from services.common.sql import first
+from services.common.sql import execute, first
+
+
+async def record_request(conn, owner, key_hash, run_id):
+    await execute(
+        conn,
+        "INSERT INTO monitor_run_requests (owner_user_id,idempotency_key_hash,request_digest,"
+        "run_id,expires_at) VALUES (:owner,:key,:digest,:run,"
+        "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 180 DAY))",
+        owner=owner.bytes,
+        key=key_hash,
+        digest=hashlib.sha256(b"manual_run").digest(),
+        run=run_id,
+    )
 
 
 async def check_budget(conn, owner):

@@ -55,7 +55,9 @@ async def accept_refresh(engine, owner, binding, key, *, source="browser"):
             conn, owner, binding, key, "balance_refresh", digest,
             admission=partial(check_budget, owner=owner, source=source), source=source,
         )
-        if not created:
+        # 支付确认后必须执行独立B02；已有任务可能已取得付款前余额。
+        # 固定订单键仍重放原任务，owner串行领取会等待当前读取结束。
+        if not created or source == "payment":
             return operation
         pending = await first(
             conn,

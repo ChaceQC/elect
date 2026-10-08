@@ -2,8 +2,10 @@
 
 import asyncio
 import secrets
+from collections import Counter
 from functools import partial
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
@@ -15,11 +17,15 @@ from services.common.background import BackgroundSupervisor, Role
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.common.ids import new_id
+from services.common.internal_dto import AuthenticateLogin
 from services.common.process_control import ProcessControl
 from services.common.sql import execute, first
 from services.identity import recovery
 from services.identity.application.login import LoginSaga
 from services.identity.sessions import AppSessions
+from services.school_adapter.application.authentication import Authentication
+from services.school_adapter.infrastructure.crypto import KeyRing
+from services.school_adapter.infrastructure.redis_store import RATE, SharedStore
 
 pytestmark = requires_mysql
 
@@ -181,10 +187,13 @@ def test_local_gate_busy_is_healthy_without_activity(monkeypatch, clock, revoke)
 
 @pytest.mark.parametrize("status,code", [(429, ErrorCode.RATE_LIMITED),
                                         (404, ErrorCode.NOT_FOUND)])
-def test_downstream_error_is_not_local_contention_or_success(monkeypatch, clock, status, code):
+@pytest.mark.parametrize("state", ["identity_committed", "activating"])
+def test_downstream_error_is_not_local_contention_or_success(
+    monkeypatch, clock, status, code, state,
+):
     async def case():
         async with database("identity", production_pool=True) as engine:
-            app, client, _ = await seed(engine)
+            app, client, _ = await seed(engine, state=state)
             client.error = ApiError(status, code, "synthetic", True)
             snapshots, control = await run_loop(app, clock, monkeypatch)
             assert control.failure["error_code"] == "BUSINESS_FAILURE_BUDGET"
@@ -226,4 +235,117 @@ def test_rejected_precommit_attempt_finishes_without_poisoning_health():
             assert current["state"] == "failed"
             await recovery.require_healthy_recovery(app)
             assert not await recovery.recover_tick(app)
+    asyncio.run(case())
+
+
+def test_rate_limited_login_finishes_without_poisoning_health(monkeypatch, clock):
+    async def case():
+        async with database("identity", production_pool=True) as engine:
+            counters = Counter()
+
+            async def evaluate(script, count, key, value):
+                if script == RATE:
+                    counters[key] += 1
+                    return counters[key]
+                return 1  # 合成账号锁释放；限流判定使用生产SharedStore.rate。
+
+            store = SharedStore(SimpleNamespace(
+                eval=AsyncMock(side_effect=evaluate), set=AsyncMock(return_value=True),
+            ), None)
+            store.consume_challenge = AsyncMock(side_effect=ApiError(
+                400, ErrorCode.CAPTCHA_INVALID, "synthetic",
+            ))
+            repository = SimpleNamespace(staged=AsyncMock(return_value=None), stage=AsyncMock())
+            protocol = SimpleNamespace(authenticate=AsyncMock())
+            adapter = Authentication(repository, store, protocol,
+                                     KeyRing("test", {"test": secrets.token_bytes(32)}))
+
+            async def call(service, path, scope, request_id, payload):
+                assert path == "/login-attempts/authenticate"
+                return await adapter.authenticate(AuthenticateLogin.model_validate(payload))
+
+            client = SimpleNamespace(call=call)
+            saga = LoginSaga(engine, client, AppSessions(engine, secrets.token_bytes(32)))
+            app = SimpleNamespace(state=SimpleNamespace(
+                database=engine, login_saga=saga, service_client=client,
+                runtime=SimpleNamespace(service="identity"),
+            ))
+            nonce = secrets.token_hex(32)
+            for status in [400] * 5 + [429]:
+                login = command()
+                row = await saga.attempt(login, nonce, None)
+                with pytest.raises(ApiError) as failure:
+                    await saga.login(login, nonce, None, new_id())
+                assert failure.value.status == status
+                current = await saga.read(UUID(bytes=row["id"]))
+                assert current["state"] == "failed"
+                assert current["error_code"] == failure.value.code
+            assert failure.value.retry_after_seconds == 60
+            assert store.consume_challenge.await_count == 5
+            protocol.authenticate.assert_not_awaited()
+            repository.stage.assert_not_awaited()
+            snapshots, control = await run_loop(app, clock, monkeypatch)
+            assert control.failure is None
+            assert all(s["status"] == "ready" and s["failures"] == 0 for s in snapshots)
+            async with engine.connect() as conn:
+                for table in ("users", "app_sessions", "consents"):
+                    assert (await first(conn, f"SELECT COUNT(*) AS n FROM {table}"))["n"] == 0
+    asyncio.run(case())
+
+
+@pytest.mark.parametrize("state,error", [
+    ("authenticating", None), ("authenticating", ErrorCode.NOT_FOUND),
+    ("staged", ErrorCode.NOT_FOUND),
+])
+def test_missing_precommit_staging_recovers_after_restart(monkeypatch, clock, state, error):
+    async def case():
+        async with database("identity", production_pool=True) as engine:
+            client = FaultClient()
+            sessions = AppSessions(engine, secrets.token_bytes(32))
+            saga = LoginSaga(engine, client, sessions)
+            row = await saga.attempt(command(), secrets.token_hex(32), None)
+            await saga.state(UUID(bytes=row["id"]), state, error=error)
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE login_attempts SET "
+                              "updated_at=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 10 SECOND),"
+                              "next_reconcile_at=UTC_TIMESTAMP(6) WHERE id=:id", id=row["id"])
+            # 重建Saga模拟进程重启；旧持久错误不能继续毒化健康预算。
+            app = SimpleNamespace(state=SimpleNamespace(
+                database=engine, login_saga=LoginSaga(engine, client, sessions),
+                service_client=client, runtime=SimpleNamespace(service="identity"),
+            ))
+            client.error = ApiError(404, ErrorCode.NOT_FOUND, "synthetic")
+            snapshots, control = await run_loop(app, clock, monkeypatch)
+            current = await saga.read(UUID(bytes=row["id"]))
+            assert current["state"] == "failed" and current["user_id"] is None
+            assert current["error_code"] == ErrorCode.NOT_FOUND
+            assert client.failures == 1 and control.failure is None
+            assert all(s["status"] == "ready" and s["failures"] == 0 for s in snapshots)
+    asyncio.run(case())
+
+
+@pytest.mark.parametrize("status,code", [
+    (429, ErrorCode.RATE_LIMITED), (503, ErrorCode.DEPENDENCY_UNAVAILABLE),
+])
+def test_precommit_status_dependency_failure_keeps_health_budget(monkeypatch, clock, status, code):
+    async def case():
+        async with database("identity", production_pool=True) as engine:
+            client = FaultClient()
+            saga = LoginSaga(engine, client, AppSessions(engine, secrets.token_bytes(32)))
+            row = await saga.attempt(command(), secrets.token_hex(32), None)
+            await saga.state(UUID(bytes=row["id"]), "authenticating")
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE login_attempts SET "
+                              "updated_at=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 10 SECOND),"
+                              "next_reconcile_at=UTC_TIMESTAMP(6) WHERE id=:id", id=row["id"])
+            client.error = ApiError(status, code, "synthetic", True)
+            app = SimpleNamespace(state=SimpleNamespace(
+                database=engine, login_saga=saga, service_client=client,
+                runtime=SimpleNamespace(service="identity"),
+            ))
+            snapshots, control = await run_loop(app, clock, monkeypatch)
+            assert len(snapshots) == 61
+            assert control.failure["error_code"] == "BUSINESS_FAILURE_BUDGET"
+            current = await saga.read(UUID(bytes=row["id"]))
+            assert current["state"] == "authenticating" and current["error_code"] == code
     asyncio.run(case())

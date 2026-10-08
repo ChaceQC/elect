@@ -75,7 +75,14 @@ class PaymentLedger:
 
     async def prepare(self, command, payload):
         async with self.engine.begin() as conn:
-            await self.credential(conn, command)
+            error = None
+            # 凭据拒绝也要持久化；已有台账仍优先，不能覆盖可能已发送的订单。
+            try:
+                await self.credential(conn, command)
+            except ApiError as failure:
+                if failure.code != ErrorCode.SCHOOL_REAUTH_REQUIRED:
+                    raise
+                error = failure.code
             prior = await first(
                 conn,
                 "SELECT request_digest,owner_user_id FROM upstream_operations "
@@ -91,13 +98,15 @@ class PaymentLedger:
             await execute(
                 conn,
                 "INSERT INTO upstream_operations (id,owner_user_id,operation_type,"
-                "target_ref,request_digest,credential_version,state) "
-                "VALUES (:id,:owner,'create_order',:target,:digest,:version,'prepared')",
+                "target_ref,request_digest,credential_version,state,error_code) "
+                "VALUES (:id,:owner,'create_order',:target,:digest,:version,:state,:error)",
                 id=command.upstream_operation_id.bytes,
                 owner=command.owner_user_id.bytes,
                 target=str(command.order_id),
                 digest=digest(command),
                 version=command.credential_version,
+                state="rejected" if error else "prepared",
+                error=error,
             )
             await execute(
                 conn,
@@ -141,7 +150,9 @@ class PaymentLedger:
             )
         return True
 
-    async def settle(self, command, *, payload=None, rejected=False, error=None):
+    async def settle(
+        self, command, *, payload=None, rejected=False, reject_unsent=False, error=None,
+    ):
         async with self.engine.begin() as conn:
             row = await first(
                 conn,
@@ -150,6 +161,9 @@ class PaymentLedger:
             )
             if row["state"] in {"confirmed", "rejected"}:
                 return
+            rejected = rejected or (
+                reject_unsent and row["state"] == "prepared" and row["dispatched_at"] is None
+            )
             state = (
                 "confirmed"
                 if payload

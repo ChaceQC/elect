@@ -92,6 +92,18 @@ class LoginSaga:
                 conn, "SELECT * FROM login_attempts WHERE id=:id", id=attempt_id.bytes
             )
 
+    async def reject_uncommitted(self, attempt_id, error):
+        # 恢复器释放锁后前台可能已提交身份；拒绝不能覆盖已提交或终结的尝试。
+        async with self.engine.begin() as conn:
+            result = await execute(
+                conn,
+                "UPDATE login_attempts SET state='failed',error_code=:error,"
+                "updated_at=UTC_TIMESTAMP(6) WHERE id=:id "
+                "AND state IN ('created','authenticating','staged')",
+                id=attempt_id.bytes, error=error,
+            )
+        return result.rowcount > 0
+
     @asynccontextmanager
     async def locked(self, attempt_id, *, background=False):
         async with self.gate.enter(background=background), self.engine.connect() as conn:
@@ -218,9 +230,8 @@ class LoginSaga:
             try:
                 row = await self.advance(row, request_id, login=login, nonce_hash=nonce_hash)
             except ApiError as error:
-                if error.status < 500 and error.status != 429:
-                    current = await self.read(attempt_id)
-                    if current["state"] not in {"identity_committed", "activating"}:
-                        await self.state(attempt_id, "failed", error=error.code)
+                if error.status < 500:
+                    # 认证限流也是明确拒绝；没有已验证暂存时后台不能重提密码。
+                    await self.reject_uncommitted(attempt_id, error.code)
                 raise
             return await self.sessions.issue(row, request_id)

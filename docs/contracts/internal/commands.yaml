@@ -1,7 +1,7 @@
 schema_version: 1
 prefix: /internal/v1
 r4_query_routes:
-  - {receiver: room, callers: [payment], scope: 'room:browser', path: /controls/payment-balance-refresh, request: 'schemas.json#/$defs/PaymentBalanceRefresh', response: '../openapi.yaml#/components/schemas/AcceptedOperation', notes: 仅已验证payment签名用途；原订单固定键；系统独立6每分钟/60每日/8待办}
+  - {receiver: room, callers: [payment], scope: 'room:browser', path: /controls/payment-balance-refresh, request: 'schemas.json#/$defs/PaymentBalanceRefresh', response: '../openapi.yaml#/components/schemas/AcceptedOperation', notes: 仅已验证payment签名用途；原订单固定键；付款后独立B02不合并旧根；旧未终结payment别名恢复独立读取；系统独立6每分钟/60每日/8待办；尚无operation的受理404 NOT_FOUND终结余额失败但保留已付款；429/503与解绑处理中409继续重试}
 authentication:
   scheme: short_lived_service_jwt
   claims: [iss, sub, aud, exp, iat, jti]

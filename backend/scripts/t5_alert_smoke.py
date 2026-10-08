@@ -91,6 +91,8 @@ async def verify(app):
     )
     await collect(engine, owner, "10.00")
     assert len(await slots(engine, owner)) == 2
+    # 配置触发的立即采集也占用户额度；后续事件周期推进到下一分钟。
+    await next_request_minute(engine, owner)
     view = await config.patch(
         owner,
         MonitorPatch(expected_version=view.version, repeat_limit=3, interval_minutes=60),

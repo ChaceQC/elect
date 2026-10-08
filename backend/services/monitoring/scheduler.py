@@ -14,7 +14,7 @@ from services.common.outbox import append_event
 from services.common.sql import aware, execute, first
 
 from .repository import lock_monitor
-from .run_admission import check_budget
+from .run_admission import check_budget, record_request
 
 
 def latest_slot(anchor, now, minutes):
@@ -155,14 +155,5 @@ async def accept_run(engine, owner, key, request_id):
             raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS, "请先启用有效默认寝室的监控")
         clock = await first(conn, "SELECT UTC_TIMESTAMP(6) AS now")
         row = await create_run(conn, monitor, clock["now"], request_id)
-        await execute(
-            conn,
-            "INSERT INTO monitor_run_requests (owner_user_id,idempotency_key_hash,request_d"
-            "igest,run_id,expires_at) VALUES (:owner,:key,:digest,:run,DATE_ADD(UTC_TIMESTA"
-            "MP(6),INTERVAL 180 DAY))",
-            owner=owner.bytes,
-            key=key_hash,
-            digest=digest,
-            run=row["id"],
-        )
+        await record_request(conn, owner, key_hash, row["id"])
         return row

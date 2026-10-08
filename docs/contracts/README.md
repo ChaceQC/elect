@@ -1,5 +1,11 @@
 # API 契约
 
+0.22.6沿用balance_refresh_state=failed：尚无operation时，余额刷新受理返回404 NOT_FOUND视为绑定明确失效，订单保持paid_confirmed、balance_refresh_operation_id为null、error_code保留NOT_FOUND，并结束自动回查。429/503、解绑处理中409与已受理operation的状态查询失败仍pending/30秒重试；见[余额受理失败终结](../decisions/付款后余额受理失败终结.md)。不新增接口字段或枚举。
+
+0.22.5付款后余额任务必须独立读取B02，不能复用付款确认前的余额根结果；同订单原键仍返回同一operation，旧未终结payment别名按原ID恢复独立读取。公开/内部字段与状态保持，succeeded表示付款确认后重新查询学校余额，不保证余额已增加；见[付款后余额独立读取](../decisions/付款后余额独立读取.md)。
+
+0.22.4沿用已有SchoolOrderResult、订单rejected与操作failed，不新增接口字段。Adapter在本库事务中将尚未发送的凭据版本/授权失效持久化为rejected，Payment收到台账结果后终结并释放未解决槽；旧键仍返回原订单。已有发送台账优先，通用SCHOOL_REAUTH_REQUIRED或NOT_FOUND错误本身不能证明未发送，发送后继续未知保护；见[发送边界](../decisions/建单凭据失效与发送边界.md)。
+
 0.22.0新增GET /room-bindings/{id}/payment-records与PaymentRecords契约，当前公开36个方法/路径；内部新增Payment /browser/records与Adapter /payments/records，沿用payment:browser、school:payment。实缴金额全范围合计、部分结果null及学校渠道边界见[规则](../decisions/学校缴费明细列表.md)。
 
 0.21.1的Consumption桶/汇总amount按日合并学校与监控余额变化估算：学校非零金额优先；缺失或0且有余额减少时补估算，每日首次有效余额减少先归前一天，再按归属日期筛选、合并并聚合周/月。Bucket/ConsumptionSummary可选estimated_amount、estimated_days标明估算部分；Consumption可选monitoring_status标明降级，version包含归属所选范围的样本数，0.22.1起complete按known_days等于expected_days判断，0金额计入已知日期，估算来源独立标注；coverage同步为complete/partial/unknown，普通数据状态按合并覆盖更新，学校同步进行中/失败及依赖降级不被覆盖。内部增加Monitoring的/browser/consumption，沿用monitor:browser；原余额变化/电表字段不变，规则见[消费趋势合并](../decisions/消费趋势合并监控估算.md)。
@@ -38,6 +44,7 @@ core模式公开API和领域DTO不变。核心内部52个接口直接复用原�
 - 所有 202 均由 MySQL 事务持久受理后返回；操作、运行和订单分别用 `/operations/{id}`、`/monitor/runs/{id}`、`/payment-orders/{id}`查询。QR GET 的 202 代表原订单的持久二维码工作，不创建新订单。
 - 绑定、同步、余额/历史刷新、立即采集、建单及二维码刷新使用 Idempotency-Key，长度 16..128，按用户+操作类型分区。相同键不同摘要返回 `409 IDEMPOTENCY_CONFLICT`，网络重试保持原键；台账至少 180 天，unknown 不普通过期清除。
 - 配置、默认、撤回和取消分别使用 monitor.version、preference_version、credential_version、run.version。缺失 expected_version 返回 428，冲突返回 409 与 current_version；租约心跳不修改客户端版本。PATCH/PUT 响应丢失先 GET 对账，不自动重放覆盖并发值。
+- 0.22.3起PATCH /monitor因开启或修改间隔而触发立即采集时，与POST /monitor/runs共享每用户6次/分钟、48次/滚动24小时、8个非终态映射的预算。额度不足返回429/Retry-After，配置、版本、代次、旧任务和计划均不改变；成功响应的current_run可直接包含本次持久任务，next_run_at指向下一定期槽。关闭、无变化保存和非采集配置不新增计额；相同版本的并发保存仍先执行409版本检查。
 
 ## 恢复与未确定状态
 

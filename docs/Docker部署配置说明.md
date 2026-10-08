@@ -118,6 +118,8 @@ Gateway/Identity 的 Origin/CSRF 检查、可信跳转和 Notification 的站内
 
 模板为 deploy/nginx/default.conf.template，挂到 `/etc/nginx/templates/default.conf.template`。frontend/Dockerfile 的 Nginx 运行阶段保留官方 entrypoint，在启动时渲染到 `/etc/nginx/conf.d/default.conf`。
 
+HTTPS和私网HTTP（`deploy/nginx/local.conf.template`）对普通API使用35秒读取超时，登录为70秒；0.22.7仅对 `/api/v1/room-bindings/{id}/payment-records` 设置50秒，覆盖Adapter的45秒整体查询预算并给浏览器55秒截止前留出返回余量。该嵌套路径沿用原API的反代、内部TLS、请求头、禁止上游重试及no-store规则；无新增配置变量或Secret。已有入口需在后续升级时重新渲染模板并重建Nginx才生效，本轮未部署，详见[缴费列表入口超时](decisions/缴费列表入口超时.md)。
+
 关键 Compose 配置如下；完整的卷、权限、健康依赖与资源限制见 [compose.yaml](../deploy/compose.yaml)：
 
 ```yaml

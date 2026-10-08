@@ -30,6 +30,9 @@ async def balance_refresh(state, row, principal):
         result = await refresh_status(state, operation, principal)
         return operation, result, None
     except ApiError as failure:
+        # Room受理前明确拒绝无效绑定；付款事实保留，余额跟踪按业务失败终结。
+        if not operation and failure.status == 404 and failure.code == ErrorCode.NOT_FOUND:
+            return None, "failed", failure.code
         # 接受成功后读取失败也保留operation，不能丢掉关联或误写业务failed。
         return operation, "unavailable", failure.code
 
