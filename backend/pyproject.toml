@@ -1,6 +1,6 @@
 [project]
 name = "elect-backend"
-version = "0.22.2"
+version = "0.22.3"
 description = "寝室电费系统后端"
 requires-python = "==3.12.10"
 dependencies = [

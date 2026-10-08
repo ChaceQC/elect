@@ -1,5 +1,6 @@
 """配置意图和失效屏障在一次本域事务中提交；不访问学校或消息服务。"""
 
+import hashlib
 import re
 
 from services.common.errors import ErrorCode
@@ -8,6 +9,8 @@ from services.common.sql import execute, first
 
 from .queries import MonitorQueries
 from .repository import audit, invalidate, lock_monitor, require_version
+from .run_admission import check_budget, record_request
+from .scheduler import create_run
 
 
 def validate_config(config, monitor, *, activating=True):
@@ -46,6 +49,10 @@ class MonitorConfiguration(MonitorQueries):
                 raise ApiError(
                     409, ErrorCode.OPERATION_IN_PROGRESS, "切换中可关闭监控，其他设置请稍后保存"
                 )
+            state = self.next_state(monitor, config)
+            immediate = state == "active" and bool(changed & {"enabled", "interval_minutes"})
+            if immediate:
+                await check_budget(conn, owner)
             close = bool(changed & {"enabled", "threshold", "email"})
             await invalidate(conn, monitor, close_episode=close)
             email_version = monitor["email_version"] + ("email" in changed)
@@ -54,15 +61,14 @@ class MonitorConfiguration(MonitorQueries):
                 if "email" in changed
                 else monitor["email_ciphertext"]
             )
-            state = self.next_state(monitor, config)
-            immediate = config["enabled"] and bool(changed & {"enabled", "interval_minutes"})
             await execute(
                 conn,
                 "UPDATE monitors SET desired_enabled=:enabled,state=:state,"
                 "interval_minutes=:interval,"
                 "repeat_limit=:repeat,threshold=:threshold,email_ciphertext=:email,email_version=:ev,"
                 "version=version+1,generation=generation+1,"
-                "next_run_at=IF(:state<>'active',NULL,IF(:immediate,UTC_TIMESTAMP(6),next_run_at)),"
+                "next_run_at=IF(:state<>'active',NULL,IF(:immediate,"
+                "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :interval MINUTE),next_run_at)),"
                 "schedule_anchor_at=IF(:immediate,UTC_TIMESTAMP(6),schedule_anchor_at),"
                 "first_enabled_at=IF(:enabled,COALESCE(first_enabled_at,UTC_TIMESTAMP(6)),first_enabled_at),"
                 "updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
@@ -78,6 +84,14 @@ class MonitorConfiguration(MonitorQueries):
             )
             await audit(conn, monitor, request_id, "monitor.configured")
             updated = await first(conn, "SELECT * FROM monitors WHERE id=:id", id=monitor["id"])
+            if immediate:
+                run = await create_run(conn, updated, updated["schedule_anchor_at"], request_id)
+                # 内部键包含不能作为浏览器请求头传入的分隔符；复用同一预算及保留表。
+                key = hashlib.sha256(
+                    b"monitor-config\0" + updated["id"] + str(updated["generation"]).encode()
+                ).digest()
+                await record_request(conn, owner, key, run["id"])
+                updated = {**updated, "active_run_id": run["id"]}
             return await self.view(conn, updated)
 
     @staticmethod
