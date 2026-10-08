@@ -9,18 +9,20 @@
 - [PR #13](https://github.com/ChaceQC/elect/pull/13)首轮候选fb9ca2706218ee49b9077b3448006177f6ff9878的[完整CI37717227470](https://github.com/ChaceQC/elect/actions/runs/37717227470)暴露旧合成脚本与立即受理规则不一致：stale_hints取消了配置创建的run，随后仅将next_run_at改为当前时间仍命中已取消逻辑槽，等待学校调用30秒超时；未合并该失败候选。
 - 仅补正monitoring_combined_smoke的合成时间：同一事务内将该合成用户已有run的scheduled_for、监控锚点与next_run_at回拨一个间隔，保留已取消记录和原积压/共享池/续租/恢复/退出断言。生产调度、用户预算和0.22.7版本不变，专项决策同步说明；根/子目录README和AGENTS所述业务规则不受影响。
 - 首轮完整运行已结束：前端、后端、business、delivery四组success，compatibility与check失败，publish按普通PR设计跳过；失败记录不作为最终通过证据。
+- 最终候选f1c3db40ef64696c3b3e43e1ddff03d224938f1a的[快速CI37718722493](https://github.com/ChaceQC/elect/actions/runs/37718722493)及[完整CI37718726809](https://github.com/ChaceQC/elect/actions/runs/37718726809)均success；完整五组与check于2026-10-08 10:56:19（Asia/Shanghai）全部通过，publish按普通PR设计跳过。
+- 合并前重新fetch并核对候选SHA、最新main祖先、CLEAN/MERGEABLE、检查所属运行及服务器严格保护；于10:57:41使用普通merge及match-head-commit完成PR #13，合并提交63a006efb4b73059d276d46be2acc7db8ff6468b。未使用admin或绕过保护，本地main/dev已快进到该提交，最终结果记录按开发分支流程提交推送dev。
 
 ### 进行中
 
-- 上述验收脚本定向静态检查及首轮诊断已完成；提交推送dev，让PR #13针对修正后的最新候选重新执行五组完整验证及check。
+- 无进行中项；0.22.7六项审查修复已通过最新完整门禁并交付main。
 
 ### 阻塞与风险
 
-- 首轮兼容组失败，修正后的完整PR门禁待验证，当前未达到合并条件。既有部署状态仍以本机私网部署手册为准。
+- 无合并阻塞。首轮合成脚本问题已修正并通过完整兼容验证；本轮未升级现有部署，真实学校/付款后余额与目标机长期容量等验收边界保持。
 
 ### 下一步
 
-- 最新PR完整门禁成功后，重新核对候选SHA、main祖先、合并状态与保护规则，用merge commit及match-head-commit合入main；再快进本地main/dev，并在dev提交推送实际结果记录。
+- 本轮合并任务已完成。如需让六项修复在运行环境生效，按后续指定部署要求升级至0.22.7并重新渲染Nginx缴费列表配置，再核对入口与后台健康；本轮不创建标签、发布镜像或执行部署。
 
 ### 主要文件或模块
 
@@ -31,6 +33,9 @@
 - git diff --check、工作区及远端一致性、main祖先、变更范围和服务器保护核对通过；auth.txt、email_auth.txt与deploy/.env不受Git跟踪且受忽略规则保护，未读取其内容。
 - 本轮不重复本地业务套件，以当前PR完整CI作为合并门禁；纯Markdown准备提交按现有路径规则不触发push CI，不能记为新CI通过。
 - 合成脚本补正使用uv/Python3.12.10执行变更文件Ruff、UTF-8解码和AST语法检查，全部通过，git diff --check通过；完整容器结果仍以修正后PR运行作为最终依据。
+- 最终PR运行的后端普通入口378 passed/158 skipped（79.71秒），一次性MySQL154 passed（126.07秒）；前端67 passed、浏览器52 passed（44.1秒）。跳过项不计通过。
+- 完整兼容组通过合并角色调度、50并发控制读取期间续租、签名重复积压、请求中取消、旧epoch恢复、协调退出，以及MQ降级/恢复禁用和原卷13→30→13切换；business与delivery各自独立空库的完整组也成功。五组及check均针对f1c3db4对应PR合并结果，不复用首轮或push快速证据替代。
+- 最终收口仅修改PROJECT_PROGRESS.md；按现有路径规则不触发新的push CI，main push按规则不重复运行，验证追溯最终候选与上述完整运行。未读取真实凭据或配置，未调用真实学校、支付或邮件。
 
 ## 2026-10-08 · 问题6：缴费列表入口超时
 
