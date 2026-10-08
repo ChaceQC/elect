@@ -8,18 +8,20 @@
 - Payment沿用原rejected/failed处理、原键重放及占位释放，旧submitting/submit_unknown与reconciling记录可按原上游编号恢复终结；未修改Worker通用重试或付款后余额逻辑。
 - 同步0.22.4前后端与锁文件、OpenAPI版本、状态模型说明、根/前后端README、AGENTS、文档索引/契约/后端架构及专项决策；无AGENT.md，无API字段、迁移、Secret或部署配置变更。
 - 新增16项支付建单MySQL专项并纳入既有CI入口，结合相邻余额终态4项全部通过；本机29项支付单元/公开与内部契约通过。
+- 修复提交bb019a980f6036624dc3ad1652193ccfe14d0d12已推送origin/dev；[快速CI37709796146](https://github.com/ChaceQC/elect/actions/runs/37709796146)于2026-10-08 08:57:07（Asia/Shanghai）完成check，backend / build、frontend / build及check全部success，business/compatibility/delivery与publish按quick规则skipped。
 
 ### 进行中
 
-- 实现、定向验证与文档同步已完成，正在完成提交前差异核对及dev提交推送；对应源码CI尚未执行。
+- 无实现进行中项；问题3修复、定向验证、dev提交推送及快速CI/check已完成，最后仅提交本Markdown验证记录。
 
 ### 阻塞与风险
 
 - 无实现阻塞；不读取真实配置/凭据，不调用真实学校、支付或邮件，不升级现有部署。问题4—6不在本轮范围。
+- 快速CI不替代main PR完整五组门禁或真实学校验收；0.22.4本轮未部署。
 
 ### 下一步
 
-- 将修复提交推送dev并核对对应快速CI/check结果；问题4—6仍待用户另行指定，本次不自动合并main、部署或发布。
+- 本轮问题3交付完成。后续若要求合入main，针对最终候选创建dev→main PR并核对完整五组/check门禁；问题4—6仍待另行指定，本次不自动合并、部署或发布。
 
 ### 主要文件或模块
 
@@ -32,6 +34,8 @@
 - 本机uv/Python3.12.10：支付调度/付款证据单元及公开/内部契约共29 passed（2.73秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过，git diff --check通过。
 - Windows第一次单元检查因缺少tzdata在收集阶段停止；以uv --with tzdata临时提供时区数据后通过，未改变项目依赖。首次WSL包装因Python文本stdin转换CRLF在set处退出；改用UTF-8字节stdin后脚本正常退出0，一次性容器/网络已独立确认清理。
 - 前端既有contract:check在Windows启动npx子进程失败；直接以Node执行同一openapi-typescript工具、内存生成并规范CRLF后，与已提交类型完全一致。前后端/锁文件版本一致，23个变更文件UTF-8及无冲突标记检查通过。
+- 最终源码bb019a9的CI后端普通入口378 passed/141 skipped（122.92秒）、一次性MySQL137 passed（170.56秒，包含本次16项支付专项）；前端67 passed、浏览器52 passed（43.0秒），Linux原contract:check通过。跳过项不计通过。
+- 提交后6个专项文档链接检查通过；收尾fetch确认origin/dev仍为本次源码SHA，工作区干净。最后仅修改本Markdown，按既有paths-ignore不触发额外push CI，业务验证追溯bb019a9及上述运行。
 - 未读取真实配置或凭据，未运行完整容器套件、未启动真实业务服务或调用学校、支付、邮件；合成学校会话及本库事务验证不代表真实支付/生产验收。
 
 ## 2026-10-08 · 问题2：监控配置立即采集统一计额
