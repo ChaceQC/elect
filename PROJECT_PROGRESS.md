@@ -8,10 +8,11 @@
 - 新增本人版本保护的resume-check接口；活动窗口重复请求不续期。页面以服务端暂停字段停止订单/二维码轮询，保留原单恢复与停止处理，重开只读；恢复响应丢失先GET原单对账，旧响应缺字段兼容。
 - 同步0.22.9版本、Order可选期限/暂停字段、公开OpenAPI/前端类型、内部路由说明、payment_0007与七域迁移/结构/保留清单，以及根/子目录README、AGENTS、计划和部署说明。未发现AGENT.md，无Secret、依赖版本或容器数变化。
 - 修复提交68c10de3c1af04d5e86910d80c1c13431398961a已推送origin/dev；[首次快速CI37737041099](https://github.com/ChaceQC/elect/actions/runs/37737041099)前端成功，后端暴露新增恢复接口后核心路由数量断言仍为56，实际已为57；本次补齐数量与resume-check注册断言，业务规则不变。
+- 最终业务/测试候选68b8b377d91f2e36fe44cf36e9a4b3121da4a91c已推送origin/dev；[快速CI37738593031](https://github.com/ChaceQC/elect/actions/runs/37738593031)于2026-10-08 14:42:19（Asia/Shanghai）完成，frontend / build、backend / build与check均success，包含10项新增MySQL期限/恢复专项。
 
 ### 进行中
 
-- 首次CI的核心路由断言遗漏已修正；定向复核后提交推送，并等待新CI中的固定环境和10项MySQL期限/恢复专项。
+- 无实现进行中项；源码、定向验证、dev提交推送和快速CI/check均完成，收尾仅提交本Markdown验证记录及决策中的证据链接。
 
 ### 阻塞与风险
 
@@ -20,7 +21,7 @@
 
 ### 下一步
 
-- 提交推送本次修复并等待快速CI/check；失败只修复相关问题，成功后记录本次提交与实际数据库证据。既有运行环境须后续按部署手册停旧Payment后台、执行payment_0007并升级配套镜像后才生效。
+- 本轮源码交付完成；后续上线先为dev → main执行PR完整门禁，再按部署手册停旧Payment后台、执行payment_0007并升级配套镜像，核对旧未付款订单已暂停及原单恢复入口。当前未合入main或升级部署。
 
 ### 主要文件或模块
 
@@ -35,6 +36,9 @@
 - git diff --check及47个变更文件UTF-8解码通过；fetch后dev与origin/dev一致。新增MySQL专项纳入现有隔离查询CI，未在本机启动Docker或执行真实学校/支付/邮件操作。
 - 首次CI后端离线检查为1 failed、391 passed、168 skipped；唯一失败为test_every_core_endpoint_is_registered的旧数量断言，MySQL专项尚未进入，不能将跳过记作通过。前端固定容器检查已成功；首次check失败，不作为交付通过证据。
 - 核心路由补正的Ruff与单项注册检查通过（1 passed，1.45秒）；只更新该测试及进度记录，README、AGENTS和业务契约无需再次改变。
+- 第二轮CI后端离线392 passed、168 skipped（74.39秒），随后一次性MySQL查询/状态/迁移专项164 passed（120.03秒），包含本轮新增10项期限/恢复检查；学校/Room调用均为合成，旧库升级与新库迁移实际执行成功。
+- 第二轮固定Node前端16个单元/组件文件共67 passed，浏览器56 passed（45.6秒），包含新增桌面/手机暂停恢复及旧字段兼容；类型、lint、契约、生产构建和check均通过。business/compatibility/delivery及publish按quick规则skipped，不视为完整CI、真实学校验收或发布。
+- 最终仅补充Markdown证据；按现有路径规则不触发新push CI，业务/测试验证追溯68b8b37与上述成功运行。现有部署、业务数据和Secret保持，本轮没有真实学校、支付或邮件调用。
 
 ## 2026-10-08 · 0.22.8 昨日消费与曲线一致
 
