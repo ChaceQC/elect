@@ -126,9 +126,20 @@ async def verify_pool_progress(app, client, run):
 async def verify_cycle(app, client, collection, owner):
     engine = app.state.database
     async with engine.begin() as conn:
+        # 配置已创建立即任务，stale_hints将其取消；合成时间推进须同步移动原逻辑槽。
         await execute(
             conn,
-            "UPDATE monitors SET next_run_at=UTC_TIMESTAMP(6) WHERE owner_user_id=:id",
+            "UPDATE monitor_runs r JOIN monitors m ON m.id=r.monitor_id "
+            "SET r.scheduled_for=DATE_SUB(r.scheduled_for,INTERVAL m.interval_minutes MINUTE) "
+            "WHERE m.owner_user_id=:id",
+            id=owner.bytes,
+        )
+        await execute(
+            conn,
+            "UPDATE monitors SET schedule_anchor_at="
+            "DATE_SUB(schedule_anchor_at,INTERVAL interval_minutes MINUTE),"
+            "next_run_at=DATE_SUB(next_run_at,INTERVAL interval_minutes MINUTE) "
+            "WHERE owner_user_id=:id",
             id=owner.bytes,
         )
     await start_background(app, "monitoring")

@@ -5,15 +5,18 @@
 - 按用户要求依据docs/GitHub协作与合并流程.md准备dev → main；起始工作区干净，dev与origin/dev同为d60ec260a4b78e94a7e32d456249fd209d45e0f7，已包含最新main（fe4ea15a5783a50b87855faa6b8464675bcf9a2b）。
 - 核对待合入的14个提交、53个文件及差异，范围为0.22.2—0.22.7六项审查修复、专项回归和相关文档，以及此前部署/合并记录；无新增迁移或Secret变更。
 - 核对服务器main要求PR、严格GitHub Actions check（App ID 15368）、管理员保护和禁止强推/删除，普通PR发布作业按设计跳过；原有六次push快速CI均success，不能替代本次PR完整门禁。
-- 根README、AGENTS、前后端README和专项契约/决策已与0.22.7实现同步，无AGENT.md；本次仅新增进度记录，不改变业务代码、版本或部署。
+- 根README、AGENTS、前后端README和专项契约/决策已与0.22.7实现同步，无AGENT.md；合并准备阶段仅新增进度记录，不改变业务代码、版本或部署。
+- [PR #13](https://github.com/ChaceQC/elect/pull/13)首轮候选fb9ca2706218ee49b9077b3448006177f6ff9878的[完整CI37717227470](https://github.com/ChaceQC/elect/actions/runs/37717227470)暴露旧合成脚本与立即受理规则不一致：stale_hints取消了配置创建的run，随后仅将next_run_at改为当前时间仍命中已取消逻辑槽，等待学校调用30秒超时；未合并该失败候选。
+- 仅补正monitoring_combined_smoke的合成时间：同一事务内将该合成用户已有run的scheduled_for、监控锚点与next_run_at回拨一个间隔，保留已取消记录和原积压/共享池/续租/恢复/退出断言。生产调度、用户预算和0.22.7版本不变，专项决策同步说明；根/子目录README和AGENTS所述业务规则不受影响。
+- 首轮完整运行已结束：前端、后端、business、delivery四组success，compatibility与check失败，publish按普通PR设计跳过；失败记录不作为最终通过证据。
 
 ### 进行中
 
-- 提交推送本次合并准备记录，创建dev → main PR，等待最新候选的前端、后端、business、compatibility、delivery五组完整验证及check。
+- 上述验收脚本定向静态检查及首轮诊断已完成；提交推送dev，让PR #13针对修正后的最新候选重新执行五组完整验证及check。
 
 ### 阻塞与风险
 
-- 无操作阻塞；完整PR门禁尚未执行，未达到合并条件。既有部署状态仍以本机私网部署手册为准。
+- 首轮兼容组失败，修正后的完整PR门禁待验证，当前未达到合并条件。既有部署状态仍以本机私网部署手册为准。
 
 ### 下一步
 
@@ -21,12 +24,13 @@
 
 ### 主要文件或模块
 
-- PROJECT_PROGRESS.md、dev/main分支和GitHub PR；本轮不修改六项修复的源码与专项验证。
+- PROJECT_PROGRESS.md、backend/scripts/monitoring_combined_smoke.py、docs/decisions/监控配置采集统一计额.md、dev/main分支和GitHub PR；不修改生产服务实现。
 
 ### 验证
 
 - git diff --check、工作区及远端一致性、main祖先、变更范围和服务器保护核对通过；auth.txt、email_auth.txt与deploy/.env不受Git跟踪且受忽略规则保护，未读取其内容。
 - 本轮不重复本地业务套件，以当前PR完整CI作为合并门禁；纯Markdown准备提交按现有路径规则不触发push CI，不能记为新CI通过。
+- 合成脚本补正使用uv/Python3.12.10执行变更文件Ruff、UTF-8解码和AST语法检查，全部通过，git diff --check通过；完整容器结果仍以修正后PR运行作为最终依据。
 
 ## 2026-10-08 · 问题6：缴费列表入口超时
 
