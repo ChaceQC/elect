@@ -1,5 +1,7 @@
 # API 契约
 
+0.22.6沿用balance_refresh_state=failed：尚无operation时，余额刷新受理返回404 NOT_FOUND视为绑定明确失效，订单保持paid_confirmed、balance_refresh_operation_id为null、error_code保留NOT_FOUND，并结束自动回查。429/503、解绑处理中409与已受理operation的状态查询失败仍pending/30秒重试；见[余额受理失败终结](../decisions/付款后余额受理失败终结.md)。不新增接口字段或枚举。
+
 0.22.5付款后余额任务必须独立读取B02，不能复用付款确认前的余额根结果；同订单原键仍返回同一operation，旧未终结payment别名按原ID恢复独立读取。公开/内部字段与状态保持，succeeded表示付款确认后重新查询学校余额，不保证余额已增加；见[付款后余额独立读取](../decisions/付款后余额独立读取.md)。
 
 0.22.4沿用已有SchoolOrderResult、订单rejected与操作failed，不新增接口字段。Adapter在本库事务中将尚未发送的凭据版本/授权失效持久化为rejected，Payment收到台账结果后终结并释放未解决槽；旧键仍返回原订单。已有发送台账优先，通用SCHOOL_REAUTH_REQUIRED或NOT_FOUND错误本身不能证明未发送，发送后继续未知保护；见[发送边界](../decisions/建单凭据失效与发送边界.md)。
