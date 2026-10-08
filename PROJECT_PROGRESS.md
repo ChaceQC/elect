@@ -7,10 +7,11 @@
 - 完成monitor锁内先校验预算，再同事务改代、创建run/Outbox和180天计额映射；立即任务受理时推进下一定期槽，拒绝保留原配置、任务、版本与计划，关闭及无变化保存仍可执行。正常Scheduler不消费用户额度。
 - 同步版本元数据0.22.3、根/前后端README、AGENTS、文档索引、接口约定、后端架构、预算手册及专项决策；无AGENT.md，无新增迁移、Secret或前端页面变更。
 - 新增10项配置采集MySQL回归并纳入已有查询预算CI入口；既有T5合成场景显式推进下一分钟后继续配置采集，保留原键和每日计数，未放宽生产限额。
+- 修复提交2a05c5e93e25186b18f212b75d9582762a35cab2已推送origin/dev；[快速CI37708095480](https://github.com/ChaceQC/elect/actions/runs/37708095480)于2026-10-08 08:36:47（Asia/Shanghai）完成check，backend / build、frontend / build与check全部success，完整business/compatibility/delivery及publish按quick规则skipped。
 
 ### 进行中
 
-- 实现、文档及本地定向验证完成；正在提交推送dev并核对该源码SHA的快速CI/check。
+- 无实现进行中项；问题2修复、定向验证、dev推送及快速CI/check已完成，最终仅提交本Markdown验证记录。
 
 ### 阻塞与风险
 
@@ -19,7 +20,7 @@
 
 ### 下一步
 
-- 核对本次源码提交的快速CI/check，完成验证记录收口；后续若要求合入main，再创建dev→main PR并运行完整五组门禁。
+- 本轮问题2交付完成。后续若要求合入main，针对最终候选创建dev→main PR并核对完整五组/check门禁；本次不自动合并、部署或发布。
 
 ### 主要文件或模块
 
@@ -32,6 +33,8 @@
 - 本机uv/Python3.12.10：监控控制/双槽及公开/内部契约共15 passed（3.58秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议生成校验通过，前后端/锁文件版本一致，git diff --check通过。
 - 首轮修复后回归有1项失败：合成时间只回拨monitor锚点，命中既有run逻辑槽；同步回拨该合成run后定向集全部通过，生产逻辑未因此修改。Windows首次契约读取因Python默认GBK失败，显式PYTHONUTF8=1后重新检查通过。
 - 测试脚本通过Python UTF-8读取并在内存规范换行后传给WSL sh，无临时明文配置或脚本文件；一次性容器和网络已清理。未启动真实业务服务、读取真实配置/凭据或调用学校、支付、邮件；未运行完整容器验收。
+- 最终源码2a05c5e的CI后端普通入口378 passed/125 skipped（87.33秒），一次性MySQL121 passed（113.45秒，包含本次10项配置采集专项）；前端67 passed、浏览器52 passed（41.7秒）。跳过项不计通过，快速CI不替代main PR完整门禁。
+- 提交前UTF-8/无冲突标记/差异检查通过；收尾fetch确认origin/dev仍为本次源码SHA。最终仅Markdown记录按当前workflow的paths-ignore不触发额外push CI，业务验证追溯2a05c5e及上述运行。
 
 ## 2026-10-08 · 问题1：登录拒绝与恢复健康隔离
 
