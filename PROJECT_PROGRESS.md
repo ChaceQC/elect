@@ -6,10 +6,11 @@
 - 按用户要求，昨日卡片改为读取同一份学校历史与监控估算合并后的日金额，并单独标记昨日估算来源；0金额保持有效，其他日期缺失不阻断昨日展示。
 - 同步OverviewSummary可选yesterday_estimated_amount、公开OpenAPI/前端类型、0.22.8版本及根/子目录README、AGENTS、设计/计划/合并决策；无AGENT.md，无迁移、内部协议或依赖版本变更。
 - 完成后端33项定向/公开契约检查、桌面与手机2项页面回归、前端类型/定向ESLint、变更Python的Ruff及契约一致性检查。
+- 修复提交dcd8985deee6be058b2e343ac53341404d0aa5f2已推送origin/dev；[快速CI37731461395](https://github.com/ChaceQC/elect/actions/runs/37731461395)于2026-10-08 13:22:33（Asia/Shanghai）完成，frontend / build、backend / build及check均success。
 
 ### 进行中
 
-- 准备提交推送dev并等待本次快速CI/check；实现与本地定向验证已完成。
+- 无实现进行中项；本轮修复、本地定向验证、dev提交推送和快速CI/check已完成，收尾仅提交本Markdown验证记录。
 
 ### 阻塞与风险
 
@@ -17,7 +18,7 @@
 
 ### 下一步
 
-- 将本次修复提交推送dev，核对对应提交的快速CI/check结果并回写进度；现有部署生效需后续升级。
+- 本轮源码修复与dev交付完成；后续发布任务先为dev → main执行PR完整门禁，再按本机私网部署手册升级elect-local并核对昨日卡片与同日曲线。当前未合入main或升级部署。
 
 ### 主要文件或模块
 
@@ -28,8 +29,9 @@
 - uv/Python3.12.10定向执行tests/unit/test_consumption_merge.py与tests/contract/test_public_contract.py，33 passed（4.64秒）；覆盖实际总览组装、学校金额替换估算、学校0补估算、估算0、学校0/负数、昨日未知和缺桶不借邻日、范围不完整仍显示昨日。
 - 本机Windows首次收集因缺少IANA时区库而未执行测试；使用uv run --locked --with tzdata临时环境后通过，未修改项目依赖。Ruff首次提示新断言超过100列，折行后全部通过。
 - 本机Node24.13.0与Edge执行overview-yesterday.spec.js，1440px/375px共2 passed（24.8秒），包含生产构建；覆盖估算、学校金额、估算0、学校0和未知切换，且无横向溢出。已核对两种宽度截图与同宽参考的卡片布局；截图为合成响应，页面其他接口的未登记404不代表真实服务故障。
-- 前端typecheck、变更文件ESLint、变更Python的Ruff、OpenAPI/内部协议--check、openapi-typescript --check均通过；未重复本地全量业务/容器套件。CI将按既有固定容器环境验证。
+- 前端typecheck、变更文件ESLint、变更Python的Ruff、OpenAPI/内部协议--check、openapi-typescript --check均通过；未重复本地全量业务/容器套件，固定容器验证结果见下文CI记录。
 - git diff --check、版本/文档及生成差异检查通过；fetch后dev与origin/dev一致，工作区仅本轮源码、测试、契约和文档。未读取真实凭据/配置或执行部署。
+- GitHub快速CI针对dcd8985运行前后端固定容器检查并通过check；business、compatibility、delivery及publish按quick规则skipped，不计作完整验证或发布。收尾仅更新PROJECT_PROGRESS.md，按现有路径规则不触发新CI，业务/测试验证追溯上述修复提交。
 
 ## 2026-10-08 · 0.22.7 六项审查修复合入 main
 
