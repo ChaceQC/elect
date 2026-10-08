@@ -1175,8 +1175,17 @@ export interface components {
         };
         /** OverviewSummary */
         OverviewSummary: {
-            /** Yesterday Amount */
+            /**
+             * Yesterday Amount
+             * @description 总览上海日期范围结束日前一天的合并日金额，与同日曲线一致；未知为null。
+             */
             yesterday_amount: string | null;
+            /**
+             * Yesterday Estimated Amount
+             * @description 昨日金额中来自余额变化估算的金额；0也是有效估算。
+             * @default null
+             */
+            yesterday_estimated_amount: string | null;
             /** Last 14 Days Amount */
             last_14_days_amount: string | null;
             /** Known Days */

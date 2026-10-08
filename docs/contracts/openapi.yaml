@@ -2,7 +2,7 @@
 openapi: 3.1.0
 info:
   title: 寝室电费学生端 API
-  version: 0.22.7
+  version: 0.22.8
   description: T0 冻结契约。金额为十进制字符串，未知为 null，日期为上海含首尾日期，时间戳带时区。202 仅表示持久受理。业务服务按 x-stage
     实现。
 servers:
@@ -5385,7 +5385,16 @@ components:
           - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
             type: string
           - type: 'null'
+          description: 总览上海日期范围结束日前一天的合并日金额，与同日曲线一致；未知为null。
           title: Yesterday Amount
+        yesterday_estimated_amount:
+          anyOf:
+          - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$
+            type: string
+          - type: 'null'
+          default: null
+          description: 昨日金额中来自余额变化估算的金额；0也是有效估算。
+          title: Yesterday Estimated Amount
         last_14_days_amount:
           anyOf:
           - pattern: ^-?(0|[1-9]\d{0,11})\.\d{2}$

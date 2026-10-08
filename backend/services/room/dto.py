@@ -142,7 +142,12 @@ class Profile(DTO):
 
 
 class OverviewSummary(DTO):
-    yesterday_amount: Money | None
+    yesterday_amount: Money | None = Field(
+        description="总览上海日期范围结束日前一天的合并日金额，与同日曲线一致；未知为null。"
+    )
+    yesterday_estimated_amount: Money | None = Field(
+        default=None, description="昨日金额中来自余额变化估算的金额；0也是有效估算。"
+    )
     last_14_days_amount: Money | None
     known_days: Count
     expected_days: Count

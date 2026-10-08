@@ -1,10 +1,24 @@
 """学校日金额优先、监控余额估算补缺；两类来源合并后再聚合。"""
 
+from datetime import date, timedelta
 from decimal import Decimal
 
 from services.common.http import ApiError
 from services.room.consumption import aggregate, coverage_status
 from services.room.dto import Consumption
+
+
+def overview_summary(history):
+    # 使用同一响应的上海日期范围，避免跨午夜或浏览器时区导致卡片与曲线错日。
+    yesterday = (date.fromisoformat(history["end_date"]) - timedelta(days=1)).isoformat()
+    bucket = next((item for item in history["buckets"] if item["start_date"] == yesterday), None)
+    summary = history["summary"]
+    return {
+        "yesterday_amount": bucket["amount"] if bucket else None,
+        "yesterday_estimated_amount": bucket.get("estimated_amount") if bucket else None,
+        "last_14_days_amount": summary["amount"],
+        **{key: summary[key] for key in ("known_days", "expected_days", "complete")},
+    }
 
 
 def estimate_totals(rows):
