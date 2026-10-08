@@ -58,6 +58,8 @@ class Order(OrderReference):
     binding_display_name: str
     paid_confirmed: bool
     last_checked_at: Timestamp | None
+    check_deadline_at: Timestamp | None = None
+    check_paused: bool = False
     qr_status: QRStatus
     qr_expires_at: Timestamp | None
     error_code: str | None
@@ -75,6 +77,10 @@ class Order(OrderReference):
 
 
 class OrderCancelRequest(VersionRequest):
+    pass
+
+
+class OrderResumeCheckRequest(VersionRequest):
     pass
 
 

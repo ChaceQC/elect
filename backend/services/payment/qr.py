@@ -10,6 +10,7 @@ from services.common.ids import new_id
 from services.common.operations import AcceptedOperation, Operation
 from services.common.sql import aware, execute, first
 
+from .check_window import expired
 from .orders import get_order, key_hash
 from .qr_admission import check_budget, lock_owner
 
@@ -65,7 +66,8 @@ async def refresh(engine, owner, order, key):
         )
         row = await first(
             conn,
-            "SELECT * FROM payment_orders WHERE id=:id AND owner_user_id=:owner FOR UPDATE",
+            "SELECT *,UTC_TIMESTAMP(6) AS observed_at FROM payment_orders "
+            "WHERE id=:id AND owner_user_id=:owner FOR UPDATE",
             id=order.bytes,
             owner=owner.bytes,
         )
@@ -83,6 +85,9 @@ async def refresh(engine, owner, order, key):
                 raise ApiError(409, ErrorCode.IDEMPOTENCY_CONFLICT, "该键已用于另一个二维码请求")
             operation_id, state = UUID(bytes=previous["operation_id"]), previous["state"]
         else:
+            if expired(row):
+                raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS,
+                               "自动核对已暂停，请先继续核对原订单")
             await check_budget(conn, owner)
             if row["state"] not in {"awaiting_payment", "status_unknown"}:
                 raise ApiError(409, ErrorCode.OPERATION_IN_PROGRESS, "订单状态不允许重新取得二维码")

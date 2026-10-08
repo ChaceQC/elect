@@ -4,6 +4,8 @@ from services.common.ids import new_id
 from services.common.read_schedule import claimed
 from services.common.sql import execute, first
 
+from .check_window import expired
+
 DUE = (
     "o.next_check_at<=UTC_TIMESTAMP(6) "
     "AND (o.check_lease_until IS NULL OR o.check_lease_until<=UTC_TIMESTAMP(6)) "
@@ -47,6 +49,10 @@ async def claim(engine, order_id=None, schedule=None, *, stop=None):
                               "FROM payment_orders o WHERE o.id=:id AND " + DUE + " FOR UPDATE",
                               id=candidate["id"], **params)
             if not row or stop and stop.is_set():
+                continue
+            if expired(row):
+                await execute(conn, "UPDATE payment_orders SET next_check_at=NULL WHERE id=:id",
+                              id=row["id"])
                 continue
             lease = str(new_id())
             await execute(conn, "UPDATE payment_orders SET check_lease_owner=:lease,"

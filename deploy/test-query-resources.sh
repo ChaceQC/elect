@@ -22,7 +22,8 @@ if [ "$#" -eq 0 ]; then
     tests/integration/test_monitor_config_admission.py \
     tests/integration/test_payment_credential_dispatch.py \
     tests/integration/test_paid_balance_freshness.py \
-    tests/integration/test_paid_balance_admission.py
+    tests/integration/test_paid_balance_admission.py \
+    tests/integration/test_payment_check_window.py tests/integration/test_payment_check_resume.py
 fi
 cleanup() {
   docker rm -f -v "$task_name" "$task_mysql" >/dev/null 2>&1 || true

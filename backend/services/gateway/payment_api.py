@@ -12,7 +12,7 @@ from services.common.browser_security import require_browser_write
 from services.common.dates import check_range
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
-from services.payment.dto import OrderCancelRequest, OrderRequest
+from services.payment.dto import OrderCancelRequest, OrderRequest, OrderResumeCheckRequest
 
 from .api import session, success
 
@@ -71,6 +71,14 @@ async def order(id: UUID, request: Request):
 async def cancel_order(id: UUID, command: OrderCancelRequest, request: Request):
     return success(request, await call(
         request, "cancel", {"order_id": str(id), **command.model_dump(mode="json")}, write=True
+    ))
+
+
+@router.post("/payment-orders/{id}/resume-check")
+async def resume_order_check(id: UUID, command: OrderResumeCheckRequest, request: Request):
+    return success(request, await call(
+        request, "resume-check", {"order_id": str(id), **command.model_dump(mode="json")},
+        write=True,
     ))
 
 

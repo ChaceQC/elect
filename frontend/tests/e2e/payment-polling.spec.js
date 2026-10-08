@@ -11,7 +11,9 @@ test('支付长等待仍每两秒更新、隐藏暂停、恢复确认并等待�
   })
   await visualFixture(page)
   let reads = 0
-  let current = order
+  let current = { ...order }
+  Reflect.deleteProperty(current, 'check_deadline_at')
+  Reflect.deleteProperty(current, 'check_paused')
   await page.route('**/api/v1/payments/capabilities?*', route => route.fulfill({ json: envelope({ ...capability, unresolved_order: order }) }))
   await page.route('**/api/v1/payment-orders/' + orderId, route => {
     reads += 1

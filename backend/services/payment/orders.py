@@ -13,6 +13,7 @@ from services.common.internal_dto import EventEnvelope
 from services.common.outbox import append_event
 from services.common.sql import aware, execute, first
 
+from .check_window import WINDOW_SECONDS, deadline, paused
 from .dto import AcceptedOrder, Order, OrderReference
 from .policy import validate_amount
 
@@ -45,6 +46,8 @@ def order_view(row):
         binding_display_name=row["binding_display_name"],
         paid_confirmed=row["state"] == "paid_confirmed",
         last_checked_at=aware(row["last_checked_at"]),
+        check_deadline_at=deadline(row),
+        check_paused=paused(row),
         qr_status=row["qr_status"],
         qr_expires_at=aware(row["qr_expires_at"]),
         error_code=row["error_code"],
@@ -67,7 +70,10 @@ async def get_order(engine, owner, order):
     async with engine.connect() as conn:
         row = await first(
             conn,
-            "SELECT * FROM payment_orders WHERE id=:id AND owner_user_id=:owner",
+            "SELECT p.*,UTC_TIMESTAMP(6) AS observed_at,EXISTS(SELECT 1 "
+            "FROM payment_operations o WHERE o.order_id=p.id AND o.state='running' "
+            "AND o.lease_until>UTC_TIMESTAMP(6)) AS operation_in_flight "
+            "FROM payment_orders p WHERE p.id=:id AND p.owner_user_id=:owner",
             id=order.bytes,
             owner=owner.bytes,
         )
@@ -143,9 +149,10 @@ async def create_order(engine, principal, command, binding, credential):
             conn,
             "INSERT INTO payment_orders (id,owner_user_id,binding_id,"
             "binding_display_name,credential_ref,credential_version,amount,currency,"
-            "idempotency_key_hash,request_digest,state,version,upstream_operation_id) "
+            "idempotency_key_hash,request_digest,state,version,upstream_operation_id,"
+            "check_deadline_at) "
             "VALUES (:id,:owner,:binding,:name,:credential,:version,:amount,'CNY',:key,"
-            ":digest,'created',1,:upstream)",
+            ":digest,'created',1,:upstream,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :window SECOND))",
             id=order.bytes,
             owner=principal.user_id.bytes,
             binding=command.binding_id.bytes,
@@ -156,6 +163,7 @@ async def create_order(engine, principal, command, binding, credential):
             key=key_hash(command.idempotency_key),
             digest=request_digest(command),
             upstream=upstream.bytes,
+            window=WINDOW_SECONDS,
         )
         await execute(
             conn,

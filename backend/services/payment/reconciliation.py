@@ -13,6 +13,7 @@ from services.common.security import Principal
 from services.common.sql import execute, first
 
 from .check_claims import claim
+from .check_window import deadline_sql
 from .states import ORDER
 
 
@@ -109,7 +110,8 @@ async def check_order(app, row):
             "UPDATE payment_orders SET state=:state,error_code=:error,"
             "last_checked_at=UTC_TIMESTAMP(6),"
             "next_check_at=IF(:finished OR "
-            "(cancel_requested_at IS NOT NULL AND :state!='paid_confirmed'),"
+            "(:state!='paid_confirmed' AND (cancel_requested_at IS NOT NULL OR "
+            f"{deadline_sql()}<=UTC_TIMESTAMP(6))),"
             "NULL,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL :delay SECOND)),"
             "check_lease_owner=NULL,check_lease_until=NULL,balance_refresh_state=:refresh,"
             "balance_refresh_operation_id=:operation,version=version+1 WHERE id=:id",

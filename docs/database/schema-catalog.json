@@ -4729,7 +4729,7 @@
     },
     "payment": {
       "database": "elect_payment",
-      "revision": "payment_0006",
+      "revision": "payment_0007",
       "tables": {
         "payment_orders": {
           "columns": {
@@ -4898,6 +4898,11 @@
               "nullable": true,
               "primary_key": false,
               "computed": "IF(cancelled_at IS NULL AND state IN ('created','submitting','awaiting_payment','submit_unknown','status_unknown'),binding_id,NULL)"
+            },
+            "check_deadline_at": {
+              "type": "DATETIME(6)",
+              "nullable": true,
+              "primary_key": false
             }
           },
           "unique": [

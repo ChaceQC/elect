@@ -1,5 +1,7 @@
 # API 契约
 
+0.22.9：Order新增可选`check_deadline_at: timestamp|null`和`check_paused: boolean=false`，旧响应缺字段兼容；前者为本系统自动处理窗口，不能解释为学校二维码有效期。未付款订单受理或显式恢复后自动处理15分钟，后续回查和任务领取到期暂停；在途结束后check_paused才为true，学校终态与占位保持。新增`POST /payment-orders/{id}/resume-check`，本人Cookie/Origin/CSRF及expected_version保护，返回Order；活动窗口内重放不续期，缺版本428、冲突或终态/主动停止/在途409、跨用户404。GET不恢复、QR新请求不绕过，付款后的余额刷新规则不变，见[订单自动回查时限](../decisions/订单自动回查时限.md)。
+
 0.22.8总览summary.yesterday_amount从daily_consumption的同一份合并日桶取值：以该响应上海日期范围end_date的前一天按日期查找，不受14天汇总complete影响；0与负数均保留，缺桶或金额未知为null。OverviewSummary新增可选yesterday_estimated_amount，默认null，非null（含0）表示昨日使用余额变化估算；其他日期的估算不影响昨日标记。公开方法/路径不变，旧响应缺可选字段兼容，见[合并口径](../decisions/消费趋势合并监控估算.md)。
 
 0.22.6沿用balance_refresh_state=failed：尚无operation时，余额刷新受理返回404 NOT_FOUND视为绑定明确失效，订单保持paid_confirmed、balance_refresh_operation_id为null、error_code保留NOT_FOUND，并结束自动回查。429/503、解绑处理中409与已受理operation的状态查询失败仍pending/30秒重试；见[余额受理失败终结](../decisions/付款后余额受理失败终结.md)。不新增接口字段或枚举。

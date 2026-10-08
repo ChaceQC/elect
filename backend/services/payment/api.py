@@ -16,7 +16,7 @@ from services.common.internal_dto import (
 )
 from services.common.security import Principal, require_user_principal
 
-from .dto import Capabilities, OrderCancelRequest, OrderRequest, QRPending
+from .dto import Capabilities, OrderCancelRequest, OrderRequest, OrderResumeCheckRequest, QRPending
 from .orders import accepted, create_order, get_order, order_view, reference, replay, unresolved
 from .policy import MAXIMUM, MINIMUM, STEP, unavailable, validate_amount
 from .records_dto import PaymentRecords, PaymentRecordsQuery
@@ -43,6 +43,19 @@ class QRCommand(OrderQuery):
 
 class CancelCommand(OrderQuery, OrderCancelRequest):
     pass
+
+
+class ResumeCheckCommand(OrderQuery, OrderResumeCheckRequest):
+    pass
+
+
+@router.post("/browser/resume-check")
+async def resume_check(command: ResumeCheckCommand, request: Request, principal: Browser):
+    from .check_resume import resume
+
+    return await resume(
+        request.app.state.database, principal, command.order_id, command.expected_version
+    )
 
 
 @router.post("/browser/cancel")

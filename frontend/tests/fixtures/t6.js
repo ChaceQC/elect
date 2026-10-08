@@ -8,7 +8,8 @@ export const capability = { enabled: true, currency: 'CNY', min_amount: '1.00', 
 export const order = { order_id: orderId, binding_id: bindingId, state: 'status_unknown', amount: '20.00',
   version: 1, cancel_pending: false, cancelled_at: null,
   currency: 'CNY', created_at: '2026-10-02T02:00:00+08:00', binding_display_name: '合成默认楼-402',
-  paid_confirmed: false, last_checked_at: null, qr_status: 'unknown', qr_expires_at: null,
+  paid_confirmed: false, last_checked_at: null, check_deadline_at: null, check_paused: false,
+  qr_status: 'unknown', qr_expires_at: null,
   error_code: null, qr_error_code: null, balance_refresh_state: 'not_required', balance_refresh_operation_id: null }
 export const binding = { id: bindingId, room_id: bindingId, display_name: '合成默认楼-402', building: '合成默认楼',
   number: '402', status: 'active', balance: null }

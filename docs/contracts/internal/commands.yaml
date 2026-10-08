@@ -292,3 +292,6 @@ t4_run_routes:
 t5_delivery_routes:
   - {receiver: monitoring, callers: [notification], scope: 'monitor:alert-read', path: /alert-slots/snapshot, request: 'schemas.json#/$defs/AlertSlotQuery', response: 'schemas.json#/$defs/AlertSnapshot'}
   - {receiver: monitoring, callers: [notification], scope: 'monitor:authorize-send', path: /alert-slots/authorize-send, request: 'schemas.json#/$defs/AuthorizeSend', response: 'schemas.json#/$defs/SendPermit'}
+
+t6_order_routes:
+  - {receiver: payment, callers: [gateway], scope: 'payment:browser', path: /browser/resume-check, request: order_id与OrderResumeCheckRequest.expected_version, response: '../openapi.yaml#/components/schemas/Order', notes: 本人原订单版本校验；活动窗口重放不续期；超时后仅恢复原订单/任务与15分钟窗口，不生成学校发送标识}

@@ -265,6 +265,11 @@ ENDPOINTS = (
         recovery="/payment-orders/{id}", persistence="payment.payment_orders",
     ),
     Endpoint(
+        "post", "/payment-orders/{id}/resume-check", "resume_order_check", "payment", "T6",
+        "Order", "OrderResumeCheckRequest", versioned=True,
+        recovery="/payment-orders/{id}", persistence="payment.payment_orders",
+    ),
+    Endpoint(
         "get",
         "/payment-orders/{id}/qr",
         "get_qr",
