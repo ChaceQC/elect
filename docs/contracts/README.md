@@ -1,5 +1,7 @@
 # API 契约
 
+0.22.4沿用已有SchoolOrderResult、订单rejected与操作failed，不新增接口字段。Adapter在本库事务中将尚未发送的凭据版本/授权失效持久化为rejected，Payment收到台账结果后终结并释放未解决槽；旧键仍返回原订单。已有发送台账优先，通用SCHOOL_REAUTH_REQUIRED或NOT_FOUND错误本身不能证明未发送，发送后继续未知保护；见[发送边界](../decisions/建单凭据失效与发送边界.md)。
+
 0.22.0新增GET /room-bindings/{id}/payment-records与PaymentRecords契约，当前公开36个方法/路径；内部新增Payment /browser/records与Adapter /payments/records，沿用payment:browser、school:payment。实缴金额全范围合计、部分结果null及学校渠道边界见[规则](../decisions/学校缴费明细列表.md)。
 
 0.21.1的Consumption桶/汇总amount按日合并学校与监控余额变化估算：学校非零金额优先；缺失或0且有余额减少时补估算，每日首次有效余额减少先归前一天，再按归属日期筛选、合并并聚合周/月。Bucket/ConsumptionSummary可选estimated_amount、estimated_days标明估算部分；Consumption可选monitoring_status标明降级，version包含归属所选范围的样本数，0.22.1起complete按known_days等于expected_days判断，0金额计入已知日期，估算来源独立标注；coverage同步为complete/partial/unknown，普通数据状态按合并覆盖更新，学校同步进行中/失败及依赖降级不被覆盖。内部增加Monitoring的/browser/consumption，沿用monitor:browser；原余额变化/电表字段不变，规则见[消费趋势合并](../decisions/消费趋势合并监控估算.md)。

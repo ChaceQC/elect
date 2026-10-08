@@ -1,3 +1,39 @@
+## 2026-10-08 · 问题3：建单排队期间凭据变化的明确终结
+
+### 已完成
+
+- 核对干净dev / 4e99c4b及Payment Worker、Adapter建单/台账、凭据版本和订单占位规则；问题1、2修复保留，本轮仅处理问题3。
+- 确认凭据校验在创建发送台账前抛出SCHOOL_REAUTH_REQUIRED，Worker通用错误恢复保留旧版本，导致未发送订单持续重试。
+- Adapter将无既有台账的凭据拒绝与订单密文同事务写为rejected；既有台账优先且保留owner/摘要冲突检查。发送前拒绝在settle台账行锁内复核prepared且dispatched_at为空，已发送错误继续unknown。
+- Payment沿用原rejected/failed处理、原键重放及占位释放，旧submitting/submit_unknown与reconciling记录可按原上游编号恢复终结；未修改Worker通用重试或付款后余额逻辑。
+- 同步0.22.4前后端与锁文件、OpenAPI版本、状态模型说明、根/前后端README、AGENTS、文档索引/契约/后端架构及专项决策；无AGENT.md，无API字段、迁移、Secret或部署配置变更。
+- 新增16项支付建单MySQL专项并纳入既有CI入口，结合相邻余额终态4项全部通过；本机29项支付单元/公开与内部契约通过。
+
+### 进行中
+
+- 实现、定向验证与文档同步已完成，正在完成提交前差异核对及dev提交推送；对应源码CI尚未执行。
+
+### 阻塞与风险
+
+- 无实现阻塞；不读取真实配置/凭据，不调用真实学校、支付或邮件，不升级现有部署。问题4—6不在本轮范围。
+
+### 下一步
+
+- 将修复提交推送dev并核对对应快速CI/check结果；问题4—6仍待用户另行指定，本次不自动合并main、部署或发布。
+
+### 主要文件或模块
+
+- backend/services/school_adapter/application/payment_orders.py、infrastructure/payment_ledger.py、支付定向回归与契约/决策文档。
+
+### 验证
+
+- 修复前2项新增回归按预期失败，复现新订单submitting与遗留订单submit_unknown持续占位；不计作通过。
+- 一次性MySQL8.4.6/internal网络、Payment与Adapter随机新库、生产2+1池：新增支付专项16项与相邻支付后余额终态4项，共20 passed（27.03秒）。覆盖排队/旧记录、无发送与已发送边界、原键/新键、凭据缺失/撤回/禁用/引用变化、台账冲突、拒绝响应丢失/执行器重建、依赖恢复、回滚及并发重复prepare。
+- 本机uv/Python3.12.10：支付调度/付款证据单元及公开/内部契约共29 passed（2.73秒）；变更文件Ruff、uv lock --check、OpenAPI与内部协议/状态生成校验通过，git diff --check通过。
+- Windows第一次单元检查因缺少tzdata在收集阶段停止；以uv --with tzdata临时提供时区数据后通过，未改变项目依赖。首次WSL包装因Python文本stdin转换CRLF在set处退出；改用UTF-8字节stdin后脚本正常退出0，一次性容器/网络已独立确认清理。
+- 前端既有contract:check在Windows启动npx子进程失败；直接以Node执行同一openapi-typescript工具、内存生成并规范CRLF后，与已提交类型完全一致。前后端/锁文件版本一致，23个变更文件UTF-8及无冲突标记检查通过。
+- 未读取真实配置或凭据，未运行完整容器套件、未启动真实业务服务或调用学校、支付、邮件；合成学校会话及本库事务验证不代表真实支付/生产验收。
+
 ## 2026-10-08 · 问题2：监控配置立即采集统一计额
 
 ### 已完成

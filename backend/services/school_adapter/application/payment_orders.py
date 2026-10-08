@@ -104,11 +104,9 @@ class SchoolOrders:
             else:
                 await self.ledger.settle(command, error=ErrorCode.SCHOOL_INVALID_RESPONSE)
         except ApiError as error:
-            latest = await self.ledger.get(command.owner_user_id, command.order_id)
             await self.ledger.settle(
                 command,
-                rejected=latest["state"] == "prepared"
-                and error.code in {ErrorCode.SCHOOL_REAUTH_REQUIRED, ErrorCode.NOT_FOUND},
+                reject_unsent=error.code in {ErrorCode.SCHOOL_REAUTH_REQUIRED, ErrorCode.NOT_FOUND},
                 error=error.code,
             )
 
