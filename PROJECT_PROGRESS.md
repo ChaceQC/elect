@@ -1,3 +1,33 @@
+## 2026-10-08 · 0.22.7 六项审查修复合入 main
+
+### 已完成
+
+- 按用户要求依据docs/GitHub协作与合并流程.md准备dev → main；起始工作区干净，dev与origin/dev同为d60ec260a4b78e94a7e32d456249fd209d45e0f7，已包含最新main（fe4ea15a5783a50b87855faa6b8464675bcf9a2b）。
+- 核对待合入的14个提交、53个文件及差异，范围为0.22.2—0.22.7六项审查修复、专项回归和相关文档，以及此前部署/合并记录；无新增迁移或Secret变更。
+- 核对服务器main要求PR、严格GitHub Actions check（App ID 15368）、管理员保护和禁止强推/删除，普通PR发布作业按设计跳过；原有六次push快速CI均success，不能替代本次PR完整门禁。
+- 根README、AGENTS、前后端README和专项契约/决策已与0.22.7实现同步，无AGENT.md；本次仅新增进度记录，不改变业务代码、版本或部署。
+
+### 进行中
+
+- 提交推送本次合并准备记录，创建dev → main PR，等待最新候选的前端、后端、business、compatibility、delivery五组完整验证及check。
+
+### 阻塞与风险
+
+- 无操作阻塞；完整PR门禁尚未执行，未达到合并条件。既有部署状态仍以本机私网部署手册为准。
+
+### 下一步
+
+- 最新PR完整门禁成功后，重新核对候选SHA、main祖先、合并状态与保护规则，用merge commit及match-head-commit合入main；再快进本地main/dev，并在dev提交推送实际结果记录。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md、dev/main分支和GitHub PR；本轮不修改六项修复的源码与专项验证。
+
+### 验证
+
+- git diff --check、工作区及远端一致性、main祖先、变更范围和服务器保护核对通过；auth.txt、email_auth.txt与deploy/.env不受Git跟踪且受忽略规则保护，未读取其内容。
+- 本轮不重复本地业务套件，以当前PR完整CI作为合并门禁；纯Markdown准备提交按现有路径规则不触发push CI，不能记为新CI通过。
+
 ## 2026-10-08 · 问题6：缴费列表入口超时
 
 ### 已完成
