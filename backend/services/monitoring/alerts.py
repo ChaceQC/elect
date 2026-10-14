@@ -13,6 +13,10 @@ from services.common.sql import aware, execute, first
 HYSTERESIS = Decimal("1.00")
 
 
+def reminder_cooldown(interval_minutes):
+    return timedelta(minutes=interval_minutes - 2)
+
+
 def sample_is_current(monitor, sample, now):
     return bool(
         sample
@@ -79,7 +83,7 @@ async def cooldown(conn, monitor, now):
     return bool(
         last["in_flight"]
         or recent
-        and recent + timedelta(minutes=monitor["interval_minutes"]) > now
+        and recent + reminder_cooldown(monitor["interval_minutes"]) > now
     )
 
 

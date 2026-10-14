@@ -1,3 +1,36 @@
+## 2026-10-14 · 0.22.10 低余额提醒冷却容差
+
+### 已完成
+
+- 核对干净dev与origin/dev，起始提交40e85df；读取现行规范、总计划和后端/T5发送许可规则，确认两处冷却均使用完整监控间隔。
+- 按用户要求完成提醒冷却为当前监控间隔减2分钟，alerts.cooldown与permits.authorize共用reminder_cooldown函数；采集计划及最近许可/发送、在途、次数、新鲜度和授权检查保持。
+- 新增8个定向场景，实际调用提醒冷却与发送许可两条路径，覆盖60/1440分钟间隔的到期前1秒、恰好到期、原周期提前90秒、无历史及在途保护；与既有T5新鲜度测试共15项通过。
+- 同步0.22.10补丁版本、T5/T3决策、后端架构/计划及受影响README、AGENTS；无AGENT.md，无API、迁移、Secret或部署配置变更。
+
+### 进行中
+
+- 两处业务修改、定向验证与主会话差异审查完成；正在完成dev提交推送及该提交快速CI核对。
+
+### 阻塞与风险
+
+- 无实现阻塞。2分钟只处理边界偏差，异常积压仍可能被新鲜度、在途或其他发送条件阻止。
+- 现有部署未升级；本轮验证使用合成数据库响应，不读取真实配置/凭据，不调用学校、支付或SMTP。
+
+### 下一步
+
+- 将源码、测试和文档提交推送origin/dev，核对该提交快速CI并记录结果；后续合入main须另走PR完整门禁，现有运行环境本轮不升级。
+
+### 主要文件或模块
+
+- backend/services/monitoring/alerts.py、permits.py、对应定向测试、前后端版本文件、docs/decisions/T5低余额与邮件.md及相关规则文档。
+
+### 验证
+
+- 开始时git status干净，已fetch并确认当前dev与origin/dev一致；后端pyproject和.python-version均要求Python3.12.10，提醒间隔DTO与数据库约束为60..1440分钟。
+- `cd backend`后运行`uv run pytest tests/unit/test_alert_cooldown.py tests/unit/test_t5_alerts.py`：15 passed（新增8项、既有7项）；仅内存数据库响应，无真实外发。首次因未启用异步测试插件而失败，改用项目既有asyncio.run风格后同范围通过，未增加插件或依赖。
+- `uv run ruff check tests/unit/test_alert_cooldown.py services/monitoring/alerts.py services/monitoring/permits.py`全部通过；`uv lock --check`通过。Python3.12.10与五处版本字段0.22.10核对一致，17个变更文件UTF-8解码/替换字符检查及git diff --check通过。
+- 本轮未重复全量本地套件，自动快速CI结果将在推送后单独记录，不复用历史CI或真实邮件证据。
+
 ## 2026-10-08 · 0.22.9 主分支合并
 
 ### 已完成
