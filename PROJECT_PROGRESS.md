@@ -6,10 +6,11 @@
 - 按用户要求完成提醒冷却为当前监控间隔减2分钟，alerts.cooldown与permits.authorize共用reminder_cooldown函数；采集计划及最近许可/发送、在途、次数、新鲜度和授权检查保持。
 - 新增8个定向场景，实际调用提醒冷却与发送许可两条路径，覆盖60/1440分钟间隔的到期前1秒、恰好到期、原周期提前90秒、无历史及在途保护；与既有T5新鲜度测试共15项通过。
 - 同步0.22.10补丁版本、T5/T3决策、后端架构/计划及受影响README、AGENTS；无AGENT.md，无API、迁移、Secret或部署配置变更。
+- 修复提交a78d894c6002a0c41923429f34ec9889067388ff已推送origin/dev；对应[快速CI38509152961](https://github.com/ChaceQC/elect/actions/runs/38509152961)于2026-10-14 12:08:30（Asia/Shanghai）完成，frontend / build、backend / build与check均success，结果与该提交单独关联。
 
 ### 进行中
 
-- 两处业务修改、定向验证与主会话差异审查完成；正在完成dev提交推送及该提交快速CI核对。
+- 无实现进行中项；两处业务修改、定向验证、dev提交推送及快速CI/check完成，收尾仅提交本Markdown结果记录。
 
 ### 阻塞与风险
 
@@ -18,7 +19,7 @@
 
 ### 下一步
 
-- 将源码、测试和文档提交推送origin/dev，核对该提交快速CI并记录结果；后续合入main须另走PR完整门禁，现有运行环境本轮不升级。
+- 本轮dev源码交付完成；后续合入main时为包含a78d894及本记录的最新候选创建dev → main PR并通过完整五组/check门禁，再按既有部署手册升级配套镜像。本轮不合并main或升级现有运行环境。
 
 ### 主要文件或模块
 
@@ -29,7 +30,8 @@
 - 开始时git status干净，已fetch并确认当前dev与origin/dev一致；后端pyproject和.python-version均要求Python3.12.10，提醒间隔DTO与数据库约束为60..1440分钟。
 - `cd backend`后运行`uv run pytest tests/unit/test_alert_cooldown.py tests/unit/test_t5_alerts.py`：15 passed（新增8项、既有7项）；仅内存数据库响应，无真实外发。首次因未启用异步测试插件而失败，改用项目既有asyncio.run风格后同范围通过，未增加插件或依赖。
 - `uv run ruff check tests/unit/test_alert_cooldown.py services/monitoring/alerts.py services/monitoring/permits.py`全部通过；`uv lock --check`通过。Python3.12.10与五处版本字段0.22.10核对一致，17个变更文件UTF-8解码/替换字符检查及git diff --check通过。
-- 本轮未重复全量本地套件，自动快速CI结果将在推送后单独记录，不复用历史CI或真实邮件证据。
+- 本轮未重复全量本地套件；当前push快速CI的frontend / build、backend / build与check均成功，后端含既有隔离查询资源/快照清理验证。business、compatibility、delivery及publish按快速场景跳过，不记作完整验证或真实邮件验收。
+- 最终仅更新PROJECT_PROGRESS.md结果记录；按当前纯Markdown路径规则不触发新push CI，业务验证追溯a78d894及上述运行。
 
 ## 2026-10-08 · 0.22.9 主分支合并
 
