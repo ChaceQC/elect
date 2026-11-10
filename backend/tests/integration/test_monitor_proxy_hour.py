@@ -13,7 +13,7 @@ from services.common.sql import execute
 from services.monitoring import scheduler
 
 pytestmark = requires_mysql
-NOW = datetime(2026, 1, 1, 15, 10)  # 北京时间 23:10，跨日边界也是 UTC 整点。
+NOW = datetime(2026, 1, 1, 7, 10)  # 北京时间 15:10，小时边界也是 UTC 整点。
 
 
 def use_clock(monkeypatch):
@@ -104,7 +104,7 @@ def test_hour_boundary_and_next_slot_remain_anchored(monkeypatch):
             assert monitors[rows[1]["id"]]["next_run_at"] == rows[1]["next"] + timedelta(minutes=75)
             assert all(monitors[row["id"]]["schedule_anchor_at"] == row["anchor"] for row in rows)
             assert all(monitors[row["id"]]["next_run_at"] == row["next"] for row in rows[2:])
-            marker = uuid5(NAMESPACE_URL, "elect:monitoring:proxy-hour:2026-01-01T15:00:00")
+            marker = uuid5(NAMESPACE_URL, "elect:monitoring:proxy-hour:2026-01-01T07:00:00")
             marked = next(event for event in events if event["event_id"] == marker.bytes)
             payload = json.loads(marked["payload"])
             assert payload["type"] == "monitor.run_ready"
@@ -159,7 +159,7 @@ def test_hour_batch_continues_beyond_100_with_a_merged_manual_run(monkeypatch):
             monitors, runs, events = await status(engine)
             assert len(runs) == 100
             assert sum(monitors[row["id"]]["next_run_at"] == row["next"] for row in rows) == 6
-            marker = uuid5(NAMESPACE_URL, "elect:monitoring:proxy-hour:2026-01-01T15:00:00")
+            marker = uuid5(NAMESPACE_URL, "elect:monitoring:proxy-hour:2026-01-01T07:00:00")
             marked = next(event for event in events if event["event_id"] == marker.bytes)
             assert json.loads(marked["payload"])["payload"]["run_id"] == str(
                 UUID(bytes=manual["id"])
@@ -203,13 +203,15 @@ def test_two_schedulers_share_the_hour_marker(monkeypatch):
             monitors, runs, events = await status(engine)
             assert {run["monitor_id"] for run in runs} == {row["id"] for row in rows}
             assert all(monitors[row["id"]]["next_run_at"] > row["next"] for row in rows)
-            marker = uuid5(NAMESPACE_URL, "elect:monitoring:proxy-hour:2026-01-01T15:00:00")
+            marker = uuid5(NAMESPACE_URL, "elect:monitoring:proxy-hour:2026-01-01T07:00:00")
             assert sum(event["event_id"] == marker.bytes for event in events) == 1
 
     asyncio.run(case())
 
 
-def test_without_proxy_only_due_monitor_is_scheduled():
+def test_without_proxy_only_due_monitor_is_scheduled(monkeypatch):
+    use_clock(monkeypatch)
+
     async def case():
         async with database("monitoring") as engine:
             rows = await seed(engine, [

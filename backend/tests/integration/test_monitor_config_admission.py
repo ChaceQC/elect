@@ -3,13 +3,15 @@
 import asyncio
 import os
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from query_resource_support import counts, database, requires_mysql
 
 from services.common.http import ApiError
 from services.common.ids import new_id
-from services.common.sql import execute, first
+from services.common.sql import aware, execute, first
+from services.monitoring import scheduler
 from services.monitoring.configuration import MonitorConfiguration
 from services.monitoring.dto import MonitorPatch
 from services.monitoring.email_crypto import EmailCrypto
@@ -18,6 +20,21 @@ from services.monitoring.scheduler import accept_run, scheduler_tick
 
 pytestmark = requires_mysql
 TABLES = ["monitor_run_requests", "monitor_runs", "outbox_events"]
+
+
+def use_daytime_scheduler_clock(monkeypatch):
+    real_first = scheduler.first
+
+    async def daytime_first(conn, statement, **params):
+        row = await real_first(conn, statement, **params)
+        if statement == "SELECT UTC_TIMESTAMP(6) AS now":
+            now = row["now"]
+            hour = aware(now).astimezone(ZoneInfo("Asia/Shanghai")).hour
+            if hour >= 23 or hour < 6:
+                return {"now": now + timedelta(hours=(6 - hour) % 24)}
+        return row
+
+    monkeypatch.setattr(scheduler, "first", daytime_first)
 
 
 async def setup(engine):
@@ -83,7 +100,7 @@ def test_interval_switches_are_charged_and_rejection_leaves_schedule_unchanged()
     asyncio.run(case())
 
 
-def test_manual_and_config_requests_share_budget_replay_and_close_still_work():
+def test_manual_and_config_requests_share_budget_replay_and_close_still_work(monkeypatch):
     async def case():
         async with database("monitoring", production_pool=True) as engine:
             owner, config = await setup(engine)
@@ -103,6 +120,7 @@ def test_manual_and_config_requests_share_budget_replay_and_close_still_work():
             assert await snapshot(engine, owner) == before
             changed = await patch(config, owner, threshold="21.00")
             assert changed.next_run_at == saved.next_run_at
+            use_daytime_scheduler_clock(monkeypatch)
             assert not await scheduler_tick(engine)
             assert (await counts(engine, TABLES))[0] == 6
             assert (await patch(config, owner, enabled=False)).state == "disabled"
@@ -130,13 +148,14 @@ def test_manual_quota_exhaustion_rejects_config_before_invalidating_active_run()
     asyncio.run(case())
 
 
-def test_scheduler_does_not_double_collect_or_consume_manual_budget():
+def test_scheduler_does_not_double_collect_or_consume_manual_budget(monkeypatch):
     async def case():
         async with database("monitoring", production_pool=True) as engine:
             owner, config = await setup(engine)
             await patch(config, owner, enabled=False)
             await patch(config, owner, enabled=True, interval_minutes=61)
             await finish(engine, owner)
+            use_daytime_scheduler_clock(monkeypatch)
             assert not await scheduler_tick(engine)
             async with engine.begin() as conn:
                 await execute(conn, "UPDATE monitor_runs SET scheduled_for="
