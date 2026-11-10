@@ -1,3 +1,33 @@
+## 2026-11-10 · 0.23.1 学校代理按供应商过期时间复用
+
+### 已完成
+
+- 起始dev工作区干净，HEAD为e1ed75a；fetch后与origin/dev一致。核对现行代理实现与用户提供的新A池提取链接，确认固定55秒租约及强制BEAPI会分别忽略供应商期限、改写EAPI套餐参数。
+- 核对易代理公开协议：`data[].expire_time`为IP过期时间字符串，`jsonMeta=1111`请求包含该字段。用户提供链接一次直接GET仅返回供应商`code/info`，未取得成功租约；没有打印或保存真实请求URL、密钥、订单参数与响应原文。
+- 代理入口优先解析供应商到期时间，无时区按上海时间换算UTC Unix秒；缺失/null/空字符串才从开始提取计60秒。Redis按剩余毫秒缓存，较长期限不截为一分钟，较短期限不延长，非法或已过期时间不缓存。
+- 按用户明确规则原样请求配置URL，仅拼接环境密钥secret，不添加或覆盖其他参数；公开示例链接本身给出单条JSON/HTTPS及过期字段选项。同步公开占位配置与0.23.1版本、相关README/AGENTS、架构/计划/部署/决策文档。无AGENT.md，无新API、数据库迁移或配置项。
+
+### 进行中
+
+- 代理期限/传输定向验证及差异检查完成，正在提交推送dev并等待该候选快速CI/check。
+
+### 阻塞与风险
+
+- 无实现阻塞。真实提取未取得成功响应，期限计算使用合成供应商响应核验；现有部署未升级，未调用学校、支付或SMTP。
+
+### 下一步
+
+- 推送dev后核对该候选快速CI/check并记录结果；后续部署时用0.23.1镜像与指定订单进行只读验收。
+
+### 主要文件或模块
+
+- backend/services/school_adapter/infrastructure/proxy.py、backend/tests/unit/test_school_proxy.py、deploy/.env*.example、前后端版本/锁文件及学校代理规则文档。
+
+### 验证
+
+- Python3.12.10环境执行`uv run --locked --no-sync pytest tests/unit/test_school_proxy.py tests/unit/test_school_proxy_transport.py -q`最终34 passed。覆盖长短过期时间、上海/显式时区、缺失/null/空字符串60秒、TTL扣提取耗时、到期重新获取、无效/过期不缓存，以及URL已有参数/重复额外参数原样保留与未提供参数不补齐。
+- 两个受影响Python文件Ruff通过，`uv lock --check`通过；19个变更文件UTF-8解码/替换字符检查、五处0.23.1版本字段及`git diff --check`通过。未新增依赖，不重复全量本地业务套件。
+
 ## 2026-11-10 · 0.23.0 学校代理与小时批次采集
 
 ### 已完成

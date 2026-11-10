@@ -26,7 +26,7 @@ class Clock:
 
 class FakeStore:
     def __init__(self, clock):
-        self.clock, self.values = clock, {}
+        self.clock, self.values, self.published_ttls = clock, {}, []
 
     def read(self, key):
         value = self.values.get(key)
@@ -55,18 +55,32 @@ class FakeStore:
         lock_key, lease_key, token, value, ttl_ms = parts
         if self.read(lock_key) != token:
             return 0
+        self.published_ttls.append(ttl_ms)
         self.values[lease_key] = (value, self.clock() + ttl_ms / 1000)
         return 1
 
 
 SETTINGS = ProxySettings(
     "https://api3.ydaili.cn/tools/BMeasureApi.ashx?orderId=synthetic-order"
-    "&action=old&number=9&format=txt&type=3",
+    "&action=BEAPI&number=9&format=txt&type=3",
     "synthetic-secret",
 )
 
 
-def test_shared_fetch_overrides_parameters_and_expires_from_request_start():
+@pytest.mark.parametrize(("endpoint", "query"), [
+    (
+        "MeasureApi.ashx",
+        "orderId=synthetic-order&action=EAPI&number=9&format=txt&type=3"
+        "&jsonMeta=0&extra=first&extra=second",
+    ),
+    (
+        "BMeasureApi.ashx",
+        "orderId=synthetic-order&action=BEAPI&number=9&format=txt&type=3"
+        "&jsonMeta=0&extra=first&extra=second",
+    ),
+    ("MeasureApi.ashx", "orderId=synthetic-order"),
+])
+def test_shared_fetch_preserves_parameters_and_expires_from_request_start(endpoint, query):
     async def run():
         clock, calls = Clock(), []
         store = FakeStore(clock)
@@ -75,12 +89,10 @@ def test_shared_fetch_overrides_parameters_and_expires_from_request_start():
             calls.append(clock())
             assert request.method == "GET"
             assert all(value == 5 for value in request.extensions["timeout"].values())
-            assert request.url.params["orderId"] == "synthetic-order"
-            for key, value in {
-                "action": "BEAPI", "secret": "synthetic-secret", "number": "1",
-                "format": "json", "type": "2",
-            }.items():
-                assert request.url.params.get_list(key) == [value]
+            assert request.url.path == f"/tools/{endpoint}"
+            assert request.url.params.multi_items() == [
+                *httpx.QueryParams(query).multi_items(), ("secret", "synthetic-secret"),
+            ]
             await asyncio.sleep(0.02)
             clock.now += 4
             return httpx.Response(200, json={
@@ -88,19 +100,71 @@ def test_shared_fetch_overrides_parameters_and_expires_from_request_start():
             })
 
         transport = httpx.MockTransport(provider)
-        pools = [ProxyPool(store, SETTINGS, transport=transport, clock=clock) for _ in range(4)]
+        settings = ProxySettings(
+            f"https://api3.ydaili.cn/tools/{endpoint}?{query}",
+            SETTINGS.secret,
+        )
+        pools = [ProxyPool(store, settings, transport=transport, clock=clock) for _ in range(4)]
         leases = await asyncio.gather(*(pool.get(Deadline(10)) for pool in pools))
         assert len(calls) == 1
         assert all(lease == leases[0] for lease in leases)
         lease = leases[0]
         assert lease.url == "http://8.8.8.8:8080"
         assert lease.acquired_at == calls[0]
-        assert lease.expires_at == calls[0] + 55
+        assert lease.expires_at == calls[0] + 60
+        assert store.published_ttls == [56_000]
         assert store.values[LEASE_KEY][1] == lease.expires_at
         assert await pools[0].get(Deadline(10)) == lease
         clock.now = lease.expires_at
         assert (await pools[0].get(Deadline(10))).acquired_at == lease.expires_at
         assert len(calls) == 2
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(("expiry", "lifetime"), [
+    ("2023-11-15 06:13:50", 30),
+    ("2023-11-15 06:15:20", 120),
+    ("2023-11-14T22:15:20+00:00", 120),
+])
+def test_supplier_expiry_controls_lease_and_ttl(expiry, lifetime):
+    async def run():
+        clock, calls = Clock(), []
+        store = FakeStore(clock)
+
+        def provider(request):
+            item = {"ip": "8.8.8.8", "port": 8080}
+            if not calls:
+                item["expire_time"] = expiry
+            calls.append(clock())
+            clock.now += 4
+            return httpx.Response(200, json={"status": "success", "data": [item]})
+
+        pool = ProxyPool(store, SETTINGS, transport=httpx.MockTransport(provider), clock=clock)
+        lease = await pool.get(Deadline(1))
+        assert lease.expires_at == calls[0] + lifetime
+        assert store.published_ttls == [(lifetime - 4) * 1000]
+        assert store.values[LEASE_KEY][1] == lease.expires_at
+        assert await pool.get(Deadline(1)) == lease
+        clock.now = lease.expires_at
+        assert (await pool.get(Deadline(1))).acquired_at == lease.expires_at
+        assert len(calls) == 2
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("expiry", [None, ""])
+def test_empty_supplier_expiry_falls_back_to_60_seconds(expiry):
+    async def run():
+        clock = Clock()
+        store = FakeStore(clock)
+        transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
+            "status": "success",
+            "data": [{"ip": "8.8.8.8", "port": 8080, "expire_time": expiry}],
+        }))
+        pool = ProxyPool(store, SETTINGS, transport=transport, clock=clock)
+        lease = await pool.get(Deadline(1))
+        assert lease.expires_at == lease.acquired_at + 60
 
     asyncio.run(run())
 
@@ -133,6 +197,15 @@ def test_invalidation_compares_complete_lease_even_when_address_is_reused():
     httpx.Response(200, json={"status": "success", "data": []}),
     httpx.Response(200, json={"status": "success", "data": [{"ip": "127.0.0.1", "port": 80}]}),
     httpx.Response(200, json={"status": "success", "data": [{"ip": "8.8.8.8", "port": "80"}]}),
+    httpx.Response(200, json={"status": "success", "data": [
+        {"ip": "8.8.8.8", "port": 8080, "expire_time": "2023-11-15 06:13:19"},
+    ]}),
+    httpx.Response(200, json={"status": "success", "data": [
+        {"ip": "8.8.8.8", "port": 8080, "expire_time": "invalid-expiry"},
+    ]}),
+    httpx.Response(200, json={"status": "success", "data": [
+        {"ip": "8.8.8.8", "port": 8080, "expire_time": 123},
+    ]}),
     httpx.ConnectError("synthetic-secret synthetic-response"),
 ])
 def test_supplier_failure_is_retryable_and_does_not_expose_request_or_response(response):

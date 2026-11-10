@@ -7,6 +7,7 @@ import os
 import secrets
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -120,10 +121,7 @@ class ProxyPool:
 
     async def _fetch(self, deadline):
         acquired_at = self.clock()
-        url = httpx.URL(self.settings.api_url).copy_merge_params({
-            "action": "BEAPI", "secret": self.settings.secret, "number": "1",
-            "format": "json", "type": "2",
-        })
+        url = httpx.URL(self.settings.api_url).copy_merge_params({"secret": self.settings.secret})
         timeout = min(5, deadline.remaining())
         request = httpx.Request(
             "GET", url,
@@ -154,11 +152,19 @@ class ProxyPool:
             address, port = ipaddress.IPv4Address(item["ip"]), item["port"]
             if not address.is_global or not 1 <= port <= 65535:
                 raise ValueError()
+            expiry = item.get("expire_time")
+            if expiry is None or expiry == "":
+                expires_at = acquired_at + 60
+            else:
+                expiry = datetime.fromisoformat(expiry)
+                if expiry.tzinfo is None:
+                    expiry = expiry.replace(tzinfo=timezone(timedelta(hours=8)))
+                expires_at = expiry.timestamp()
         except (httpx.HTTPError, TimeoutError, KeyError, TypeError, ValueError):
             raise ApiError(
                 503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理暂时不可用", True
             ) from None
-        return ProxyLease(f"http://{address}:{port}", acquired_at, acquired_at + 55)
+        return ProxyLease(f"http://{address}:{port}", acquired_at, expires_at)
 
     async def invalidate(self, lease):
         await self.store.call("eval", RELEASE, 1, LEASE_KEY, lease.serialize())

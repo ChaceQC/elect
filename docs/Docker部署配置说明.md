@@ -1,6 +1,6 @@
 # Docker 全栈部署与域名证书配置
 
-0.23.0新增`ELECT_SCHOOL_PROXY_ENABLED`、`ELECT_SCHOOL_PROXY_API_URL`及`ELECT_SCHOOL_PROXY_SECRET`；开关默认false，地址/密钥仅传Adapter，Monitoring/core读取同一开关以启用小时批次/四槽采集。直接GET提取固定JSON/HTTPS类型，无代理密码；沿用原Secret文件、卷及容器数，无新迁移，恢复隔离强制关闭并清空提取参数。配置示例和升级说明见[学校代理与小时批次采集](decisions/学校代理与小时批次采集.md)，现有部署未升级。
+0.23.1沿用`ELECT_SCHOOL_PROXY_ENABLED`、`ELECT_SCHOOL_PROXY_API_URL`及`ELECT_SCHOOL_PROXY_SECRET`；开关默认false，地址/密钥仅传Adapter，Monitoring/core读取同一开关以启用小时批次/四槽采集。直接GET原样请求配置URL且仅拼接密钥，其他参数均由链接决定；优先按返回过期时间缓存、缺失时从提取开始计60秒，无代理密码。沿用原Secret文件、卷及容器数，无新迁移或配置项，恢复隔离强制关闭并清空提取参数。配置示例和升级说明见[学校代理与小时批次采集](decisions/学校代理与小时批次采集.md)，现有部署未升级。
 
 0.22.9升级须先停止全部旧Payment后台领取角色，执行`payment_0007`，再配套更新Gateway、Payment和前端；其他领域迁移头、Secret、开关和容器数不变。旧订单按原创建时间适用15分钟期限，旧镜像不识别期限，直接回退可能恢复无限回查，详见[订单自动回查时限](decisions/订单自动回查时限.md)。本轮未升级现有部署。
 
