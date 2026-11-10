@@ -2,9 +2,10 @@
 
 import hashlib
 from datetime import timedelta
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from services.common.archive_store import request_key, unavailable
+from services.common.database import OUTBOX_PENDING
 from services.common.errors import ErrorCode
 from services.common.events import RunReadyPayload
 from services.common.http import ApiError
@@ -23,24 +24,36 @@ def latest_slot(anchor, now, minutes):
     return slot, slot + interval
 
 
-async def wake(conn, run, request_id):
+async def wake(conn, run, request_id, *, marker=None):
     clock = await first(conn, "SELECT UTC_TIMESTAMP(6) AS now")
-    event = new_id()
-    await append_event(
-        conn,
-        EventEnvelope(
-            event_id=event,
-            type="monitor.run_ready",
-            schema_version=1,
-            producer="monitoring",
-            aggregate_id=UUID(bytes=run["monitor_id"]),
-            aggregate_version=run["generation"],
-            occurred_at=aware(clock["now"]),
-            request_id=request_id,
-            payload=RunReadyPayload(run_id=UUID(bytes=run["id"]), generation=run["generation"]),
-            dedupe_key=str(event),
-        ),
+    event = marker or new_id()
+    envelope = EventEnvelope(
+        event_id=event,
+        type="monitor.run_ready",
+        schema_version=1,
+        producer="monitoring",
+        aggregate_id=UUID(bytes=run["monitor_id"]),
+        aggregate_version=run["generation"],
+        occurred_at=aware(clock["now"]),
+        request_id=request_id,
+        payload=RunReadyPayload(run_id=UUID(bytes=run["id"]), generation=run["generation"]),
+        dedupe_key=str(event),
     )
+    if marker:
+        # 首个到期 run 的合法唤醒同时作为本小时续批标记；并行 Scheduler 共用同一主键。
+        await execute(
+            conn,
+            "INSERT INTO outbox_events (event_id,type,schema_version,aggregate_id,"
+            "aggregate_version,payload,available_at,publish_attempts) "
+            "VALUES (:id,:type,:schema,:aggregate,:version,:payload,UTC_TIMESTAMP(6),0) "
+            "ON DUPLICATE KEY UPDATE event_id=event_id",
+            id=event.bytes, type=envelope.type, schema=envelope.schema_version,
+            aggregate=envelope.aggregate_id.bytes, version=envelope.aggregate_version,
+            payload=envelope.model_dump_json(),
+        )
+        conn.info[OUTBOX_PENDING] = True
+    else:
+        await append_event(conn, envelope)
     return event
 
 
@@ -93,26 +106,60 @@ async def create_run(conn, monitor, scheduled, request_id):
     return row
 
 
-async def scheduler_tick(engine):
+async def scheduler_tick(engine, *, proxy_enabled=False):
     async with engine.begin() as conn:
         clock = await first(conn, "SELECT UTC_TIMESTAMP(6) AS now")
+        now = clock["now"]
+        trigger, marker = None, None
+        eligible = (
+            "SELECT * FROM monitors WHERE state='active' AND desired_enabled=1 "
+            "AND credential_allowed=1 AND credential_operation_id IS NULL "
+        )
+        if proxy_enabled:
+            hour_start = now.replace(minute=0, second=0, microsecond=0)
+            hour_end = hour_start + timedelta(hours=1)
+            marker = uuid5(NAMESPACE_URL, f"elect:monitoring:proxy-hour:{hour_start.isoformat()}")
+            started = await first(
+                conn, "SELECT event_id FROM outbox_events WHERE event_id=:id", id=marker.bytes
+            )
+            if not started:
+                trigger = await first(
+                    conn, eligible + "AND next_run_at<=:now ORDER BY next_run_at,id "
+                    "LIMIT 1 FOR UPDATE SKIP LOCKED", now=now,
+                )
+                if not trigger:
+                    return False
+            condition = "AND next_run_at<:end "
+            params = {"end": hour_end, "limit": 100 - bool(trigger)}
+            if trigger:
+                condition += "AND id<>:trigger "
+                params["trigger"] = trigger["id"]
+        else:
+            condition = "AND next_run_at<=UTC_TIMESTAMP(6) "
+            params = {"limit": 100}
         monitors = (
             (
                 await execute(
-                    conn,
-                    "SELECT * FROM monitors WHERE state='active' AND desired_enabled=1 "
-                    "AND credential_allowed=1 AND credential_operation_id IS NULL "
-                    "AND next_run_at<=UTC_TIMESTAMP(6) ORDER BY next_run_at,id "
-                    "LIMIT 100 FOR UPDATE SKIP LOCKED",
+                    conn, eligible + condition + "ORDER BY next_run_at,id "
+                    "LIMIT :limit FOR UPDATE SKIP LOCKED", **params,
                 )
             )
             .mappings()
             .all()
         )
+        if trigger:
+            monitors.insert(0, trigger)
         for monitor in monitors:
             anchor = monitor["schedule_anchor_at"] or monitor["next_run_at"]
-            slot, following = latest_slot(anchor, clock["now"], monitor["interval_minutes"])
-            await create_run(conn, monitor, slot, new_id())
+            if proxy_enabled and monitor["next_run_at"] > now:
+                slot = monitor["next_run_at"]
+                following = slot + timedelta(minutes=monitor["interval_minutes"])
+            else:
+                cutoff = hour_end - timedelta(microseconds=1) if proxy_enabled else now
+                slot, following = latest_slot(anchor, cutoff, monitor["interval_minutes"])
+            run = await create_run(conn, monitor, slot, new_id())
+            if trigger and monitor["id"] == trigger["id"]:
+                await wake(conn, run, new_id(), marker=marker)
             await execute(
                 conn,
                 "UPDATE monitors SET schedule_anchor_at=:anchor,next_run_at=:next WHERE id=:id",

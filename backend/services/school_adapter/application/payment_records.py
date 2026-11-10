@@ -75,7 +75,9 @@ async def confirm_original(state, owner, payload, candidates, observations, budg
     owned = [item for item in candidates if item.get("userId") == str(user)]
     if len(owned) != 1:
         return False
-    transport = PaymentTransport(state.school_store)
+    transport = PaymentTransport(
+        state.school_store, proxy_pool=getattr(state, "school_proxy_pool", None)
+    )
     async with transport.client() as client:
         # 只GET本地原单保存的已验证支付URL，不重放任何支付表单。
         page = await transport.request(client, "GET", payload["pay_url"], budget)

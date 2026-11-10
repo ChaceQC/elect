@@ -128,10 +128,16 @@ def test_different_school_id_needs_owned_unique_record_and_original_paid_page(
                    if paid_message else "等待付款")
         transport = SimpleNamespace(client=client, request=AsyncMock(
             return_value=SimpleNamespace(text=message)))
-        monkeypatch.setattr(payment_records, "PaymentTransport", lambda store: transport)
+        proxy_pool = object()
+
+        def payment_transport(store, *, proxy_pool):
+            assert proxy_pool is state.school_proxy_pool
+            return transport
+
+        monkeypatch.setattr(payment_records, "PaymentTransport", payment_transport)
         state = SimpleNamespace(school_store=object(), school_credentials=SimpleNamespace(
             current=AsyncMock(return_value={}),
-            payload=lambda row: {"school_user_id": "school-user"}))
+            payload=lambda row: {"school_user_id": "school-user"}), school_proxy_pool=proxy_pool)
         candidates = [{**PAID, "userId": user}] * count
         payload = {**PAYLOAD, "pay_url": "http://cwcwx.hbue.edu.cn/zhifu/payAccept.aspx?prePayId=ticket"}
         observations = {}

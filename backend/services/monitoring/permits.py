@@ -7,6 +7,7 @@ from services.common.ids import new_id
 from services.common.internal_dto import SendPermit
 from services.common.sql import aware, execute, first
 
+from .alerts import reminder_cooldown
 from .repository import lock_monitor
 
 
@@ -103,7 +104,7 @@ async def authorize(engine, command):
         if last["in_flight"]:
             return denied("DELIVERY_IN_FLIGHT")
         recent = max(filter(None, [last["at"], monitor["last_email_sent_at"]]), default=None)
-        if recent and recent + timedelta(minutes=monitor["interval_minutes"]) > now:
+        if recent and recent + reminder_cooldown(monitor["interval_minutes"]) > now:
             return denied("COOLDOWN")
         permit, expires = new_id(), now + timedelta(seconds=30)
         await execute(

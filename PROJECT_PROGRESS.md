@@ -1,3 +1,79 @@
+## 2026-11-10 · 0.23.0 学校代理与小时批次采集
+
+### 已完成
+
+- 读取引用聊天“查明问题原因”，确认易代理短效IP约60秒、HTTPS类型使用HTTP CONNECT且部分IP连接失败；用户补充仅拼接API URL直接GET，不使用代理账号/密码。
+- 核对dev工作区与学校认证/查询、独立支付页请求入口及监控持久调度；按小范围子任务完成提取缓存和小时批次，主会话集成两类学校传输与配置。
+- 新增环境开关/提取API URL/密钥，固定GET拼接BEAPI/number=1/format=json/type=2，无代理用户名密码；供应商JSON字段依据公开B池文档核实，真实密钥不写入文件或输出。
+- Adapter Redis共享获取时间/55秒有效租约，提取耗时计入时效，并发共享成功提取；过期、连接/断流或网关错误使租约失效并更新，只读可换一次IP重试，POST不重放，TLS/逐跳限制/学校限流保持。
+- 代理模式首个到期计划带动本自然小时其他有效账号；每事务100条及真实run的Outbox小时标记续批，四个共享Worker槽，学校5/4/1/数据库池/租约预算不变。积压折叠到本小时最近逻辑槽，避免恢复后同账号被续批重复受理，原时间锚点不漂移。
+- 复核并补齐原支付页确认入口的代理池注入；三种部署组合和两种隔离恢复的开关/密钥范围检查通过，恢复强制关闭并清空提取配置。
+- 同步0.23.0前后端版本及锁文件、README/AGENTS和后端计划/架构/部署/决策文档；无AGENT.md，无API字段、数据库迁移或新增容器。
+- 源码提交45507a5f488d705b4fe32c1cca0633fa55306ecb已推送origin/dev；对应[快速CI42752009043](https://github.com/ChaceQC/elect/actions/runs/42752009043)于2026-11-10 11:57:42（Asia/Shanghai）完成，frontend / build、backend / build与check均success。
+
+### 进行中
+
+- 无实现进行中项；源码、dev推送和快速CI/check已完成，收尾仅提交本次Markdown验证结果记录。
+
+### 阻塞与风险
+
+- 无实现阻塞；真实API密钥不写入仓库或输出，学校写入和SMTP不在本轮验证范围。
+- 现有部署未升级；本轮仅交付源码和公开配置模板，真实供应商订单/学校账号经代理登录尚未验收。
+
+### 下一步
+
+- 后续部署时以0.23.0配套镜像配置真实代理环境变量，通过原升级入口重建Adapter与Monitoring/core，先执行指定账号只读查询验收；若合入main，按dev → main PR等待该候选完整五组/check通过。本轮不自动升级运行环境或合并main。
+
+### 主要文件或模块
+
+- backend/services/school_adapter/infrastructure/、backend/services/monitoring/scheduler.py与job.py、backend/services/common/business.py与runtime.py、deploy公开配置和相关规则文档。
+
+### 验证
+
+- 起始git status干净，当前dev为1c0ba52，已fetch origin；uv可提供项目要求的Python3.12.10。
+- WSL/Docker无网络单元检查：学校代理传输/协议/DNS/支付协议/会话一轮57 passed；更新供应商异常用例及支付原页注入后，代理提取/传输/支付回查/监控槽位另一轮54 passed（范围有重叠）。提取模块最终13项通过；不重复全量本地测试。
+- WSL一次性MySQL8.4专项`test_monitor_proxy_hour.py`最终6 passed：无到期/手动不启动小时批次、北京时间小时/日界与授权栅栏、106账号续批及在途合并、双Scheduler标记竞争、积压完成后不重复、非代理仅到期。仅internal网络/tmpfs新库，原业务容器未操作，测试资源已清理。
+- Ruff覆盖所有受影响Python文件通过；`uv lock --check`通过。使用公开模板和合成环境值检查standalone/combined/core/restore/core-restore，普通组合仅Adapter有代理密钥，两种恢复均关闭并清空；未读取真实配置。
+- 初次单元验证因pytest.raises错误放入async with失败，修正测试上下文后通过；首次恢复Compose核对缺少ops覆盖，按现有要求补入compose.ops.yaml后通过。业务范围内发现的重定向预算丢失、支付原页漏接及积压二次受理均已修复并由定向检查覆盖。
+- 源码提交前38个变更文件UTF-8解码/替换字符、前后端版本/锁文件与Git差异检查通过；推送后工作区干净且dev与origin/dev一致。不以历史匿名代理访问或供应商示例作为本轮真实账号验收。
+- 本次快速CI的后端基础套件429 passed、174因平台/显式条件skipped，后续实际隔离MySQL170 passed；前端规则/构建/浏览器及统一check成功。business/compatibility/delivery/publish按快速场景跳过，不记为完整发布/恢复或真实学校验收。
+- 最终仅更新PROJECT_PROGRESS.md结果记录，按纯Markdown路径规则不触发新push CI；业务/配置验证追溯45507a5及上述运行。
+
+## 2026-10-14 · 0.22.10 低余额提醒冷却容差
+
+### 已完成
+
+- 核对干净dev与origin/dev，起始提交40e85df；读取现行规范、总计划和后端/T5发送许可规则，确认两处冷却均使用完整监控间隔。
+- 按用户要求完成提醒冷却为当前监控间隔减2分钟，alerts.cooldown与permits.authorize共用reminder_cooldown函数；采集计划及最近许可/发送、在途、次数、新鲜度和授权检查保持。
+- 新增8个定向场景，实际调用提醒冷却与发送许可两条路径，覆盖60/1440分钟间隔的到期前1秒、恰好到期、原周期提前90秒、无历史及在途保护；与既有T5新鲜度测试共15项通过。
+- 同步0.22.10补丁版本、T5/T3决策、后端架构/计划及受影响README、AGENTS；无AGENT.md，无API、迁移、Secret或部署配置变更。
+- 修复提交a78d894c6002a0c41923429f34ec9889067388ff已推送origin/dev；对应[快速CI38509152961](https://github.com/ChaceQC/elect/actions/runs/38509152961)于2026-10-14 12:08:30（Asia/Shanghai）完成，frontend / build、backend / build与check均success，结果与该提交单独关联。
+
+### 进行中
+
+- 无实现进行中项；两处业务修改、定向验证、dev提交推送及快速CI/check完成，收尾仅提交本Markdown结果记录。
+
+### 阻塞与风险
+
+- 无实现阻塞。2分钟只处理边界偏差，异常积压仍可能被新鲜度、在途或其他发送条件阻止。
+- 现有部署未升级；本轮验证使用合成数据库响应，不读取真实配置/凭据，不调用学校、支付或SMTP。
+
+### 下一步
+
+- 本轮dev源码交付完成；后续合入main时为包含a78d894及本记录的最新候选创建dev → main PR并通过完整五组/check门禁，再按既有部署手册升级配套镜像。本轮不合并main或升级现有运行环境。
+
+### 主要文件或模块
+
+- backend/services/monitoring/alerts.py、permits.py、对应定向测试、前后端版本文件、docs/decisions/T5低余额与邮件.md及相关规则文档。
+
+### 验证
+
+- 开始时git status干净，已fetch并确认当前dev与origin/dev一致；后端pyproject和.python-version均要求Python3.12.10，提醒间隔DTO与数据库约束为60..1440分钟。
+- `cd backend`后运行`uv run pytest tests/unit/test_alert_cooldown.py tests/unit/test_t5_alerts.py`：15 passed（新增8项、既有7项）；仅内存数据库响应，无真实外发。首次因未启用异步测试插件而失败，改用项目既有asyncio.run风格后同范围通过，未增加插件或依赖。
+- `uv run ruff check tests/unit/test_alert_cooldown.py services/monitoring/alerts.py services/monitoring/permits.py`全部通过；`uv lock --check`通过。Python3.12.10与五处版本字段0.22.10核对一致，17个变更文件UTF-8解码/替换字符检查及git diff --check通过。
+- 本轮未重复全量本地套件；当前push快速CI的frontend / build、backend / build与check均成功，后端含既有隔离查询资源/快照清理验证。business、compatibility、delivery及publish按快速场景跳过，不记作完整验证或真实邮件验收。
+- 最终仅更新PROJECT_PROGRESS.md结果记录；按当前纯Markdown路径规则不触发新push CI，业务验证追溯a78d894及上述运行。
+
 ## 2026-10-08 · 0.22.9 主分支合并
 
 ### 已完成
@@ -6,19 +82,22 @@
 - 核对待合入的6个提交与55个文件：0.22.8昨日消费卡片与曲线一致、0.22.9订单15分钟自动处理/原单恢复，以及相关测试、契约、迁移和前次合并记录；新增payment_0007，Secret及容器数不变。
 - 核对服务器main要求PR、严格GitHub Actions check（App ID 15368）、管理员保护与禁止强推/删除；dev允许直接提交推送但禁止强推/删除。已有快速CI不替代本次PR完整门禁。
 - 根README、AGENTS、前后端README及相关契约/决策已与0.22.9同步，无AGENT.md；本轮合并准备只更新进度，不变更业务规则、版本或部署。
+- [PR #14](https://github.com/ChaceQC/elect/pull/14)候选a612dda4855b7a159dc54feb14ef1b22f6630eae的[完整CI37753847207](https://github.com/ChaceQC/elect/actions/runs/37753847207)于2026-10-08 17:24:03（Asia/Shanghai）完成；前端、后端、业务消息、兼容、交付恢复五组及check全部success，publish按普通PR设计跳过。
+- 合并前重新fetch并核对源SHA、最新main祖先、CLEAN/MERGEABLE、检查所属运行和服务器严格保护；17:28:46使用普通merge及match-head-commit完成PR #14，合并提交8186f8cf01b1e4b03947c92993a03267c2ae0bc3。
+- 本地main/dev已快进到该合并提交，合并后的文件树与受测候选一致；合并结果记录按开发分支流程提交推送dev。
 
 ### 进行中
 
-- 创建dev → main PR，等待最新候选的前后端及业务消息、兼容、交付恢复五组完整CI和check全部成功。
+- 无进行中项；0.22.8/0.22.9已通过本次最新PR完整门禁并交付main，收尾仅提交本Markdown记录。
 
 ### 阻塞与风险
 
-- 无准备阻塞。完整检查、最新main祖先或冲突条件未满足前不合并；追加提交后重新等待检查。
+- 无合并阻塞；完整门禁与分支保护均已满足，未使用admin或绕过保护。
 - 现有部署本轮不升级；payment_0007及新窗口需要后续配套部署，真实学校、支付和邮件验收边界保持。
 
 ### 下一步
 
-- PR最新候选五组与check成功后，重新核对源SHA、main祖先和服务器保护，使用普通merge及match-head-commit合入main；随后快进本地main/dev并在dev记录合并结果。
+- 本轮合并已完成。后续部署0.22.9时按部署手册先停旧Payment后台、执行payment_0007并更新配套镜像，再核对昨日卡片与旧订单暂停/原单恢复；本轮不创建标签或升级运行环境。
 
 ### 主要文件或模块
 
@@ -28,6 +107,9 @@
 
 - git diff --check、分支状态、待合入差异、版本/迁移清单和服务器保护核对通过；真实凭据和部署配置未读取。
 - 本轮不重复本地业务套件，以本次PR完整CI作为合并门禁；准备记录为纯Markdown，按既有路径规则不触发push CI，不能记为新的验证成功。
+- GitHub连接器创建PR返回403；改用文档中的gh成功创建并合并，权限配置未调整。auth.txt、email_auth.txt及deploy/.env均未跟踪且受忽略规则保护，未读取内容。
+- 六项必需检查均属于本次PR运行37753847207并针对a612dda；已核对合并前最新main为63a006e且是候选祖先。合并后的文件树比较、工作区和本地main同步检查通过，真实学校、支付、SMTP或部署操作未执行。
+- 最终仅更新PROJECT_PROGRESS.md并推送dev；按现有路径规则不触发新的push CI，main push亦按规则不重复运行，完整验证追溯上述PR与候选。
 
 ## 2026-10-08 · 0.22.9 订单自动回查时限
 

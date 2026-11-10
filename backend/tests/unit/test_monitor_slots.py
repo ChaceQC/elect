@@ -28,11 +28,15 @@ def test_binding_hint_is_committed_and_acked_without_creating_a_run(monkeypatch)
     asyncio.run(verify())
 
 
-def test_worker_has_exactly_two_shared_slots_and_stop_drains_both(monkeypatch):
+@pytest.mark.parametrize(("enabled", "slots"), [(None, 2), (False, 2), (True, 4)])
+def test_worker_slots_share_resources_and_stop_drains_them(monkeypatch, enabled, slots):
     async def verify():
         stop, release, started = asyncio.Event(), asyncio.Event(), asyncio.Event()
-        hub, app, heartbeat = object(), object(), Mock()
-        slot_beats = [Mock(), Mock()]
+        hub, heartbeat = object(), Mock()
+        app = object() if enabled is None else SimpleNamespace(
+            state=SimpleNamespace(school_proxy_enabled=enabled),
+        )
+        slot_beats = [Mock() for _ in range(slots)]
         heartbeat.child.side_effect = slot_beats
         running, maximum, calls = 0, 0, []
 
@@ -44,7 +48,7 @@ def test_worker_has_exactly_two_shared_slots_and_stop_drains_both(monkeypatch):
                 calls.append(True)
                 running += 1
                 maximum = max(maximum, running)
-                if running == 2:
+                if running == slots:
                     started.set()
                 await release.wait()
                 running -= 1
@@ -52,13 +56,34 @@ def test_worker_has_exactly_two_shared_slots_and_stop_drains_both(monkeypatch):
         monkeypatch.setattr(job, "scan_loop", scan)
         worker = asyncio.create_task(job.role_loop("worker", app, stop, heartbeat, hub))
         await asyncio.wait_for(started.wait(), 0.5)
-        assert maximum == 2 and len(calls) == 2
+        assert maximum == slots and len(calls) == slots
         stop.set()
         await asyncio.sleep(0)
         assert not worker.done()
         release.set()
         await asyncio.wait_for(worker, 0.5)
-        assert running == 0 and len(calls) == 2
+        assert running == 0 and len(calls) == slots
+
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("enabled", [None, False, True])
+def test_scheduler_receives_proxy_setting(monkeypatch, enabled):
+    async def verify():
+        stop, engine = asyncio.Event(), object()
+        state = SimpleNamespace(database=engine)
+        if enabled is not None:
+            state.school_proxy_enabled = enabled
+        app = SimpleNamespace(state=state)
+
+        async def tick(*args, **kwargs):
+            stop.set()
+            assert args == (engine,) and kwargs == {"proxy_enabled": bool(enabled)}
+            return True
+
+        monkeypatch.setattr(job, "scheduler_tick", tick)
+        monkeypatch.setattr(job, "pause", AsyncMock())
+        await job.scan_loop("scheduler", app, stop, Mock())
 
     asyncio.run(verify())
 
