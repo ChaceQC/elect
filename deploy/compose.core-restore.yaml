@@ -3,6 +3,7 @@ services:
   core:
     environment:
       ELECT_BACKGROUND_ENABLED: "false"
+      ELECT_SCHOOL_PROXY_ENABLED: "false"
       ELECT_ALLOW_SCHOOL_BINDING_WRITES: "false"
       ELECT_ALLOW_PAYMENT_ORDER_WRITES: "false"
       ELECT_ALLOW_PAYMENT_FORM_WRITES: "false"

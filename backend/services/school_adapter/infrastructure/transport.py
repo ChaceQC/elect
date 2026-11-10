@@ -11,6 +11,7 @@ from services.common.errors import ErrorCode
 from services.common.http import ApiError
 
 from .dns import DestinationResolver, PinnedTransport
+from .proxy_transport import RotatingProxyTransport
 
 HOSTS = {"rz.hbue.edu.cn", "sdgl.hbue.edu.cn"}
 UA = "Mozilla/5.0 (compatible; ELECT/0.3)"
@@ -67,13 +68,17 @@ def parse_json(response, *, authenticated=False, check_code=True, allow_text_jso
 
 
 class SchoolTransport:
-    def __init__(self, limiter, *, transport=None, resolve=True):
+    def __init__(self, limiter, *, transport=None, resolve=True, proxy_pool=None):
         self.limiter, self.transport, self.resolve = limiter, transport, resolve
+        self.proxy_pool = proxy_pool
         self.resolver = DestinationResolver()
 
     def client(self):
         return httpx.AsyncClient(
-            transport=self.transport or PinnedTransport(self.resolver),
+            transport=self.transport or (
+                RotatingProxyTransport(self.proxy_pool)
+                if self.proxy_pool else PinnedTransport(self.resolver)
+            ),
             follow_redirects=False,
             trust_env=False,
             headers={"User-Agent": UA},
@@ -90,8 +95,14 @@ class SchoolTransport:
         authenticated=False,
         read_timeout=12,
         pool="interactive",
+        retry_proxy=False,
         **kwargs,
     ):
+        kwargs["extensions"] = {
+            **kwargs.get("extensions", {}),
+            "school_deadline": deadline,
+            "school_proxy_retry": retry_proxy,
+        }
         try:
             async with asyncio.timeout(deadline.remaining()):
                 return await self._request(
@@ -107,7 +118,9 @@ class SchoolTransport:
     ):
         origin = urlsplit(str(url)).hostname
         for hop in range(7):
-            await check_destination(url, resolve=self.resolve, resolver=self.resolver)
+            await check_destination(
+                url, resolve=self.resolve and not self.proxy_pool, resolver=self.resolver
+            )
             timeout = httpx.Timeout(min(read_timeout, deadline.remaining()), connect=3, pool=2)
             async with self.limiter.global_slot(deadline, pool=pool):
                 async with client.stream(method, url, timeout=timeout, **kwargs) as response:
@@ -138,13 +151,15 @@ class SchoolTransport:
                         "学校认证跳转异常",
                     )
                 target = urljoin(str(result.url), result.headers.get("location", ""))
-                await check_destination(target, resolve=self.resolve, resolver=self.resolver)
+                await check_destination(
+                    target, resolve=self.resolve and not self.proxy_pool, resolver=self.resolver
+                )
                 if (
                     "Authorization" in kwargs.get("headers", {})
                     and urlsplit(target).hostname != origin
                 ):
                     raise ApiError(502, ErrorCode.SCHOOL_PROTOCOL_CHANGED, "学校跳转不受支持")
-                url, kwargs = target, {}
+                url, kwargs = target, {"extensions": kwargs["extensions"]}
                 continue
             if result.status_code == 429:
                 delay = result.headers.get("retry-after", "30")

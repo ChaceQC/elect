@@ -115,9 +115,10 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
         return await scan_loop(role, app, stop, heartbeat, hub)
     shared = hub or BrokerHub(app.state.runtime)
     try:
-        # 两个槽共用本域engine/client/AMQP连接，各有prefetch=1的独立channel。
+        # 执行槽共用本域engine/client/AMQP连接，各有prefetch=1的独立channel。
         async with asyncio.TaskGroup() as tasks:
-            for slot in range(2):
+            slots = 4 if getattr(getattr(app, "state", None), "school_proxy_enabled", False) else 2
+            for slot in range(slots):
                 tasks.create_task(
                     slot_loop(app, stop, heartbeat.child(str(slot)), shared),
                     name=f"monitor-slot:{slot}",
@@ -166,10 +167,13 @@ async def scan_loop(role, app, stop, heartbeat, hub=None):
                         activity = await consumer_tick(role, app, None, heartbeat, stop)
                 else:
                     activity = False
-                    if role == "scheduler" or time.monotonic() >= next_recovery:
-                        activity = await (scheduler_tick if role == "scheduler" else recovery_tick)(
-                            app.state.database
+                    if role == "scheduler":
+                        activity = await scheduler_tick(
+                            app.state.database,
+                            proxy_enabled=getattr(app.state, "school_proxy_enabled", False),
                         )
+                    elif time.monotonic() >= next_recovery:
+                        activity = await recovery_tick(app.state.database)
                         next_recovery = time.monotonic() + 15
                     if role == "recovery" and time.monotonic() >= next_snapshot_cleanup:
                         cleanup_delay = await cleaner.round(app.state.database, stop)

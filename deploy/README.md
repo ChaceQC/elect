@@ -1,5 +1,7 @@
 # Docker 部署入口
 
+学校可选代理由`ELECT_SCHOOL_PROXY_ENABLED`、`ELECT_SCHOOL_PROXY_API_URL`与`ELECT_SCHOOL_PROXY_SECRET`配置，默认关闭；地址/密钥仅给Adapter，开关同步到Monitoring/core。提取直接GET并固定JSON/HTTPS类型，隔离恢复强制关闭；无需新迁移或容器，重建相关配套镜像后生效，见[学校代理与小时批次采集](../docs/decisions/学校代理与小时批次采集.md)。
+
 0.20.1恢复apply增加观测水位校验；同一备份集的Adapter计数必须覆盖Room高水位，拒绝后保持禁后台和无外发。见[集成恢复手册](../docs/runbooks/审计修复集成与恢复.md)。
 
 0.20.0新增本地会话与学校资料分离，无新增迁移/Secret/容器；前后端兼容及优先回退前端见[本地会话与学校资料](../docs/runbooks/本地会话与学校资料.md)。既有部署未升级。此前R5的monitoring_0010及双槽升级边界仍见[读取与有界调度](../docs/runbooks/读取与有界调度.md)。

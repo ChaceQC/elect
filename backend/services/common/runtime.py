@@ -1,4 +1,4 @@
-"""仅从受限文件读取本服务配置；禁止通过环境变量传递凭据。"""
+"""业务密钥从受限文件读取；学校代理提取凭据按显式环境配置接入。"""
 
 import os
 from ipaddress import IPv4Address
@@ -126,3 +126,10 @@ def side_effect_policy() -> SideEffectPolicy:
             raise RuntimeError("副作用开关只允许 true/false")
         values[field] = value == "true"
     return SideEffectPolicy(**values)
+
+
+def school_proxy_enabled() -> bool:
+    value = os.environ.get("ELECT_SCHOOL_PROXY_ENABLED", "false")
+    if value not in {"true", "false"}:
+        raise RuntimeError("学校代理开关只允许 true/false")
+    return value == "true"

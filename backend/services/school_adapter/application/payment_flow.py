@@ -17,7 +17,7 @@ class PaymentFlow:
     def __init__(self, state):
         self.state, self.ledger, self.sessions = state, PaymentLedger(state), PaymentSessions(state)
         self.transport = getattr(state, "payment_transport", None) or PaymentTransport(
-            state.school_store
+            state.school_store, proxy_pool=getattr(state, "school_proxy_pool", None)
         )
 
     async def run(self, command, principal):

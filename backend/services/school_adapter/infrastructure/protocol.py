@@ -54,7 +54,8 @@ class SchoolProtocol:
         deadline = deadline or Deadline(30)
         async with self.transport.client() as client:
             await self.transport.request(
-                client, "GET", f"{CAS}/login", deadline, pool=pool, params={"service": SERVICE}
+                client, "GET", f"{CAS}/login", deadline, pool=pool, params={"service": SERVICE},
+                retry_proxy=True,
             )
             return await self.next_challenge(client, "", deadline, pool=pool)
 
@@ -66,6 +67,7 @@ class SchoolProtocol:
             deadline,
             params={"uid": uid},
             pool=pool,
+            retry_proxy=True,
             headers={"X-Requested-With": "XMLHttpRequest", "Referer": f"{CAS}/login"},
         )
         value = parse_json(response, check_code=False, allow_text_json=True)
@@ -149,6 +151,7 @@ class SchoolProtocol:
                 authenticated=True,
                 pool=pool,
                 read_timeout=read_timeout,
+                retry_proxy=True,
                 headers={"Authorization": f"Bearer {token}"},
             )
             return parse_json(response, authenticated=True)

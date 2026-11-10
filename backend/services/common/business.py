@@ -25,6 +25,10 @@ def register(app, service):
 
 
 async def initialize(app, service):
+    if service in {"monitoring", "school_adapter"}:
+        from .runtime import school_proxy_enabled
+
+        app.state.school_proxy_enabled = school_proxy_enabled()
     if service in {
         "gateway",
         "identity",
@@ -77,6 +81,7 @@ async def initialize(app, service):
         from services.school_adapter.infrastructure.credentials import CredentialRepository
         from services.school_adapter.infrastructure.crypto import EnvelopeCrypto, KeyRing
         from services.school_adapter.infrastructure.protocol import SchoolProtocol
+        from services.school_adapter.infrastructure.proxy import ProxyPool, ProxySettings
         from services.school_adapter.infrastructure.redis_store import SharedStore
         from services.school_adapter.infrastructure.transport import SchoolTransport
 
@@ -89,7 +94,11 @@ async def initialize(app, service):
         )
         app.state.redis = redis
         store = SharedStore(redis, crypto)
-        protocol = SchoolProtocol(SchoolTransport(store))
+        proxy_pool = (
+            ProxyPool(store, ProxySettings.from_env()) if app.state.school_proxy_enabled else None
+        )
+        app.state.school_proxy_pool = proxy_pool
+        protocol = SchoolProtocol(SchoolTransport(store, proxy_pool=proxy_pool))
         repository = CredentialRepository(app.state.database, crypto)
         app.state.school_store, app.state.school_protocol = store, protocol
         app.state.school_credentials = repository

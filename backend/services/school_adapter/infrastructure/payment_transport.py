@@ -10,23 +10,33 @@ from services.common.http import ApiError
 
 from .dns import DestinationResolver, PinnedTransport
 from .payment_protocol import check_pay_url
+from .proxy_transport import RotatingProxyTransport
 from .transport import UA
 
 
 class PaymentTransport:
-    def __init__(self, limiter, *, transport=None, resolve=True):
+    def __init__(self, limiter, *, transport=None, resolve=True, proxy_pool=None):
         self.limiter, self.transport, self.resolve = limiter, transport, resolve
+        self.proxy_pool = proxy_pool
         self.resolver = DestinationResolver()
 
     def client(self):
         return httpx.AsyncClient(
-            transport=self.transport or PinnedTransport(self.resolver),
+            transport=self.transport or (
+                RotatingProxyTransport(self.proxy_pool)
+                if self.proxy_pool else PinnedTransport(self.resolver)
+            ),
             trust_env=False,
             follow_redirects=False,
             headers={"User-Agent": UA, "Connection": "close"},
         )
 
     async def request(self, client, method, url, deadline, **kwargs):
+        kwargs["extensions"] = {
+            **kwargs.get("extensions", {}),
+            "school_deadline": deadline,
+            "school_proxy_retry": method == "GET",
+        }
         try:
             async with asyncio.timeout(deadline.remaining()):
                 return await self._request(client, method, url, deadline, kwargs)
@@ -39,7 +49,7 @@ class PaymentTransport:
             parsed = check_pay_url(url)
             if parsed.hostname != origin:
                 raise ApiError(502, ErrorCode.SCHOOL_PROTOCOL_CHANGED, "学校支付跨站跳转不受支持")
-            if self.resolve:
+            if self.resolve and not self.proxy_pool:
                 await self.resolver.resolve(parsed.hostname)
             async with self.limiter.global_slot(deadline, pool="background"):
                 async with client.stream(
@@ -71,7 +81,7 @@ class PaymentTransport:
                 url = urljoin(str(result.url), result.headers.get("location", ""))
                 if method == "POST":
                     method = "GET"
-                kwargs = {}
+                kwargs = {"extensions": kwargs["extensions"]}
                 continue
             if not result.is_success:
                 raise ApiError(503, ErrorCode.SCHOOL_UNAVAILABLE, "学校支付页面暂时不可用", True)
