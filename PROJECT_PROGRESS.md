@@ -6,10 +6,11 @@
 - 核对易代理公开协议：`data[].expire_time`为IP过期时间字符串，`jsonMeta=1111`请求包含该字段。用户提供链接一次直接GET仅返回供应商`code/info`，未取得成功租约；没有打印或保存真实请求URL、密钥、订单参数与响应原文。
 - 代理入口优先解析供应商到期时间，无时区按上海时间换算UTC Unix秒；缺失/null/空字符串才从开始提取计60秒。Redis按剩余毫秒缓存，较长期限不截为一分钟，较短期限不延长，非法或已过期时间不缓存。
 - 按用户明确规则原样请求配置URL，仅拼接环境密钥secret，不添加或覆盖其他参数；公开示例链接本身给出单条JSON/HTTPS及过期字段选项。同步公开占位配置与0.23.1版本、相关README/AGENTS、架构/计划/部署/决策文档。无AGENT.md，无新API、数据库迁移或配置项。
+- 修复提交97f6d031ac960182f8e8095506d58be6b0d76e8b已推送origin/dev；[快速CI42772029058](https://github.com/ChaceQC/elect/actions/runs/42772029058)于2026-11-10 15:05:44（Asia/Shanghai）完成，frontend / build、backend / build与check均success。
 
 ### 进行中
 
-- 代理期限/传输定向验证及差异检查完成，正在提交推送dev并等待该候选快速CI/check。
+- 无实现进行中项；源码、dev推送和快速CI/check已完成，收尾仅提交本Markdown验证结果记录。
 
 ### 阻塞与风险
 
@@ -17,7 +18,7 @@
 
 ### 下一步
 
-- 推送dev后核对该候选快速CI/check并记录结果；后续部署时用0.23.1镜像与指定订单进行只读验收。
+- 后续部署时按既有升级入口更新0.23.1镜像，配置供应商生成的完整API URL及独立密钥，执行指定订单/账号只读验收，核对实际过期字段与缓存时效；如合入main，为最新dev候选创建PR并等待完整五组/check。
 
 ### 主要文件或模块
 
@@ -27,6 +28,7 @@
 
 - Python3.12.10环境执行`uv run --locked --no-sync pytest tests/unit/test_school_proxy.py tests/unit/test_school_proxy_transport.py -q`最终34 passed。覆盖长短过期时间、上海/显式时区、缺失/null/空字符串60秒、TTL扣提取耗时、到期重新获取、无效/过期不缓存，以及URL已有参数/重复额外参数原样保留与未提供参数不补齐。
 - 两个受影响Python文件Ruff通过，`uv lock --check`通过；19个变更文件UTF-8解码/替换字符检查、五处0.23.1版本字段及`git diff --check`通过。未新增依赖，不重复全量本地业务套件。
+- 上述修复提交的快速CI前后端与统一check成功；business/compatibility/delivery/publish按快速场景跳过，不记为完整发布/恢复或真实代理学校验收。最后仅更新PROJECT_PROGRESS.md结果记录，按纯Markdown路径规则不触发新push CI，业务验证追溯97f6d03及上述运行。
 
 ## 2026-11-10 · 0.23.0 学校代理与小时批次采集
 
