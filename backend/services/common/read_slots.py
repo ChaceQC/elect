@@ -1,9 +1,9 @@
-"""两个读取槽共用领域上下文，各自保留心跳和在途执行身份。"""
+"""读取槽共用领域上下文，各自保留心跳和在途执行身份。"""
 
 import asyncio
 
 
-async def run_slots(loop, app, stop, heartbeat, hub=None):
+async def run_slots(loop, app, stop, heartbeat, hub=None, *, slots=2):
     async def run(slot):
         child = heartbeat.child(str(slot))
         try:
@@ -18,5 +18,5 @@ async def run_slots(loop, app, stop, heartbeat, hub=None):
             raise RuntimeError("读取执行槽意外返回")
 
     async with asyncio.TaskGroup() as tasks:
-        for slot in range(2):
+        for slot in range(slots):
             tasks.create_task(run(slot), name=f"read-slot:{slot}")

@@ -1,4 +1,4 @@
-"""R5三种真实入口下，停止后双槽drain且正常退出0。"""
+"""三种真实入口下，停止后Room四槽/Payment双槽drain且正常退出0。"""
 
 import os
 import subprocess

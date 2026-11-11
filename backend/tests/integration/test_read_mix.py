@@ -15,13 +15,13 @@ def test_fifty_owner_mixed_reads_with_original_pools(monkeypatch):
 
     async def case():
         results = []
-        for slots in (1, 2):
+        for parallel in (False, True):
             async with database("room", production_pool=True) as room:
                 async with database("payment", production_pool=True) as payment:
-                    results.append(await scenario(room, payment, slots))
+                    results.append(await scenario(room, payment, parallel))
         old, new = results
         assert all(new["first_fast"][domain] < 2 for domain in ("room", "payment"))
         assert all(old["first_fast"][domain] > 10 for domain in ("room", "payment"))
-        assert new["read_p95_ms"] < 1000 and new["peak_slots"] == {"room": 2, "payment": 2}
-        print("R5 mixed " + json.dumps({"one_slot": old, "two_slots": new}))
+        assert new["read_p95_ms"] < 1000 and new["peak_slots"] == {"room": 4, "payment": 2}
+        print("R5 mixed " + json.dumps({"one_slot": old, "current_slots": new}))
     asyncio.run(case())

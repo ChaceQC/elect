@@ -66,6 +66,43 @@ def test_parallel_aliases_are_bounded_and_replay_survives(monkeypatch, budget):
     run("room", case)
 
 
+def test_retry_wait_uses_larger_remaining_minute_or_day_window(monkeypatch):
+    monkeypatch.setattr(limits, "OPERATIONS_PER_MINUTE", 1)
+    monkeypatch.setattr(limits, "OPERATIONS_PER_DAY", 2)
+
+    async def case(engine):
+        owner, binding = new_id(), new_id()
+        await seed_binding(engine, owner, binding)
+        first_operation = await accept(engine, owner, binding)
+        async with engine.begin() as conn:
+            await execute(conn, "UPDATE room_operations SET created_at=DATE_SUB("
+                          "UTC_TIMESTAMP(6),INTERVAL 2 MINUTE) WHERE id=:id",
+                          id=first_operation.bytes)
+        second_operation = await accept(engine, owner, binding)
+        async with engine.begin() as conn:
+            await execute(conn, "UPDATE room_operations SET created_at=DATE_SUB("
+                          "UTC_TIMESTAMP(6),INTERVAL 86395 SECOND) WHERE id=:id",
+                          id=first_operation.bytes)
+            await execute(conn, "UPDATE room_operations SET created_at=DATE_SUB("
+                          "UTC_TIMESTAMP(6),INTERVAL 45 SECOND) WHERE id=:id",
+                          id=second_operation.bytes)
+        with pytest.raises(ApiError) as limited_by_minute:
+            await accept(engine, owner, binding)
+        assert 12 <= limited_by_minute.value.retry_after_seconds <= 15
+        async with engine.begin() as conn:
+            await execute(conn, "UPDATE room_operations SET created_at=DATE_SUB("
+                          "UTC_TIMESTAMP(6),INTERVAL 86370 SECOND) WHERE id=:id",
+                          id=first_operation.bytes)
+            await execute(conn, "UPDATE room_operations SET created_at=DATE_SUB("
+                          "UTC_TIMESTAMP(6),INTERVAL 59 SECOND) WHERE id=:id",
+                          id=second_operation.bytes)
+        with pytest.raises(ApiError) as limited_by_day:
+            await accept(engine, owner, binding)
+        assert 27 <= limited_by_day.value.retry_after_seconds <= 30
+        assert await counts(engine, TABLES) == [2, 1, 1, 1]
+    run("room", case)
+
+
 @pytest.mark.parametrize("budget,value,expected", [
     ("MAX_PENDING_SYNCS", 2, 2), ("MAX_PENDING_WINDOWS", 1, 1),
 ])
@@ -97,16 +134,19 @@ def test_366_day_request_and_completed_windows_release_capacity():
         await accept(engine, owner, binding, annual)
         assert await counts(engine, TABLES) == [1, 1, 53, 1]
         next_year = SimpleNamespace(start_date=date(2025, 1, 1), end_date=date(2025, 12, 31))
+        await accept(engine, owner, binding, next_year)
+        assert await counts(engine, TABLES) == [2, 2, 106, 2]
+        third_year = SimpleNamespace(start_date=date(2023, 1, 1), end_date=date(2023, 12, 31))
         with pytest.raises(ApiError) as full:
-            await accept(engine, owner, binding, next_year)
+            await accept(engine, owner, binding, third_year)
         assert full.value.status == 429
-        assert await counts(engine, TABLES) == [1, 1, 53, 1]
+        assert await counts(engine, TABLES) == [2, 2, 106, 2]
         async with engine.begin() as conn:
             await execute(conn, "UPDATE history_sync_windows SET state='succeeded'")
             await execute(conn, "UPDATE history_syncs SET status='succeeded'")
             await execute(conn, "UPDATE room_operations SET state='succeeded'")
-        await accept(engine, owner, binding, next_year)
-        assert await counts(engine, TABLES) == [2, 2, 106, 2]
+        await accept(engine, owner, binding, third_year)
+        assert await counts(engine, TABLES) == [3, 3, 159, 3]
     run("room", case)
 
 

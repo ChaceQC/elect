@@ -94,11 +94,12 @@ it('受理未知沿用原键和原日期，429刷新后仍等待且不自动循�
   const previous = controller.create(path, previousRange)
   const limited = vi.fn(/** @param {{request: Request}} info */ info => {
     void info
-    return HttpResponse.json({ error: { code: 'RATE_LIMITED' } }, { status: 429, headers: { 'Retry-After': '60' } })
+    return HttpResponse.json({ error: { code: 'RATE_LIMITED', message: '已有历史同步等待处理' } }, { status: 429, headers: { 'Retry-After': '60' } })
   })
   server.use(http.post('/api/v1' + path, limited))
   const view = mount()
   await screen.findByText(/请至少等待 60 秒/)
+  expect(screen.getByText(/已有历史同步等待处理/)).toBeInTheDocument()
   expect(limited).toHaveBeenCalledTimes(1)
   const request = limited.mock.calls[0][0].request
   expect(request.headers.get('Idempotency-Key')).toBe(previous.key)

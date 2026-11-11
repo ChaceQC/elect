@@ -23,7 +23,7 @@ export function useRequestIntent() {
       if (error instanceof ApiError && error.status === 429) {
         const seconds = Math.max(1, error.retryAfterSeconds ?? 60)
         setRetryAt(Date.now() + seconds * 1000)
-        error.message = `请求额度暂不可用，请至少等待 ${seconds} 秒后用原请求重试。`
+        error.message = `${error.message}；请至少等待 ${seconds} 秒后用原请求重试。`
       }
       throw error
     } finally { setBusy(false) }

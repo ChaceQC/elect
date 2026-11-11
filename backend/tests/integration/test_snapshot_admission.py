@@ -71,8 +71,20 @@ def test_concurrent_different_ranges_cannot_exceed_budget(monkeypatch, budget, v
         results = await asyncio.gather(*(take(engine, owner, cmd) for cmd in commands),
                                        return_exceptions=True)
         assert sum(not isinstance(result, Exception) for result in results) == 2
-        assert all(isinstance(result, ApiError) and result.status == 429
-                   for result in results if isinstance(result, Exception))
+        errors = [result for result in results if isinstance(result, Exception)]
+        assert all(isinstance(error, ApiError) and error.status == 429 for error in errors)
+        if budget == "CREATIONS_PER_MINUTE":
+            assert all(0 < error.retry_after_seconds <= 60 for error in errors)
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE sample_snapshots SET created_at="
+                              "DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 40 SECOND)")
+            with pytest.raises(ApiError) as error:
+                await take(engine, owner, query(binding))
+            assert 0 < error.value.retry_after_seconds <= 20
+        else:
+            expected = "数量" if budget == "MAX_SNAPSHOTS" else "成员总数"
+            assert all(expected in error.message and "回收" in error.message
+                       and error.retry_after_seconds is None for error in errors)
         assert await counts(engine, TABLES) == [2, 6]
     run("monitoring", case)
 
@@ -85,7 +97,8 @@ def test_member_limit_is_not_silent_truncation(monkeypatch):
         await seed_samples(engine, owner, binding)
         with pytest.raises(ApiError) as error:
             await take(engine, owner, query(binding))
-        assert error.value.status == 429
+        assert error.value.status == 429 and "缩小日期范围" in error.value.message
+        assert error.value.retry_after_seconds is None and not error.value.retryable
         assert await counts(engine, TABLES) == [0, 0]
     run("monitoring", case)
 

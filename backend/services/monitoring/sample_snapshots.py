@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import hmac
+import math
 
 from sqlalchemy import text
 
@@ -14,9 +15,9 @@ from services.common.sql import execute, first
 from .repository import lock_monitor
 
 MAX_SAMPLES = 20_000
-MAX_SNAPSHOTS = 12
+MAX_SNAPSHOTS = 48
 MAX_MEMBERS = 60_000
-CREATIONS_PER_MINUTE = 6
+CREATIONS_PER_MINUTE = 30
 
 
 def token_for(key, owner, snapshot_id):
@@ -24,8 +25,8 @@ def token_for(key, owner, snapshot_id):
     return base64.urlsafe_b64encode(hmac.digest(key, payload, "sha256")).decode().rstrip("=")
 
 
-def limited(message, retry=60):
-    return ApiError(429, ErrorCode.RATE_LIMITED, message, True, retry_after_seconds=retry)
+def limited(message, retry=None, *, retryable=True):
+    return ApiError(429, ErrorCode.RATE_LIMITED, message, retryable, retry_after_seconds=retry)
 
 
 async def create_or_reuse(conn, owner, command, start, end, token_key):
@@ -39,7 +40,7 @@ async def create_or_reuse(conn, owner, command, start, end, token_key):
         limit=MAX_SAMPLES + 1,
     )).scalars().all()
     if len(members) > MAX_SAMPLES:
-        raise limited("采集记录过多，请缩小日期范围")
+        raise limited("采集记录过多，请缩小日期范围", retryable=False)
     digest = hashlib.sha256(b"".join(members)).digest()
     candidates = (await execute(
         conn, "SELECT * FROM sample_snapshots WHERE owner_user_id=:owner "
@@ -61,12 +62,22 @@ async def check_budget(conn, owner, size):
     budget = await first(
         conn, "SELECT COUNT(*) AS snapshots,COALESCE(SUM(total),0) AS members,"
         "COALESCE(SUM(created_at>DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 MINUTE)),0) "
-        "AS recent FROM sample_snapshots WHERE owner_user_id=:owner",
+        "AS recent,MIN(CASE WHEN created_at>DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 MINUTE) "
+        "THEN created_at END) AS minute_earliest,UTC_TIMESTAMP(6) AS now "
+        "FROM sample_snapshots WHERE owner_user_id=:owner",
         owner=owner.bytes,
     )
-    if (budget["snapshots"] >= MAX_SNAPSHOTS or budget["members"] + size > MAX_MEMBERS
-            or budget["recent"] >= CREATIONS_PER_MINUTE):
-        raise limited("采集查询过于频繁，请稍后重试")
+    retry = None
+    if budget["recent"] >= CREATIONS_PER_MINUTE:
+        retry = max(1, math.ceil(
+            60 - (budget["now"] - budget["minute_earliest"]).total_seconds()
+        ))
+    if budget["snapshots"] >= MAX_SNAPSHOTS:
+        raise limited("采集快照数量已达上限，请等待快照回收", retry)
+    if budget["members"] + size > MAX_MEMBERS:
+        raise limited("采集快照成员总数已达上限，请等待快照回收或缩小日期范围", retry)
+    if retry is not None:
+        raise limited("采集查询过于频繁，请稍后重试", retry)
 
 
 async def create_snapshot(conn, owner, command, members, digest, token_key):

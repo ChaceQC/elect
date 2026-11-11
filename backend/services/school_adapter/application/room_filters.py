@@ -8,7 +8,7 @@ from ..infrastructure.rooms import opaque_id, text_field
 
 
 async def filter_choices(state, principal, command):
-    await state.school_store.rate("filter", str(principal.user_id), limit=3, window=1)
+    await state.school_store.rate("filter", str(principal.user_id), limit=10, window=1)
     paths = {
         "buildings": "/base/baseBuildings/getBuildList",
         "floors": "/base/rooms/getAllFoolNumByBuildId",

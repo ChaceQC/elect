@@ -9,7 +9,7 @@ from ..infrastructure.rooms import room_record
 
 
 async def search_candidates(state, principal, command):
-    await state.school_store.rate("search", str(principal.user_id), limit=1, window=1)
+    await state.school_store.rate("search", str(principal.user_id), limit=5, window=1)
     value = await state.school_sessions.read(
         principal.user_id,
         principal.request_id,

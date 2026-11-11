@@ -1,5 +1,7 @@
 # API 契约
 
+0.23.4调整查询额度及等待提示，公开与内部API字段不变。浏览器余额30/600/32、历史20/120/32及4个sync/128窗口、手动/配置立即采集20/240/32，快照30次/分钟及48份；分钟预算、成功余额5秒冷却与学校Redis共享冷却按实际剩余返回。前端保留服务端错误原因并显示重试秒数；待办满提示等待完成、快照数量或成员量满提示回收，单份超过20,000条不可重试且提示缩小范围。详见[查询额度与并发](../decisions/查询额度间隔与并发改进方案.md)。
+
 0.22.9：Order新增可选`check_deadline_at: timestamp|null`和`check_paused: boolean=false`，旧响应缺字段兼容；前者为本系统自动处理窗口，不能解释为学校二维码有效期。未付款订单受理或显式恢复后自动处理15分钟，后续回查和任务领取到期暂停；在途结束后check_paused才为true，学校终态与占位保持。新增`POST /payment-orders/{id}/resume-check`，本人Cookie/Origin/CSRF及expected_version保护，返回Order；活动窗口内重放不续期，缺版本428、冲突或终态/主动停止/在途409、跨用户404。GET不恢复、QR新请求不绕过，付款后的余额刷新规则不变，见[订单自动回查时限](../decisions/订单自动回查时限.md)。
 
 0.22.8总览summary.yesterday_amount从daily_consumption的同一份合并日桶取值：以该响应上海日期范围end_date的前一天按日期查找，不受14天汇总complete影响；0与负数均保留，缺桶或金额未知为null。OverviewSummary新增可选yesterday_estimated_amount，默认null，非null（含0）表示昨日使用余额变化估算；其他日期的估算不影响昨日标记。公开方法/路径不变，旧响应缺可选字段兼容，见[合并口径](../decisions/消费趋势合并监控估算.md)。
@@ -20,7 +22,7 @@ R5.1公开DTO不变：会话每请求权威校验，续期每60秒合并（12小
 
 0.19.6审计R4完成，最终业务提交d5faff6快速CI/check成功：三域预算、快照公平回收、180天保留、冷热去重及七库加密恢复已接通。规则、迁移和未部署边界见[请求预算与保留归档](../runbooks/请求预算与保留归档.md)。
 
-当前版本：0.22.8；T0 冻结基线 0.1.0，更新日期：2026-10-08。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
+当前版本：0.23.4；T0 冻结基线 0.1.0，更新日期：2026-11-11。此目录定义目标行为，业务服务按总计划的 T1–T6 分阶段实现。
 
 0.19.4公开DTO不变，Balance.fetched_at为最后成功取得学校结果的观察时间，未知旧缓存不伪造新鲜度。内部BalanceReading统一序号/结果时间/错误，三入口共用比较；HistoryExecutionQuery传剩余预算。支付余额业务失败终结自动跟踪，读取暂时失败保持pending/30秒。内部命令和schemas已同步，详见[执行与余额语义](../runbooks/余额观测与历史执行边界.md)。
 
@@ -41,14 +43,14 @@ core模式公开API和领域DTO不变。核心内部52个接口直接复用原�
 - 同源 `/api/v1`；Cookie 为 `__Host-elect_session`，Secure/HttpOnly/SameSite=Lax/Path=/、不设置 Domain。全部敏感响应 no-store。显式私网 HTTP 模式使用 elect_session_local/elect_browser_local（HttpOnly/SameSite=Lax/Path=/、不设 Domain）；模式由服务端校验的 Origin 决定，Origin/CSRF 与归属校验保留。
 - 匿名验证码/登录使用浏览器 nonce、Origin 与限流；已有会话的重认证还要校验当前会话与 CSRF，登录接口不得静默切账号，账号不同返回 `409 REAUTH_ACCOUNT_MISMATCH`。
 - 受保护写请求使用 Origin 和内存 `X-CSRF-Token`；每次实时 introspection，依赖不可用时拒绝新写入。对象不属于本人返回不可枚举 404。
-- 成功信封为 data/meta；失败为 error/meta，meta 包含 request_id 与带时区 server_time；logout 204 无正文。429 使用 Retry-After，错误中 retry_after_seconds 表达相同等待期。
+- 成功信封为 data/meta；失败为 error/meta，meta 包含 request_id 与带时区 server_time；logout 204 无正文。返回等待时间的429使用 Retry-After，错误中 retry_after_seconds 表达相同等待期；无法靠等待解决的单快照范围过大不附固定等待。
 - 金额为 `DECIMAL(14,2)` 对应的固定两位十进制字符串，读数为 `DECIMAL(18,4)` 对应固定四位字符串；不接受 float、科学计数法、NaN/Infinity。未知为 null。
 - 0.20.3采集Sample新增可选meter_capture_delta，表示本次meter_reading减previous_sample_id对应止码；相同为0、首次/任一缺失为null、负差保留，固定四位小数（相减允许15位整数）。分页/日期筛选不改变基线，学校原始meter_delta等字段含义不变；旧后端缺字段时前端显示—。
 - 日期是上海自然日期，范围含首尾、最多 366 天、不能超过 server_time 对应上海今天；数据库边界转成 UTC 半开区间。日/周一至周日/月桶只计选中范围，缺失日保持 unknown。
 - 所有 202 均由 MySQL 事务持久受理后返回；操作、运行和订单分别用 `/operations/{id}`、`/monitor/runs/{id}`、`/payment-orders/{id}`查询。QR GET 的 202 代表原订单的持久二维码工作，不创建新订单。
 - 绑定、同步、余额/历史刷新、立即采集、建单及二维码刷新使用 Idempotency-Key，长度 16..128，按用户+操作类型分区。相同键不同摘要返回 `409 IDEMPOTENCY_CONFLICT`，网络重试保持原键；台账至少 180 天，unknown 不普通过期清除。
 - 配置、默认、撤回和取消分别使用 monitor.version、preference_version、credential_version、run.version。缺失 expected_version 返回 428，冲突返回 409 与 current_version；租约心跳不修改客户端版本。PATCH/PUT 响应丢失先 GET 对账，不自动重放覆盖并发值。
-- 0.22.3起PATCH /monitor因开启或修改间隔而触发立即采集时，与POST /monitor/runs共享每用户6次/分钟、48次/滚动24小时、8个非终态映射的预算。额度不足返回429/Retry-After，配置、版本、代次、旧任务和计划均不改变；成功响应的current_run可直接包含本次持久任务，next_run_at指向下一定期槽。关闭、无变化保存和非采集配置不新增计额；相同版本的并发保存仍先执行409版本检查。
+- 0.22.3起PATCH /monitor因开启或修改间隔而触发立即采集时，与POST /monitor/runs共享预算，0.23.4为每用户20次/分钟、240次/滚动24小时、32个非终态映射。额度不足返回429/Retry-After，配置、版本、代次、旧任务和计划均不改变；成功响应的current_run可直接包含本次持久任务，next_run_at指向下一定期槽。关闭、无变化保存和非采集配置不新增计额；相同版本的并发保存仍先执行409版本检查。
 
 ## 恢复与未确定状态
 
@@ -68,11 +70,11 @@ core模式公开API和领域DTO不变。核心内部52个接口直接复用原�
 - 已存在的 token 过期返回 `410 SNAPSHOT_EXPIRED`，保留日期/草稿，提示重新加载第一页；范围不匹配返回 `400 SNAPSHOT_MISMATCH`。已清理、不存在或其他用户的 token 返回 404，避免暴露他人快照是否存在。
 - 快照 TTL 内保留成员样本，归档不能破坏集合；过期先清成员再清快照，不级联删除历史。token 只保存 hash，不暴露业务 ID 集合。
 - 0.19.1首页按本人/绑定/范围及有序成员摘要复用有效快照，不续期；迟到提交产生新集合。token以独立用途HMAC重建，密钥轮换后旧token仍按hash验证至到期。
-- 每用户最多6个新快照/分钟、12个保留快照和60,000成员，单快照最多20,000条（超过时429并提示缩小范围，不截断）。过期但未清理的快照仍计入存量；有效token分页不扣创建额度。recovery每60秒清理最多4个过期快照/共1,000成员，先子后父，分页共享锁防止并发清理破坏响应。
+- 每用户最多30个新快照/分钟、48个保留快照和60,000成员，单快照最多20,000条（超过时429、不可重试并提示缩小范围，不截断）。过期但未清理的快照仍计入存量；有效token分页不扣创建额度。recovery每批最多清理4个过期快照/共1,000成员，先子后父，分页共享锁防止并发清理破坏响应；续批与公平轮转见[快照回收](../runbooks/请求预算与保留归档.md#快照回收)。
 
 ## 历史同步受理
 
-0.19.1在本人偏好行锁内先检查幂等重放，再检查新operation预算（每分钟6个、24小时24个、非终态最多8个，包含合并别名）。相同幂等键重放不扣额度，摘要冲突仍409；每用户未完成sync最多2个、未完成窗口最多64个。被当前同绑定同步范围完整覆盖时合并到原操作；部分重叠保留独立请求并计入配额，成功缓存不阻止显式刷新。拒绝返回`429 RATE_LIMITED`、`Retry-After`和`retry_after_seconds`，不持久化新operation/sync/窗口/Outbox。operation保留原至少180天的幂等契约，执行租约、每账号串行及学校限制不变。详见[受理规则](../decisions/查询资源受理与快照清理.md)。
+本人偏好行锁内先检查幂等重放，再检查新operation预算：0.23.4为每分钟20个、滚动24小时120个、非终态最多32个，包含合并别名。相同幂等键重放不扣额度，摘要冲突仍409；每用户未完成sync最多4个、未完成窗口最多128个。被当前同绑定同步范围完整覆盖时合并到原操作；部分重叠保留独立请求并计入配额，成功缓存不阻止显式刷新。拒绝返回`429 RATE_LIMITED`及相应重试提示，不持久化新operation/sync/窗口/Outbox。operation保留原至少180天的幂等契约，执行租约和每账号串行保持。详见[受理规则](../decisions/查询资源受理与快照清理.md)。
 
 ## 内部协议与场景
 

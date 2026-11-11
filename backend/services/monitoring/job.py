@@ -117,8 +117,7 @@ async def role_loop(role, app, stop, heartbeat, hub=None):
     try:
         # 执行槽共用本域engine/client/AMQP连接，各有prefetch=1的独立channel。
         async with asyncio.TaskGroup() as tasks:
-            slots = 4 if getattr(getattr(app, "state", None), "school_proxy_enabled", False) else 2
-            for slot in range(slots):
+            for slot in range(4):
                 tasks.create_task(
                     slot_loop(app, stop, heartbeat.child(str(slot)), shared),
                     name=f"monitor-slot:{slot}",

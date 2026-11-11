@@ -43,9 +43,9 @@ def test_room_control_progresses_while_history_is_blocked(monkeypatch, tmp_path)
                 await checked.wait()
                 assert not query.done()
                 slots = query_beat.snapshot()["slots"]
-                assert len(slots) == 2 and all(value["inflight"] for value in slots.values())
+                assert len(slots) == 4 and all(value["inflight"] for value in slots.values())
                 release.set()
-        assert history.await_count == 2
+        assert history.await_count == 4
         checker.assert_awaited_once()
 
     asyncio.run(verify())

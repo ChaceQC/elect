@@ -23,8 +23,10 @@ from services.room.query_api import payment_refresh
 pytestmark = requires_mysql
 
 
-@pytest.mark.parametrize("domain", ["room", "monitoring", "payment"])
-def test_parallel_new_keys_replay_pending_and_rejection_rollback(domain):
+@pytest.mark.parametrize("domain,minute,maximum", [
+    ("room", 30, 32), ("monitoring", 20, 32), ("payment", 6, 8),
+])
+def test_parallel_new_keys_replay_pending_and_rejection_rollback(domain, minute, maximum):
     async def case():
         async with database(domain, production_pool=True) as engine:
             owner, binding = new_id(), new_id()
@@ -52,9 +54,9 @@ def test_parallel_new_keys_replay_pending_and_rejection_rollback(domain):
                     return await refresh(engine, owner, order, key)
                 tables = ["payment_qr_requests", "payment_operations", "outbox_events"]
                 table = "payment_qr_requests"
-            keys = [str(new_id()) for _ in range(12)]
+            keys = [str(new_id()) for _ in range(minute + 2)]
             results = await asyncio.gather(*(submit(key) for key in keys), return_exceptions=True)
-            assert sum(not isinstance(value, Exception) for value in results) == 6
+            assert sum(not isinstance(value, Exception) for value in results) == minute
             assert all(isinstance(value, ApiError) and value.status == 429
                        and value.retry_after_seconds > 0 for value in results
                        if isinstance(value, Exception))
@@ -66,7 +68,7 @@ def test_parallel_new_keys_replay_pending_and_rejection_rollback(domain):
             async with engine.begin() as conn:
                 await execute(conn, f"UPDATE {table} SET created_at=DATE_SUB(UTC_TIMESTAMP(6),"
                               "INTERVAL 2 MINUTE)")
-            for _ in range(2):
+            for _ in range(maximum - minute):
                 await submit(str(new_id()))
             before = await counts(engine, tables)
             with pytest.raises(ApiError) as error:
@@ -119,7 +121,7 @@ def test_balance_cross_binding_owner_and_system_source():
             owner, other, binding, second = (new_id() for _ in range(4))
             await seed_binding(engine, owner, binding)
             await seed_binding(engine, owner, second)
-            for _ in range(6):
+            for _ in range(30):
                 await accept_refresh(engine, owner, binding, str(new_id()))
             with pytest.raises(ApiError) as error:
                 await accept_refresh(engine, owner, second, "payment-paid:pretend")
@@ -133,10 +135,51 @@ def test_balance_cross_binding_owner_and_system_source():
                 command, request, Principal("payment", owner, 1, new_id()))
             assert result == await payment_refresh(
                 command, request, Principal("payment", owner, 1, new_id()))
+            for _ in range(5):
+                await accept_refresh(engine, owner, second, str(new_id()), source="payment")
+            with pytest.raises(ApiError) as error:
+                await accept_refresh(engine, owner, second, str(new_id()), source="payment")
+            assert error.value.status == 429
             with pytest.raises(ApiError) as error:
                 await accept_refresh(engine, other, binding, str(new_id()))
             assert error.value.status == 404
             third = new_id()
             await seed_binding(engine, other, third)
             assert await accept_refresh(engine, other, third, str(new_id()))
+    asyncio.run(case())
+
+
+def test_balance_cooldown_uses_latest_successful_root_across_sources():
+    async def case():
+        async with database("room", production_pool=True) as engine:
+            owner, binding = new_id(), new_id()
+            await seed_binding(engine, owner, binding)
+            failed = await accept_refresh(engine, owner, binding, str(new_id()))
+            alias = await accept_refresh(engine, owner, binding, str(new_id()))
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE room_operations SET state='failed',"
+                              "saga_step='complete',updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
+                              id=failed.bytes)
+                await execute(conn, "UPDATE room_operations SET state='succeeded',"
+                              "saga_step='complete',updated_at=UTC_TIMESTAMP(6) WHERE id=:id",
+                              id=alias.bytes)
+            older = await accept_refresh(engine, owner, binding, str(new_id()))
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE room_operations SET state='succeeded',"
+                              "saga_step='complete',updated_at=DATE_SUB(UTC_TIMESTAMP(6),"
+                              "INTERVAL 4 SECOND) WHERE id=:id", id=older.bytes)
+            payment = await accept_refresh(engine, owner, binding, str(new_id()), source="payment")
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE room_operations SET state='succeeded',"
+                              "saga_step='complete',updated_at=DATE_SUB(UTC_TIMESTAMP(6),"
+                              "INTERVAL 1 SECOND) WHERE id=:id", id=payment.bytes)
+            with pytest.raises(ApiError) as error:
+                await accept_refresh(engine, owner, binding, str(new_id()))
+            assert error.value.status == 429
+            assert 2 <= error.value.retry_after_seconds <= 4
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE room_operations SET updated_at=DATE_SUB("
+                              "UTC_TIMESTAMP(6),INTERVAL 6 SECOND) WHERE id IN (:older,:payment)",
+                              older=older.bytes, payment=payment.bytes)
+            assert await accept_refresh(engine, owner, binding, str(new_id()))
     asyncio.run(case())

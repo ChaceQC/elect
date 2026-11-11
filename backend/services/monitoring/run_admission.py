@@ -23,6 +23,8 @@ async def check_budget(conn, owner):
     recent = await first(
         conn, "SELECT COUNT(*) AS daily,COALESCE(SUM(created_at>"
         "DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 MINUTE)),0) AS minute,"
+        "MIN(CASE WHEN created_at>DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 MINUTE) "
+        "THEN created_at END) AS minute_earliest,"
         "MIN(created_at) AS earliest,UTC_TIMESTAMP(6) AS now FROM monitor_run_requests "
         "WHERE owner_user_id=:owner AND created_at>DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 DAY)",
         owner=owner.bytes,
@@ -32,4 +34,4 @@ async def check_budget(conn, owner):
         "ON r.id=q.run_id WHERE q.owner_user_id=:owner "
         "AND r.state NOT IN ('succeeded','failed','cancelled')", owner=owner.bytes,
     )
-    enforce_budget(recent, pending["n"], daily=48)
+    enforce_budget(recent, pending["n"], minute=20, daily=240, maximum=32)

@@ -1,4 +1,4 @@
-"""同步、余额和历史共用两个槽，控制Saga保持独立。"""
+"""同步、余额和历史共用四个槽，控制Saga保持独立。"""
 
 import asyncio
 from functools import partial
@@ -15,7 +15,7 @@ async def room_loop(app, stop, heartbeat, hub=None):
     app.state.read_schedule = ReadSchedule(("binding_sync", "balance_refresh", "history_sync"))
     app.state.read_wakeup_lock = asyncio.Lock()
     try:
-        await run_slots(slot_loop, app, stop, heartbeat, hub)
+        await run_slots(slot_loop, app, stop, heartbeat, hub, slots=4)
     finally:
         broker = getattr(app.state, "history_broker", None)
         if broker:

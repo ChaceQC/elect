@@ -19,7 +19,7 @@ def test_checkpoint_requires_same_domain_kind_cutoff_and_mode(tmp_path):
         checkpoint(path, [*identity[:3], True])
 
 
-@pytest.mark.parametrize("daily", [48, 60])
+@pytest.mark.parametrize("daily", [60, 120, 240, 600])
 def test_browser_production_daily_budget_rolls_24_hours(daily):
     now = datetime(2026, 10, 6)
     recent = {"now": now, "earliest": now-timedelta(hours=12), "daily": daily, "minute": 0}
@@ -27,3 +27,16 @@ def test_browser_production_daily_budget_rolls_24_hours(daily):
         enforce_budget(recent, 0, daily=daily)
     assert error.value.status == 429 and error.value.retry_after_seconds == 43201
     enforce_budget({**recent, "daily": daily-1}, 0, daily=daily)
+
+
+@pytest.mark.parametrize("elapsed", [58, 58.5])
+def test_minute_budget_returns_remaining_time_and_keeps_longer_daily_wait(elapsed):
+    now = datetime(2026, 11, 11)
+    recent = {"now": now, "earliest": now-timedelta(hours=12), "daily": 30,
+              "minute": 30, "minute_earliest": now-timedelta(seconds=elapsed)}
+    with pytest.raises(ApiError) as error:
+        enforce_budget(recent, 0, minute=30, daily=600, maximum=32)
+    assert error.value.retry_after_seconds == 2
+    with pytest.raises(ApiError) as error:
+        enforce_budget({**recent, "daily": 600}, 0, minute=30, daily=600, maximum=32)
+    assert error.value.retry_after_seconds == 43201

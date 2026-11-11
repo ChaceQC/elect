@@ -3,6 +3,7 @@
 import hashlib
 from datetime import UTC, datetime
 from functools import partial
+from math import ceil
 
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
@@ -80,10 +81,11 @@ async def accept_refresh(engine, owner, binding, key, *, source="browser"):
         elif source == "browser":
             recent = await first(
                 conn,
-                "SELECT id FROM room_operations WHERE owner_user_id=:owner "
-                "AND type='balance_refresh' "
-                "AND state IN ('succeeded','failed') AND "
-                "updated_at>DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 30 SECOND) LIMIT 1",
+                "SELECT updated_at,UTC_TIMESTAMP(6) AS now FROM room_operations "
+                "WHERE owner_user_id=:owner AND type='balance_refresh' "
+                "AND state='succeeded' AND upstream_operation_id IS NULL "
+                "AND updated_at>DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 5 SECOND) "
+                "ORDER BY updated_at DESC LIMIT 1",
                 owner=owner.bytes,
             )
             if recent:
@@ -92,7 +94,9 @@ async def accept_refresh(engine, owner, binding, key, *, source="browser"):
                     ErrorCode.RATE_LIMITED,
                     "余额刷新冷却中，请稍后重试",
                     True,
-                    retry_after_seconds=30,
+                    retry_after_seconds=max(
+                        1, ceil(5 - (recent["now"] - recent["updated_at"]).total_seconds())
+                    ),
                 )
         return operation
 

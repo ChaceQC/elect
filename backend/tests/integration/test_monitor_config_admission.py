@@ -83,7 +83,7 @@ def test_interval_switches_are_charged_and_rejection_leaves_schedule_unchanged()
     async def case():
         async with database("monitoring", production_pool=True) as engine:
             owner, config = await setup(engine)
-            for interval in [61, 60] * 3:
+            for interval in [61, 60] * 10:
                 saved = await patch(config, owner, interval_minutes=interval)
                 assert saved.current_run is not None
                 assert saved.next_run_at - saved.current_run.scheduled_for == timedelta(
@@ -91,7 +91,7 @@ def test_interval_switches_are_charged_and_rejection_leaves_schedule_unchanged()
                 )
                 await finish(engine, owner)
             before = await snapshot(engine, owner)
-            assert before[1][0] == 6
+            assert before[1][0] == 20
             for _ in range(2):
                 with pytest.raises(ApiError) as error:
                     await patch(config, owner, interval_minutes=61)
@@ -106,11 +106,11 @@ def test_manual_and_config_requests_share_budget_replay_and_close_still_work(mon
             owner, config = await setup(engine)
             key = str(new_id())
             original = await accept_run(engine, owner, key, new_id())
-            for _ in range(4):
+            for _ in range(18):
                 await accept_run(engine, owner, str(new_id()), new_id())
             saved = await patch(config, owner, interval_minutes=61)
             before = await snapshot(engine, owner)
-            assert before[1][0] == 6
+            assert before[1][0] == 20
             with pytest.raises(ApiError) as error:
                 await accept_run(engine, owner, str(new_id()), new_id())
             assert error.value.status == 429
@@ -122,7 +122,7 @@ def test_manual_and_config_requests_share_budget_replay_and_close_still_work(mon
             assert changed.next_run_at == saved.next_run_at
             use_daytime_scheduler_clock(monkeypatch)
             assert not await scheduler_tick(engine)
-            assert (await counts(engine, TABLES))[0] == 6
+            assert (await counts(engine, TABLES))[0] == 20
             assert (await patch(config, owner, enabled=False)).state == "disabled"
             before = await snapshot(engine, owner)
             with pytest.raises(ApiError) as error:
@@ -136,12 +136,15 @@ def test_manual_quota_exhaustion_rejects_config_before_invalidating_active_run()
     async def case():
         async with database("monitoring", production_pool=True) as engine:
             owner, config = await setup(engine)
-            for _ in range(6):
+            for _ in range(20):
                 await accept_run(engine, owner, str(new_id()), new_id())
+            async with engine.begin() as conn:
+                await execute(conn, "UPDATE monitor_run_requests SET created_at="
+                              "DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 40 SECOND)")
             before = await snapshot(engine, owner)
             with pytest.raises(ApiError) as error:
                 await patch(config, owner, interval_minutes=61)
-            assert error.value.status == 429
+            assert error.value.status == 429 and 0 < error.value.retry_after_seconds <= 20
             assert await snapshot(engine, owner) == before
             current = await config.get(owner)
             assert current.current_run.state == "pending" and not current.cancel_pending
@@ -208,12 +211,12 @@ def test_config_respects_daily_and_pending_limits(boundary):
     async def case():
         async with database("monitoring", production_pool=True) as engine:
             owner, config = await setup(engine)
-            limit = 48 if boundary == "daily" else 8
+            limit = 240 if boundary == "daily" else 32
             for index in range(limit):
                 await accept_run(engine, owner, str(new_id()), new_id())
                 if boundary == "daily":
                     await finish(engine, owner)
-                if (index + 1) % 6 == 0 or index + 1 == limit:
+                if (index + 1) % 20 == 0 or index + 1 == limit:
                     async with engine.begin() as conn:
                         await execute(conn, "UPDATE monitor_run_requests SET created_at="
                                       "DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 2 MINUTE)")
@@ -229,7 +232,7 @@ def test_config_and_manual_race_for_last_quota_slot():
     async def case():
         async with database("monitoring", production_pool=True) as engine:
             owner, config = await setup(engine)
-            for _ in range(5):
+            for _ in range(19):
                 await accept_run(engine, owner, str(new_id()), new_id())
             results = await asyncio.gather(
                 patch(config, owner, interval_minutes=61),
@@ -239,7 +242,7 @@ def test_config_and_manual_race_for_last_quota_slot():
             assert sum(not isinstance(value, Exception) for value in results) == 1
             assert all(isinstance(value, ApiError) and value.status == 429 for value in results
                        if isinstance(value, Exception))
-            assert (await counts(engine, TABLES))[0] == 6
+            assert (await counts(engine, TABLES))[0] == 20
     asyncio.run(case())
 
 

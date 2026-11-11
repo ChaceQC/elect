@@ -1,4 +1,4 @@
-"""R5隔离进程检查：真实双槽循环和三个入口，仅替换学校工作与资源初始化。"""
+"""隔离进程检查：真实读取槽和三个入口，仅替换学校工作与资源初始化。"""
 
 import argparse
 import asyncio
@@ -23,20 +23,21 @@ class ReadProbe(Probe):
     def __init__(self, mode, service):
         super().__init__(mode, "normal", service)
         self.reads, self.active = 0, 0
+        self.expected = 4 if service == "room" else 2
         self.both = None
 
     async def tick(self, app, heartbeat=None, **kwargs):
         self.reads += 1
         self.active += 1
-        assert self.reads <= 2  # SIGTERM后不能继续领取。
+        assert self.reads <= self.expected  # SIGTERM后不能继续领取。
         if self.both is None:
             self.both = asyncio.Event()
         with heartbeat.work(1, lease_seconds=1):
-            if self.active == 2:
+            if self.active == self.expected:
                 self.both.set()
                 os.kill(os.getpid(), signal.SIGTERM)
             await self.both.wait()
-            await asyncio.sleep(.05)  # 停止信号期间两项在途工作仍完成drain。
+            await asyncio.sleep(.05)  # 停止信号期间各项在途工作仍完成drain。
         self.active -= 1
         return True
 
@@ -72,7 +73,7 @@ class ReadProbe(Probe):
               patch.object(process, "worker_tick", AsyncMock(return_value=False)),
               patch.object(wakeups, "drain", AsyncMock())):
             super().run()
-        assert self.reads == 2 and self.active == 0
+        assert self.reads == self.expected and self.active == 0
         print("R5_READ_DRAIN_OK")
 
 

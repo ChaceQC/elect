@@ -251,6 +251,7 @@ def test_rate_limited_login_finishes_without_poisoning_health(monkeypatch, clock
 
             store = SharedStore(SimpleNamespace(
                 eval=AsyncMock(side_effect=evaluate), set=AsyncMock(return_value=True),
+                pttl=AsyncMock(return_value=60000),
             ), None)
             store.consume_challenge = AsyncMock(side_effect=ApiError(
                 400, ErrorCode.CAPTCHA_INVALID, "synthetic",

@@ -28,7 +28,7 @@ def test_binding_hint_is_committed_and_acked_without_creating_a_run(monkeypatch)
     asyncio.run(verify())
 
 
-@pytest.mark.parametrize(("enabled", "slots"), [(None, 2), (False, 2), (True, 4)])
+@pytest.mark.parametrize(("enabled", "slots"), [(None, 4), (False, 4), (True, 4)])
 def test_worker_slots_share_resources_and_stop_drains_them(monkeypatch, enabled, slots):
     async def verify():
         stop, release, started = asyncio.Event(), asyncio.Event(), asyncio.Event()

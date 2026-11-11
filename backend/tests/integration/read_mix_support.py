@@ -1,4 +1,4 @@
-"""50个合成账号、两个真实领域池的单槽/双槽固定对照。"""
+"""50个合成账号、两个真实领域池的单槽/当前并发固定对照。"""
 
 import asyncio
 from time import perf_counter
@@ -48,12 +48,13 @@ async def prepare(room, payment):
     return owners, bindings, rooms, orders
 
 
-async def scenario(room, payment, slots):
+async def scenario(room, payment, parallel):
     owners, bindings, rooms, orders = await prepare(room, payment)
     stop = asyncio.Event()
     active, peak, calls, first_fast = {}, {"room": 0, "payment": 0}, [], {}
     read_times, pool_peak, renewals = [], {"room": 0, "payment": 0}, []
     slow_room_heartbeat = []
+    limits = {"room": 4 if parallel else 1, "payment": 2 if parallel else 1}
     started = perf_counter()
 
     def observe(conn, cursor, statement, parameters, context, many):
@@ -69,7 +70,7 @@ async def scenario(room, payment, slots):
             assert key not in active  # 不允许同owner占用两个槽或跨Room种类重入。
             active[key] = True
             peak[domain] = max(peak[domain], sum(k[0] == domain for k in active))
-            assert peak[domain] <= slots
+            assert peak[domain] <= limits[domain]
             if owner != owners[0]:
                 first_fast.setdefault(domain, perf_counter() - started)
             try:
@@ -120,9 +121,9 @@ async def scenario(room, payment, slots):
     try:
         async with asyncio.timeout(40):
             async with asyncio.TaskGroup() as tasks:
-                tasks.create_task(room_loop(app_room, stop, beats[0]) if slots == 2 else
+                tasks.create_task(room_loop(app_room, stop, beats[0]) if parallel else
                                   slot_loop(app_room, stop, beats[0], None))
-                tasks.create_task(role_loop("reconciliation", app_pay, stop, beats[1]) if slots == 2
+                tasks.create_task(role_loop("reconciliation", app_pay, stop, beats[1]) if parallel
                                   else scan_loop("reconciliation", app_pay, stop, beats[1]))
                 tasks.create_task(sample())
     finally:

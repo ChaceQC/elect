@@ -32,6 +32,7 @@ async def finish(engine, *, fail=False):
 @pytest.mark.parametrize("fail", [False, True])
 def test_all_windows_propagate_and_release_eight_pending(monkeypatch, size, fail):
     monkeypatch.setattr(limits, "OPERATIONS_PER_MINUTE", 24)
+    monkeypatch.setattr(limits, "MAX_PENDING_OPERATIONS", 8)
 
     async def case(engine):
         owner, binding = new_id(), new_id()

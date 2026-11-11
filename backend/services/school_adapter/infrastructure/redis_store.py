@@ -39,8 +39,8 @@ local t = redis.call('TIME')
 local now = t[1] * 1000 + math.floor(t[2] / 1000)
 redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
 redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now)
-if redis.call('ZCARD', KEYS[1]) >= 5 then return 0 end
-if ARGV[2] == 'background' and redis.call('ZCARD', KEYS[2]) >= 4 then return 0 end
+if redis.call('ZCARD', KEYS[1]) >= 10 then return 0 end
+if ARGV[2] == 'background' and redis.call('ZCARD', KEYS[2]) >= 8 then return 0 end
 redis.call('ZADD', KEYS[1], now + 90000, ARGV[1])
 if ARGV[2] == 'background' then redis.call('ZADD', KEYS[2], now + 90000, ARGV[1]) end
 redis.call('PEXPIRE', KEYS[1], 100000)
@@ -67,25 +67,28 @@ class SharedStore:
             ) from None
 
     async def rate(self, category, key, *, limit=5, window=60):
-        count = await self.call("eval", RATE, 1, f"school_adapter:rate:{category}:{key}", window)
+        rate_key = f"school_adapter:rate:{category}:{key}"
+        count = await self.call("eval", RATE, 1, rate_key, window)
         if count > limit:
+            ttl = await self.call("pttl", rate_key)
             raise ApiError(
                 429,
                 ErrorCode.RATE_LIMITED,
                 "请求过于频繁，请稍后重试",
                 True,
-                retry_after_seconds=window,
+                retry_after_seconds=max(1, (ttl + 999) // 1000),
             )
 
     @asynccontextmanager
     async def global_slot(self, deadline, *, pool="interactive"):
-        if await self.call("exists", "school_adapter:cooldown"):
+        ttl = await self.call("pttl", "school_adapter:cooldown")
+        if ttl > 0:
             raise ApiError(
                 429,
                 ErrorCode.RATE_LIMITED,
                 "学校请求频率受限，请稍后重试",
                 True,
-                retry_after_seconds=30,
+                retry_after_seconds=(ttl + 999) // 1000,
             )
         token, key = secrets.token_urlsafe(24), "school_adapter:global_slots"
         background_key = "school_adapter:background_slots"

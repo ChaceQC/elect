@@ -9,15 +9,21 @@ from services.school_adapter.infrastructure.transport import Deadline
 
 async def verify_shared_limits(store):
     async with AsyncExitStack() as held:
-        for _ in range(4):
+        for _ in range(8):
             await held.enter_async_context(store.global_slot(Deadline(2), pool="background"))
         try:
             async with store.global_slot(Deadline(0.1), pool="background"):
                 raise AssertionError("后台占用了人工认证保留资源")
         except ApiError as error:
             assert error.code == "SCHOOL_TIMEOUT"
-        await held.enter_async_context(store.global_slot(Deadline(2)))
-        assert await store.call("zcard", "school_adapter:global_slots") == 5
+        for _ in range(2):
+            await held.enter_async_context(store.global_slot(Deadline(2)))
+        assert await store.call("zcard", "school_adapter:global_slots") == 10
+        try:
+            async with store.global_slot(Deadline(0.1)):
+                raise AssertionError("学校并发超过全局上限")
+        except ApiError as error:
+            assert error.code == "SCHOOL_TIMEOUT"
     assert await store.call("zcard", "school_adapter:global_slots") == 0
 
     class Disconnected:
@@ -31,4 +37,4 @@ async def verify_shared_limits(store):
         assert error.code == "DEPENDENCY_UNAVAILABLE" and error.status == 503
     else:
         raise AssertionError("Redis 失效时未阻断学校认证")
-    print("共享五并发/四后台/人工保留资源、Redis 故障 fail-closed：通过")
+    print("共享十并发/八后台/两个前台保留资源、Redis 故障 fail-closed：通过")
