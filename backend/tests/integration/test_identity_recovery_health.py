@@ -243,7 +243,7 @@ def test_rate_limited_login_finishes_without_poisoning_health(monkeypatch, clock
         async with database("identity", production_pool=True) as engine:
             counters = Counter()
 
-            async def evaluate(script, count, key, value):
+            async def evaluate(script, count, key, value=None):
                 if script == RATE:
                     counters[key] += 1
                     return counters[key]

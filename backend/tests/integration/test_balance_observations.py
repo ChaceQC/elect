@@ -22,7 +22,7 @@ from services.school_adapter.infrastructure.balance_observations import observe
 pytestmark = requires_mysql
 
 
-def test_adapter_real_bound_and_collect_paths_allocate_inside_account_lock(monkeypatch):
+def test_adapter_real_bound_and_collect_paths_allocate_inside_balance_permit(monkeypatch):
     from services.school_adapter import api, query_api
     from services.school_adapter.application import sessions
 
@@ -33,16 +33,20 @@ def test_adapter_real_bound_and_collect_paths_allocate_inside_account_lock(monke
             locked, fail = False, False
 
             @asynccontextmanager
-            async def account_lock(*args, **kwargs):
+            async def account_read(*args, **kwargs):
                 nonlocal locked
+                assert kwargs["balance"] is True
                 assert not locked
                 locked = True
-                yield
-                locked = False
+                try:
+                    yield
+                finally:
+                    locked = False
 
             row = {"id": new_id().bytes, "status": "active", "version": 1}
             repository = SimpleNamespace(engine=adapter, current=AsyncMock(return_value=row),
-                                         payload=lambda row: {"student_id": "synthetic"})
+                                         payload=lambda row: {"student_id": "synthetic",
+                                                              "school_user_id": "synthetic"})
 
             async def read(*args, **kwargs):
                 assert locked
@@ -60,10 +64,10 @@ def test_adapter_real_bound_and_collect_paths_allocate_inside_account_lock(monke
                                 checked_observe)
             monkeypatch.setattr(sessions, "lookup_aliases", lambda *args: {"v": "synthetic"})
             school = sessions.SchoolSessions(
-                repository, SimpleNamespace(account_lock=account_lock),
+                repository, SimpleNamespace(account_read=account_read,
+                    get_secret=AsyncMock(return_value={"token": "synthetic"})),
                 SimpleNamespace(read=read), SimpleNamespace(current="v"),
             )
-            school.token = AsyncMock(return_value=("synthetic", "synthetic", row))
             principal = Principal("monitoring", owner, 1, new_id())
             room_request = SimpleNamespace(
                 app=SimpleNamespace(state=SimpleNamespace(database=room)))

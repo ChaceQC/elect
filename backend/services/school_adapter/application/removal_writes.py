@@ -50,7 +50,8 @@ class RemovalWrites:
         stored = self.ledger.crypto.open(row["candidate_ciphertext"], aad(owner, operation))
         try:
             value = await self.state.school_sessions.read(
-                owner, request_id, "/base/roomUser/selectRoomListByUserId", {}, include_user=True
+                owner, request_id, "/base/roomUser/selectRoomListByUserId", {},
+                include_user=True, balance=True,
             )
             found = next(
                 (item for item in bound_rooms(value) if item["room_id"] == row["target_ref"]), None

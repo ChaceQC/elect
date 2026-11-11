@@ -29,21 +29,31 @@ class SchoolSessions:
 
         return await authenticate(self.protocol, self.ocr_executor, payload, deadline)
 
-    async def token(self, owner, request_id, deadline, *, invalid_token=None, locked=False):
+    async def token(
+        self, owner, request_id, deadline, *, invalid_token=None, invalid_row=None,
+        locked=False, force_lock=False,
+    ):
         row = await self.repository.current(owner)
         if row["status"] != "active":
             raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "请修复学校认证后重试")
+        if invalid_row and (row["id"], row["version"]) != (
+            invalid_row["id"], invalid_row["version"]
+        ):
+            invalid_token = None
         credential = UUID(bytes=row["id"])
         key = f"school_adapter:token:{credential}:{row['version']}"
         cached = await self.store.get_secret(key)
-        if cached and cached["token"] != invalid_token:
+        if cached and cached["token"] != invalid_token and not force_lock:
             return cached["token"], self.repository.payload(row)["school_user_id"], row
         payload = self.repository.payload(row)
         alias = lookup_aliases(self.lookup, "hbue", payload["student_id"])[self.lookup.current]
         context = nullcontext() if locked else self.store.account_lock(alias, deadline=deadline)
         async with context:
             latest = await self.repository.current(owner)
-            if latest["version"] != row["version"] or latest["status"] != "active":
+            if (
+                latest["id"] != row["id"] or latest["version"] != row["version"]
+                or latest["status"] != "active"
+            ):
                 raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化，请重试")
             cached = await self.store.get_secret(key)
             if cached and cached["token"] != invalid_token:
@@ -69,7 +79,10 @@ class SchoolSessions:
                     ) from None
                 raise
             latest = await self.repository.current(owner)
-            if latest["version"] != row["version"] or latest["status"] != "active":
+            if (
+                latest["id"] != row["id"] or latest["version"] != row["version"]
+                or latest["status"] != "active"
+            ):
                 raise ApiError(409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化，请重试")
             if school_user != payload["school_user_id"]:
                 raise ApiError(502, ErrorCode.SCHOOL_INVALID_RESPONSE, "学校用户标识发生变化")
@@ -80,7 +93,7 @@ class SchoolSessions:
 
     async def read(
         self, owner, request_id, path, params, *, include_user=False, budget=25, read_timeout=12,
-        observer=None,
+        observer=None, balance=False,
     ):
         deadline = Deadline(budget)
         try:
@@ -92,26 +105,10 @@ class SchoolSessions:
                 alias = lookup_aliases(self.lookup, "hbue", payload["student_id"])[
                     self.lookup.current
                 ]
-                async with self.store.account_lock(alias, deadline=deadline):
-                    token, school_user, row = await self.token(
-                        owner, request_id, deadline, locked=True
-                    )
-                    query = {**params, **({"userId": school_user} if include_user else {})}
-                    try:
-                        value, row = await self.read_attempts(
-                            owner, request_id, path, query, token, row, deadline, read_timeout
-                        )
-                    except ApiError as error:
-                        if observer:
-                            return await observer(None, error.code, datetime.now(UTC))
-                        raise
-                    observed_at = datetime.now(UTC)
-                    latest = await self.repository.current(owner)
-                    if latest["version"] != row["version"] or latest["status"] != "active":
-                        raise ApiError(
-                            409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化，请刷新后重试"
-                        )
-                    return await observer(value, None, observed_at) if observer else value
+                return await self.read_attempts(
+                    owner, request_id, path, params, alias, deadline, read_timeout,
+                    include_user=include_user, observer=observer, balance=balance,
+                )
         except TimeoutError:
             raise ApiError(
                 504, ErrorCode.SCHOOL_TIMEOUT, "学校查询超时，请稍后重试", True
@@ -126,33 +123,107 @@ class SchoolSessions:
             owner, request_id, "/base/roomUser/selectRoomListByUserId", {}, include_user=True,
             budget=budget, read_timeout=read_timeout,
             observer=partial(observe, self.repository.engine, owner, request_id),
+            balance=True,
         )
 
     async def read_attempts(
-        self, owner, request_id, path, query, token, row, deadline, read_timeout
+        self, owner, request_id, path, params, alias, deadline, read_timeout, *,
+        include_user=False, observer=None, balance=False,
     ):
-        for attempt in range(2):
-            try:
-                return await self.protocol.read(
-                    path, token, query, deadline=deadline, read_timeout=read_timeout
-                ), row
-            except ApiError as error:
-                if error.code == ErrorCode.SCHOOL_REAUTH_REQUIRED:
-                    if attempt == 1:
-                        await self.repository.require_reauth(row, request_id)
-                        key = f"school_adapter:token:{UUID(bytes=row['id'])}:{row['version']}"
-                        await self.store.call("delete", key)
-                        raise
-                    token, school_user, row = await self.token(
-                        owner, request_id, deadline, invalid_token=token, locked=True
-                    )
-                elif attempt == 0 and not deadline.proxy_retry_used and error.code in {
-                    ErrorCode.SCHOOL_UNAVAILABLE,
-                    ErrorCode.SCHOOL_TIMEOUT,
-                }:
-                    await asyncio.sleep(min(random.uniform(0.05, 0.2), deadline.remaining()))
-                else:
+        attempts = 0
+        while True:
+            invalid_token, invalid_row, failure, observed = None, None, None, None
+            async with self.store.account_read(alias, deadline=deadline, balance=balance):
+                try:
+                    row = await self.repository.current(owner)
+                    if row["status"] != "active":
+                        raise ApiError(
+                            409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "请修复学校认证后重试"
+                        )
+                    payload = self.repository.payload(row)
+                    current_alias = lookup_aliases(self.lookup, "hbue", payload["student_id"])[
+                        self.lookup.current
+                    ]
+                    if current_alias != alias:
+                        raise ApiError(
+                            409, ErrorCode.SCHOOL_REAUTH_REQUIRED, "学校授权已变化，请重试"
+                        )
+                    key = f"school_adapter:token:{UUID(bytes=row['id'])}:{row['version']}"
+                    cached = await self.store.get_secret(key)
+                except ApiError as error:
+                    if attempts and observer:
+                        return await observer(None, error.code, datetime.now(UTC))
                     raise
+                if cached:
+                    token = cached["token"]
+                    query = {
+                        **params,
+                        **({"userId": payload["school_user_id"]} if include_user else {}),
+                    }
+                    while attempts < 2:
+                        attempts += 1
+                        try:
+                            value = await self.protocol.read(
+                                path, token, query, deadline=deadline, read_timeout=read_timeout
+                            )
+                        except ApiError as error:
+                            if error.code == ErrorCode.SCHOOL_REAUTH_REQUIRED and attempts == 1:
+                                invalid_token, invalid_row = token, row
+                                break
+                            if attempts == 1 and not deadline.proxy_retry_used and error.code in {
+                                ErrorCode.SCHOOL_UNAVAILABLE, ErrorCode.SCHOOL_TIMEOUT,
+                            }:
+                                await asyncio.sleep(
+                                    min(random.uniform(0.05, 0.2), deadline.remaining())
+                                )
+                                continue
+                            failure = error
+                            if observer:
+                                observed = await observer(None, error.code, datetime.now(UTC))
+                            break
+                        observed_at = datetime.now(UTC)
+                        latest = await self.repository.current(owner)
+                        if (
+                            latest["id"] != row["id"] or latest["version"] != row["version"]
+                            or latest["status"] != "active"
+                        ):
+                            raise ApiError(
+                                409, ErrorCode.SCHOOL_REAUTH_REQUIRED,
+                                "学校授权已变化，请刷新后重试",
+                            )
+                        return await observer(value, None, observed_at) if observer else value
+            if failure:
+                if failure.code == ErrorCode.SCHOOL_REAUTH_REQUIRED:
+                    await self.invalidate_failed_token(
+                        owner, request_id, alias, row, token, deadline
+                    )
+                if observer:
+                    return observed
+                raise failure
+            try:
+                await self.token(
+                    owner, request_id, deadline, invalid_token=invalid_token,
+                    invalid_row=invalid_row, force_lock=True,
+                )
+            except ApiError as error:
+                if attempts and observer:
+                    async with self.store.account_read(alias, deadline=deadline, balance=balance):
+                        return await observer(None, error.code, datetime.now(UTC))
+                raise
+
+    async def invalidate_failed_token(self, owner, request_id, alias, row, token, deadline):
+        async with self.store.account_lock(alias, deadline=deadline):
+            latest = await self.repository.current(owner)
+            if (
+                latest["id"] != row["id"] or latest["version"] != row["version"]
+                or latest["status"] != "active"
+            ):
+                return
+            key = f"school_adapter:token:{UUID(bytes=row['id'])}:{row['version']}"
+            cached = await self.store.get_secret(key)
+            if cached and cached["token"] == token:
+                await self.repository.require_reauth(row, request_id)
+                await self.store.call("delete", key)
 
     async def bind_once(self, command, record, reserve):
         async def send(token, school_user, deadline):

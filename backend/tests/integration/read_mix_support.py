@@ -67,7 +67,7 @@ async def scenario(room, payment, parallel):
         async def call(service, path, *args, principal, **kwargs):
             owner = principal.user_id
             key = domain, owner
-            assert key not in active  # 不允许同owner占用两个槽或跨Room种类重入。
+            assert key not in active  # 此夹具每个owner仅创建一种Room任务，不能重复执行。
             active[key] = True
             peak[domain] = max(peak[domain], sum(k[0] == domain for k in active))
             assert peak[domain] <= limits[domain]

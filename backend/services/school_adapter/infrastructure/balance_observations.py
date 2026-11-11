@@ -1,4 +1,4 @@
-"""在账号串行边界内归一化B02并以短事务分配观测序号。"""
+"""在账号B02有序边界内归一化结果并以短事务分配观测序号。"""
 
 from services.common.internal_dto import BalanceReading
 from services.common.sql import execute, first

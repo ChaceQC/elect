@@ -91,7 +91,7 @@ async def claim_history(engine, schedule=None, *, stop=None):
         if schedule:
             schedule.visited("history_sync", owner)
         async with engine.begin() as conn:
-            if not await lock_idle(conn, owner):
+            if not await lock_idle(conn, owner, "history_sync"):
                 continue
             row = await first(
                 conn,

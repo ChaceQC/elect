@@ -1,4 +1,4 @@
-"""读取先选有工作的owner，再按偏好→任务加锁；无在途账号排队。"""
+"""读取先选有工作的owner，再按偏好→任务加锁；同类在途不排队。"""
 
 from services.common.ids import new_id
 from services.common.read_schedule import claimed
@@ -17,13 +17,17 @@ HISTORY_DUE = (
     "AND w.next_attempt_at<=UTC_TIMESTAMP(6)) OR "
     "(w.state='running' AND w.lease_until<=UTC_TIMESTAMP(6)))"
 )
-IDLE = (
+B02_IDLE = (
     "NOT EXISTS(SELECT 1 FROM room_operations active WHERE active.owner_user_id=p.owner_user_id "
     "AND active.type IN ('binding_sync','balance_refresh') AND active.state='running' "
-    "AND active.lease_until>UTC_TIMESTAMP(6)) AND NOT EXISTS(SELECT 1 FROM history_syncs s "
+    "AND active.lease_until>UTC_TIMESTAMP(6))"
+)
+HISTORY_IDLE = (
+    "NOT EXISTS(SELECT 1 FROM history_syncs s "
     "JOIN history_sync_windows w ON w.sync_id=s.id WHERE s.owner_user_id=p.owner_user_id "
     "AND w.state='running' AND w.lease_until>UTC_TIMESTAMP(6))"
 )
+IDLE = {"binding_sync": B02_IDLE, "balance_refresh": B02_IDLE, "history_sync": HISTORY_IDLE}
 
 
 async def candidates(engine, kind, schedule=None):
@@ -35,19 +39,19 @@ async def candidates(engine, kind, schedule=None):
     async with engine.connect() as conn:
         return (await execute(
             conn, "SELECT p.owner_user_id FROM room_preferences p WHERE EXISTS(" + due + ") "
-            "AND " + IDLE + " ORDER BY (p.owner_user_id<=:after),p.owner_user_id LIMIT 32",
+            "AND " + IDLE[kind] + " ORDER BY (p.owner_user_id<=:after),p.owner_user_id LIMIT 32",
             after=schedule.after[kind] if schedule else b"",
         )).scalars().all()
 
 
-async def lock_idle(conn, owner):
+async def lock_idle(conn, owner, kind):
     # 领取从不插入owner行；受理入口已保证存在。锁忙立即跳过，不占执行槽等账号。
     row = await first(conn, "SELECT owner_user_id FROM room_preferences "
                       "WHERE owner_user_id=:owner FOR UPDATE SKIP LOCKED", owner=owner)
     if not row:
         return False
     return bool(await first(conn, "SELECT p.owner_user_id FROM room_preferences p "
-                            "WHERE p.owner_user_id=:owner AND " + IDLE, owner=owner))
+                            "WHERE p.owner_user_id=:owner AND " + IDLE[kind], owner=owner))
 
 
 async def claim_operation(engine, kind, schedule=None, *, stop=None):
@@ -57,7 +61,7 @@ async def claim_operation(engine, kind, schedule=None, *, stop=None):
         if schedule:
             schedule.visited(kind, owner)
         async with engine.begin() as conn:
-            if not await lock_idle(conn, owner):
+            if not await lock_idle(conn, owner, kind):
                 continue
             row = await first(
                 conn, "SELECT o.*,UTC_TIMESTAMP(6) AS claimed_at FROM room_operations o "

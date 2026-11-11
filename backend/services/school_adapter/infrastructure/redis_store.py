@@ -34,6 +34,32 @@ RELEASE = """
 if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
 return 0
 """
+ACCOUNT_READ = """
+local t = redis.call('TIME')
+local now = t[1] * 1000 + math.floor(t[2] / 1000)
+redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now)
+redis.call('ZREMRANGEBYSCORE', KEYS[3], '-inf', now)
+if redis.call('EXISTS', KEYS[1]) == 1 or redis.call('ZCARD', KEYS[2]) >= 2 then return 0 end
+if ARGV[2] == '1' and redis.call('ZCARD', KEYS[3]) >= 1 then return 0 end
+redis.call('ZADD', KEYS[2], now + 110000, ARGV[1])
+redis.call('PEXPIRE', KEYS[2], 110000)
+if ARGV[2] == '1' then
+    redis.call('ZADD', KEYS[3], now + 110000, ARGV[1])
+    redis.call('PEXPIRE', KEYS[3], 110000)
+end
+return 1
+"""
+ACCOUNT_DRAIN = """
+local t = redis.call('TIME')
+local now = t[1] * 1000 + math.floor(t[2] / 1000)
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
+if redis.call('ZCARD', KEYS[1]) == 0 then return 1 end
+return 0
+"""
+ACCOUNT_RELEASE = """
+redis.call('ZREM', KEYS[1], ARGV[1])
+return redis.call('ZREM', KEYS[2], ARGV[1])
+"""
 SLOT = """
 local t = redis.call('TIME')
 local now = t[1] * 1000 + math.floor(t[2] / 1000)
@@ -52,6 +78,15 @@ local n = redis.call('INCR', KEYS[1])
 if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
 return n
 """
+
+
+async def _wait_account(deadline, message):
+    try:
+        await asyncio.sleep(min(0.1, deadline.remaining()))
+    except ApiError:
+        raise ApiError(
+            429, ErrorCode.RATE_LIMITED, message, True, retry_after_seconds=3
+        ) from None
 
 
 class SharedStore:
@@ -104,21 +139,31 @@ class SharedStore:
         await self.call("set", "school_adapter:cooldown", "rate_limited", ex=seconds)
 
     @asynccontextmanager
+    async def account_read(self, alias, *, deadline, balance=False):
+        key = f"school_adapter:account_lock:{alias}"
+        reads, balances = f"school_adapter:account_reads:{alias}", (
+            f"school_adapter:account_balances:{alias}"
+        )
+        token = secrets.token_urlsafe(24)
+        while not await self.call(
+            "eval", ACCOUNT_READ, 3, key, reads, balances, token, "1" if balance else "0"
+        ):
+            await _wait_account(deadline, "该账号正在处理学校请求，请稍后重试")
+        try:
+            yield
+        finally:
+            await self.call("eval", ACCOUNT_RELEASE, 2, reads, balances, token)
+
+    @asynccontextmanager
     async def account_lock(self, alias, *, deadline=None):
         deadline = deadline or Deadline(5)
         key, token = f"school_adapter:account_lock:{alias}", secrets.token_urlsafe(24)
         while not await self.call("set", key, token, nx=True, ex=110):
-            try:
-                await asyncio.sleep(min(0.1, deadline.remaining()))
-            except ApiError:
-                raise ApiError(
-                    429,
-                    ErrorCode.RATE_LIMITED,
-                    "该账号正在认证，请稍后重试",
-                    True,
-                    retry_after_seconds=3,
-                ) from None
+            await _wait_account(deadline, "该账号正在认证，请稍后重试")
         try:
+            reads = f"school_adapter:account_reads:{alias}"
+            while not await self.call("eval", ACCOUNT_DRAIN, 1, reads):
+                await _wait_account(deadline, "该账号正在认证，请稍后重试")
             yield
         finally:
             await self.call("eval", RELEASE, 1, key, token)

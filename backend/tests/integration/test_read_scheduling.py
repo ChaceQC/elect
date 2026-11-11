@@ -4,8 +4,9 @@ import asyncio
 from types import SimpleNamespace
 from uuid import UUID
 
+import pytest
 from query_resource_support import database, requires_mysql, seed_binding
-from test_history_admission import accept
+from test_history_admission import accept, request
 from test_payment_polling import read, seed
 
 from services.common.ids import new_id
@@ -24,13 +25,13 @@ KINDS = ("binding_sync", "balance_refresh", "history_sync")
 async def room_jobs(engine, owner=None):
     owner, binding = owner or new_id(), new_id()
     await seed_binding(engine, owner, binding)
-    await accept(engine, owner, binding)
+    await accept(engine, owner, binding, request(1, 14))
     await balance.accept_refresh(engine, owner, binding, str(new_id()))
     await RoomRepository(engine).accept_sync(owner, str(new_id()))
     return owner, binding
 
 
-def test_room_owner_cross_kind_exclusion_lock_skip_and_old_epoch(monkeypatch):
+def test_room_class_exclusion_lock_skip_and_old_epoch(monkeypatch):
     monkeypatch.setenv("ELECT_DB_POOL_SIZE", "2")
     monkeypatch.setenv("ELECT_DB_MAX_OVERFLOW", "1")
 
@@ -47,9 +48,23 @@ def test_room_owner_cross_kind_exclusion_lock_skip_and_old_epoch(monkeypatch):
                 assert free["owner_user_id"] == other.bytes
             first = await history_jobs.claim_history(engine, schedule)
             assert first["owner_user_id"] == owner.bytes
-            # 两个owner都在历史读取时，余额/绑定同步不能抢占任何账号。
-            assert not await balance.claim_refresh(engine, schedule)
+            # 两个owner的历史租约不阻止各自领取一个B02。
+            balances = [await balance.claim_refresh(engine, schedule) for _ in range(2)]
+            assert {row["owner_user_id"] for row in balances} == {owner.bytes, other.bytes}
             assert not await RoomRepository(engine).claim(schedule)
+            assert not await history_jobs.claim_history(engine, schedule)
+
+            # 模拟候选查询后另一领取已提交，锁内仍须按同类租约复核。
+            original = read_claims.candidates
+
+            async def stale_candidates(*args):
+                return [owner.bytes]
+
+            monkeypatch.setattr(read_claims, "candidates", stale_candidates)
+            assert not await RoomRepository(engine).claim(schedule)
+            assert not await history_jobs.claim_history(engine, schedule)
+            monkeypatch.setattr(read_claims, "candidates", original)
+
             async with engine.begin() as conn:
                 await execute(conn, "UPDATE history_sync_windows SET lease_until="
                               "DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 SECOND) WHERE id=:id",
@@ -59,9 +74,45 @@ def test_room_owner_cross_kind_exclusion_lock_skip_and_old_epoch(monkeypatch):
             empty = {"items": [], "request_room_id": "synthetic"}
             assert not await finish_history(engine, first, empty, None, False)
             assert await finish_history(engine, newer, empty, None, False)
-            picked = await balance.claim_refresh(engine, schedule)
+            picked = await history_jobs.claim_history(engine, schedule)
             assert picked["owner_user_id"] == owner.bytes
-            assert not await RoomRepository(engine).claim(schedule)
+            assert picked["id"] != first["id"]
+    asyncio.run(case())
+
+
+@pytest.mark.parametrize("legacy_alias", [False, True])
+def test_payment_balance_waits_for_b02_but_not_history(legacy_alias):
+    async def case():
+        async with database("room") as engine:
+            owner, binding = new_id(), new_id()
+            await seed_binding(engine, owner, binding)
+            await accept(engine, owner, binding)
+            browser = await balance.accept_refresh(engine, owner, binding, str(new_id()))
+            payment = await balance.accept_refresh(
+                engine, owner, binding, str(new_id()), source="payment")
+            repository = RoomRepository(engine)
+            await repository.accept_sync(owner, str(new_id()))
+            if legacy_alias:
+                async with engine.begin() as conn:
+                    await execute(conn, "UPDATE room_operations SET saga_step='merged',"
+                                  "upstream_operation_id=:root WHERE id=:id",
+                                  root=browser.bytes, id=payment.bytes)
+
+            binding_sync = await repository.claim()
+            assert binding_sync["owner_user_id"] == owner.bytes
+            assert not await balance.claim_refresh(engine)
+            history = await history_jobs.claim_history(engine)
+            assert history["owner_user_id"] == owner.bytes
+            assert await repository.complete(binding_sync, [], "SCHOOL_TIMEOUT", new_id())
+
+            browser_refresh = await balance.claim_refresh(engine)
+            assert browser_refresh["id"] == browser.bytes
+            assert not await balance.claim_refresh(engine)
+            assert await balance.finish_refresh(engine, browser_refresh, [], "SCHOOL_TIMEOUT")
+            payment_refresh = await balance.claim_refresh(engine)
+            assert payment_refresh["id"] == payment.bytes
+            assert payment_refresh["saga_step"] == "read_school"
+            assert payment_refresh["upstream_operation_id"] is None
     asyncio.run(case())
 
 
@@ -139,8 +190,8 @@ def test_stop_during_owner_recheck_prevents_task_claim(monkeypatch):
             stop = asyncio.Event()
             original = read_claims.lock_idle
 
-            async def stopping(*args):
-                valid = await original(*args)
+            async def stopping(conn, owner, kind):
+                valid = await original(conn, owner, kind)
                 stop.set()
                 return valid
 

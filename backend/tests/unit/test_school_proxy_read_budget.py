@@ -9,16 +9,40 @@ import pytest
 
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
+from services.common.ids import new_id
 from services.school_adapter.application.sessions import SchoolSessions
+from services.school_adapter.infrastructure.crypto import KeyRing
 from services.school_adapter.infrastructure.protocol import SchoolProtocol
 from services.school_adapter.infrastructure.proxy_transport import RotatingProxyTransport
-from services.school_adapter.infrastructure.transport import Deadline, SchoolTransport
+from services.school_adapter.infrastructure.transport import SchoolTransport
 
 
 class Limiter:
+    def __init__(self):
+        self.deadlines = []
+
     @asynccontextmanager
     async def global_slot(self, deadline, **options):
         deadline.remaining()
+        self.deadlines.append(deadline)
+        yield
+
+
+class CachedSession:
+    def __init__(self):
+        self.row = {"id": new_id().bytes, "version": 1, "status": "active"}
+
+    async def current(self, owner):
+        return self.row.copy()
+
+    def payload(self, row):
+        return {"student_id": "synthetic", "school_user_id": "synthetic"}
+
+    async def get_secret(self, key):
+        return {"token": "synthetic"}
+
+    @asynccontextmanager
+    async def account_read(self, alias, *, deadline, balance=False):
         yield
 
 
@@ -45,11 +69,18 @@ def proxied_sessions(pool, handler):
 
     wire = RotatingProxyTransport(pool, factory=factory)
     transport = SchoolTransport(Limiter(), transport=wire, proxy_pool=pool)
-    return SchoolSessions(None, None, SchoolProtocol(transport), None)
+    return make_sessions(transport)
+
+
+def make_sessions(transport):
+    cached = CachedSession()
+    return SchoolSessions(
+        cached, cached, SchoolProtocol(transport), KeyRing("v1", {"v1": b"x" * 32})
+    )
 
 
 async def read(sessions):
-    return await sessions.read_attempts(None, None, "/rooms", {}, "synthetic", {}, Deadline(2), 1)
+    return await sessions.read(new_id(), new_id(), "/rooms", {}, budget=2, read_timeout=1)
 
 
 @pytest.mark.parametrize("failure", [httpx.ConnectError, httpx.ConnectTimeout])
@@ -102,10 +133,13 @@ def test_school_503_retries_on_same_proxy():
                 return httpx.Response(503)
             return httpx.Response(200, json={"code": 200})
 
-        value, _ = await read(proxied_sessions(pool, handler))
+        sessions = proxied_sessions(pool, handler)
+        value = await read(sessions)
         assert value == {"code": 200}
         assert calls == [pool.leases[0].url] * 2
         assert not pool.invalidated
+        deadlines = sessions.protocol.transport.limiter.deadlines
+        assert len(deadlines) == 2 and deadlines[0] is deadlines[1]
 
     asyncio.run(verify())
 
@@ -123,9 +157,11 @@ def test_direct_connection_failure_still_retries():
         transport = SchoolTransport(
             Limiter(), transport=httpx.MockTransport(handler), resolve=False
         )
-        sessions = SchoolSessions(None, None, SchoolProtocol(transport), None)
-        value, _ = await read(sessions)
+        sessions = make_sessions(transport)
+        value = await read(sessions)
         assert value == {"code": 200}
         assert len(calls) == 2
+        assert len(transport.limiter.deadlines) == 2
+        assert transport.limiter.deadlines[0] is transport.limiter.deadlines[1]
 
     asyncio.run(verify())

@@ -65,20 +65,56 @@ class Authentication:
             return result
 
     async def activate(self, command):
-        version = await self.repository.activate(command)
-        staged = await self.store.get_secret(f"school_adapter:staged_token:{command.attempt_id}")
-        row = await self.repository.current(command.owner_user_id)
-        if row["version"] != version or row["status"] != "active":
-            raise ApiError(409, ErrorCode.VERSION_CONFLICT, "登录凭据已被更新，请重新认证")
-        if staged:
-            await cache_token(
-                self.repository,
-                self.store,
-                command.owner_user_id,
-                command.credential_ref,
-                version,
-                staged,
+        deadline = Deadline(5)
+        staged_row = await self.repository.staged(command.attempt_id)
+        if (
+            not staged_row
+            or staged_row["credential_ref"] != command.credential_ref.bytes
+            or (
+                staged_row["state"] == "activated"
+                and staged_row["owner_user_id"] != command.owner_user_id.bytes
             )
+        ):
+            raise ApiError(404, ErrorCode.NOT_FOUND, "登录暂存不存在")
+        if staged_row["state"] not in {"staged", "activated"}:
+            raise ApiError(400, ErrorCode.CAPTCHA_EXPIRED, "登录暂存已过期，请重新认证")
+        if staged_row["state"] == "activated" and not staged_row["encrypted_payload"]:
+            # 清理后的激活回执仍可重放；先验证回执，再从当前凭据取得账号。
+            version = await self.repository.activate(command)
+            row = await self.repository.current(command.owner_user_id)
+            if (
+                row["id"] != command.credential_ref.bytes
+                or row["version"] != version
+                or row["status"] != "active"
+            ):
+                raise ApiError(409, ErrorCode.VERSION_CONFLICT, "登录凭据已被更新，请重新认证")
+            aliases = lookup_aliases(
+                self.lookup, "hbue", self.repository.payload(row)["student_id"]
+            )
+        else:
+            aliases = self.repository.stage_result(staged_row).lookup_aliases
+        async with self.store.account_lock(aliases[self.lookup.current], deadline=deadline):
+            version = await self.repository.activate(command)
+            staged = await self.store.get_secret(
+                f"school_adapter:staged_token:{command.attempt_id}"
+            )
+            row = await self.repository.current(command.owner_user_id)
+            if (
+                row["id"] != command.credential_ref.bytes
+                or row["version"] != version
+                or row["status"] != "active"
+            ):
+                raise ApiError(409, ErrorCode.VERSION_CONFLICT, "登录凭据已被更新，请重新认证")
+            key = f"school_adapter:token:{command.credential_ref}:{version}"
+            if staged and not await self.store.get_secret(key):
+                await cache_token(
+                    self.repository,
+                    self.store,
+                    command.owner_user_id,
+                    command.credential_ref,
+                    version,
+                    staged,
+                )
         return {
             "credential_ref": str(command.credential_ref),
             "credential_version": version,
