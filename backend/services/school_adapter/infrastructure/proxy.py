@@ -7,6 +7,7 @@ import os
 import secrets
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -15,6 +16,7 @@ from services.common.http import ApiError
 
 LEASE_KEY = "school_adapter:proxy:lease"
 LOCK_KEY = "school_adapter:proxy:fetch_lock"
+FAILURE_KEY = "school_adapter:proxy:fetch_failure"
 RELEASE = """
 if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
 return 0
@@ -94,9 +96,20 @@ class ProxyPool:
                 lease = await self._cached()
                 if lease:
                     return lease
-                lease = await self._fetch(deadline)
-                ttl_ms = int((lease.expires_at - self.clock()) * 1000)
-                if ttl_ms <= 0 or not await self.store.call(
+                timeout = min(5, deadline.remaining())
+                try:
+                    lease = await self._fetch(timeout)
+                    ttl_ms = int((lease.expires_at - self.clock()) * 1000)
+                    if ttl_ms <= 0:
+                        raise ApiError(
+                            503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理暂时不可用", True
+                        )
+                except (ApiError, asyncio.CancelledError):
+                    await self.store.call(
+                        "eval", PUBLISH, 2, LOCK_KEY, FAILURE_KEY, token, "1", 5000
+                    )
+                    raise
+                if not await self.store.call(
                     "eval", PUBLISH, 2, LOCK_KEY, LEASE_KEY, token, lease.serialize(), ttl_ms
                 ):
                     raise ApiError(
@@ -108,23 +121,25 @@ class ProxyPool:
 
     async def _cached(self):
         value = await self.store.call("get", LEASE_KEY)
-        if not value:
-            return None
-        try:
-            lease = ProxyLease(**json.loads(value))
-            return lease if lease.expires_at > self.clock() else None
-        except (TypeError, ValueError):
+        if value:
+            try:
+                lease = ProxyLease(**json.loads(value))
+                if lease.expires_at > self.clock():
+                    return lease
+            except (TypeError, ValueError):
+                raise ApiError(
+                    503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理缓存异常", True
+                ) from None
+        if await self.store.call("get", FAILURE_KEY):
             raise ApiError(
-                503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理缓存异常", True
-            ) from None
+                503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理暂时不可用", True,
+                retry_after_seconds=5,
+            )
+        return None
 
-    async def _fetch(self, deadline):
+    async def _fetch(self, timeout):
         acquired_at = self.clock()
-        url = httpx.URL(self.settings.api_url).copy_merge_params({
-            "action": "BEAPI", "secret": self.settings.secret, "number": "1",
-            "format": "json", "type": "2",
-        })
-        timeout = min(5, deadline.remaining())
+        url = httpx.URL(self.settings.api_url).copy_merge_params({"secret": self.settings.secret})
         request = httpx.Request(
             "GET", url,
             extensions={"timeout": dict.fromkeys(("connect", "read", "write", "pool"), timeout)},
@@ -154,11 +169,19 @@ class ProxyPool:
             address, port = ipaddress.IPv4Address(item["ip"]), item["port"]
             if not address.is_global or not 1 <= port <= 65535:
                 raise ValueError()
+            expiry = item.get("expire_time")
+            if expiry is None or expiry == "":
+                expires_at = acquired_at + 60
+            else:
+                expiry = datetime.fromisoformat(expiry)
+                if expiry.tzinfo is None:
+                    expiry = expiry.replace(tzinfo=timezone(timedelta(hours=8)))
+                expires_at = expiry.timestamp()
         except (httpx.HTTPError, TimeoutError, KeyError, TypeError, ValueError):
             raise ApiError(
                 503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理暂时不可用", True
             ) from None
-        return ProxyLease(f"http://{address}:{port}", acquired_at, acquired_at + 55)
+        return ProxyLease(f"http://{address}:{port}", acquired_at, expires_at)
 
     async def invalidate(self, lease):
         await self.store.call("eval", RELEASE, 1, LEASE_KEY, lease.serialize())

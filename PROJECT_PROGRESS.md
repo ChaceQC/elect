@@ -1,3 +1,167 @@
+## 2026-11-11 · 0.23.3 主分支合并
+
+### 已完成
+
+- 用户要求CI成功后合并main；起始dev工作区干净，dev与origin/dev同为5babf3700968f3796c8a847bfeb108a6d0bbbd75，已包含最新origin/main（e1ed75af1a95ed789307febd356c617284c05561）。
+- 核对待合入7个提交与30个文件：0.23.1供应商过期时间/原样提取URL、0.23.2夜间定时静默、0.23.3共享失败退避/失效分类/重试收敛及相关测试和文档；无新API、迁移、依赖或配置项。
+- 服务器main保护要求PR、严格GitHub Actions check（App ID 15368）、管理员保护及禁止强推/删除；0个额外审批要求。已有源码6b31fe4快速CI成功，仍须为本次最新PR候选等待完整五组/check。
+- README、AGENTS及相关代理/定时规则已同步0.23.3，无AGENT.md；本轮合并准备仅更新进度与PR说明，不变更业务代码、版本或部署。
+
+### 进行中
+
+- 创建dev → main PR并等待该PR最新候选完整五组/check；通过后以匹配源SHA的普通merge完成合并。
+
+### 阻塞与风险
+
+- 无合并准备阻塞；完整PR门禁尚待运行，不以快速CI替代。现有部署未升级，未新增真实代理、学校、支付或SMTP操作。
+
+### 下一步
+
+- 为本次候选创建PR，等待完整CI后重新核对源SHA、最新main祖先、保护与合并状态，再执行受保护合并并同步本地分支。
+
+### 主要文件或模块
+
+- PROJECT_PROGRESS.md及dev → main PR；业务改动范围沿用0.23.1—0.23.3。
+
+### 验证
+
+- 起始状态、远端分支、待合入差异、服务器保护及既有快速CI只读检查通过；git diff --check通过。本轮不重复本地业务测试，完整验证由PR CI执行。
+
+## 2026-11-11 · 0.23.3 并发代理失败提取修复
+
+### 已完成
+
+- 用户明确开始修复；起始dev工作区干净，HEAD为710ae28，fetch后与origin/dev一致。沿用上一轮离线排查结果，不调用真实供应商或学校接口。
+- 确定小范围实施方案：Redis持锁发布5秒共享提取失败状态；明确代理连接失败或407才换IP，学校5xx、已连接后的读写超时/断流交给原查询恢复；同一Deadline至多使用一次换代理重试，外层查询不再追加一轮。
+- 三个子任务已完成并集成：复用原持锁发布Lua写入5秒无敏感失败标记，有效租约优先，供应商失败/超时/取消传播前记录；提取前预算耗尽、缓存异常或失锁不发布失败标记。只对ProxyError、ConnectError、ConnectTimeout及407作废租约；删除不再需要的响应流包装，学校5xx、读写故障和连接池超时保留IP。
+- Deadline增加内部proxy_retry_used标志，实际安排一次安全GET/HEAD换代理时消耗，SchoolSessions外层不再叠加；直连与认证恢复、POST不重放、原到期时间、总预算和完整租约失效比较保持。真实代理持续失败或实际到期仍允许后续操作换IP，本轮不增加固定提取配额。
+- 同步0.23.3前后端版本与锁文件、README、AGENTS、后端架构/实施计划、代理决策与部署说明；无AGENT.md，无新API、迁移、依赖、环境配置项或Secret变化。
+- 修复提交6b31fe499cbae96117c4ce53da1291ca9e9e901a已推送origin/dev；[快速CI42963728797](https://github.com/ChaceQC/elect/actions/runs/42963728797)于2026-11-11 13:15:06（Asia/Shanghai）完成，frontend / build、backend / build与check均success。
+
+### 进行中
+
+- 无实现进行中项；源码、定向验证、dev推送与本次快速CI/check已完成，收尾仅提交本Markdown结果记录。
+
+### 阻塞与风险
+
+- 无实现阻塞；现有部署未升级，未执行真实供应商提取、学校查询、绑定、支付或SMTP。合成响应和隔离Redis验证不视为真实供应商/学校验收。
+
+### 下一步
+
+- 后续通过既有升级入口更新0.23.3配套Adapter镜像，再以指定账号只读验收实际提取次数、供应商期限与失败恢复；若合入main，为最新dev候选创建PR并等待完整五组/check。本轮不合并main或自动升级运行环境。
+
+### 主要文件或模块
+
+- School Adapter代理池、代理传输、Deadline、SchoolSessions只读重试；test_school_proxy.py、test_school_proxy_transport.py及新增test_school_proxy_backoff.py、test_school_proxy_read_budget.py；相关代理决策和版本文件。
+
+### 验证
+
+- Python3.12.10定向检查分组完成：代理提取/共享退避29 passed，代理传输分类27 passed，跨层预算及既有会话恢复9 passed，共65项。覆盖并发失败一次提取、5秒退避到期恢复、提取中超时/取消、失锁/旧租约保护、错误分类、POST一次发送及直连/认证恢复；未重复全量本地套件。
+- WSL一次性Redis使用network none，验证容器共享其隔离网络命名空间，只有services源码只读挂载、无业务Secret或原卷。实际Redis和现有ProxyPool/RotatingProxyTransport执行四并发场景：成功、供应商持续失败、学校持续503均只提取1次（原复现分别1/4/8次），约0.104/0.103/0.114秒；供应商失败标记剩余TTL为4910毫秒，退避内后续请求不再提取。实际Lua持锁发布及旧租约不能删除新租约检查通过，脚本退出0。
+- 首次临时Redis未存活到下一次WSL调用；将启动/验证/清理放入同一调用后，曾因Windows管道CRLF影响heredoc收尾导致断言已通过但脚本退出非零。归一化输入行尾后同一隔离检查完整退出0；临时容器已清理，现有业务容器未操作。
+- 各子任务修改文件Ruff通过，uv lock --check及git diff --check通过；23个变更文件UTF-8/替换字符检查、五处0.23.3版本字段与完整差异核对通过。
+- 本次源码6b31fe4的快速CI前后端与check成功；business、compatibility、delivery及publish按快速场景跳过，不记为完整发布/恢复或真实供应商/学校验收。推送源码后工作区干净、dev与origin/dev一致，最后仅更新本Markdown记录，按纯Markdown分支push规则不触发新CI，验证追溯上述源码提交与运行。
+
+## 2026-11-11 · 并发查询重复提取代理排查
+
+### 已完成
+
+- 起始dev工作区干净，HEAD为15bf63a；fetch后与origin/dev一致。按用户“看看问题在哪”的范围检查代理共享租约、失效处理和两层学校只读重试，仅定位问题，未修改业务代码、版本或运行环境。
+- 确认成功路径已有Redis NX提取锁、拿锁后二次读取及持锁发布；完整租约条件删除能保护新租约，不存在本次可复现的“成功且持续有效时仅因并发重复提取”。
+- 确认失败结果没有共享退避：提取失败后立即释放锁且不记录失败状态，等待中的查询依次重新提取。学校连接/超时/断流或407/502/503/504又会立即作废当前租约，安全GET最多执行两次；SchoolSessions.read_attempts对学校不可用/超时再重试一轮，可形成最多四次传输尝试，仍受原总预算限制。
+- 当前实现与既有代理决策中的失败后重提规则一致；本次发现的是失败场景的提取放大，不能将其表述为提取锁失效。学校本身503与代理故障目前共用换IP分支，存在将目标站故障放大为代理消耗的路径。
+- 已核查README、AGENTS及相关代理决策：本轮无行为、API、迁移、配置或开发规范变更，只更新本排查记录；无AGENT.md。
+
+### 进行中
+
+- 无代码实现进行中项；本轮诊断完成，修复尚未实施。
+
+### 阻塞与风险
+
+- 无源码定位阻塞。截图仅精确到分钟，缺少当时学校/供应商错误类别及租约到期记录，不能确定12:06两次提取的直接触发原因，也不能排除该分钟内正常到期换IP。
+- 本次仅在内存使用合成供应商与学校响应；没有读取真实密钥、调用真实提取接口或执行学校、绑定、支付、SMTP及部署操作。
+
+### 下一步
+
+- 后续修复首先为ProxyPool的提取失败共享短暂退避与同批失败结果，再收口SchoolSessions与代理传输的换IP重试预算，并区分目标学校服务错误与确认的代理连接故障；以同样的四请求离线场景验证提取次数，不增加真实提取消耗。
+
+### 主要文件或模块
+
+- backend/services/school_adapter/infrastructure/proxy.py、proxy_transport.py、transport.py、protocol.py、application/sessions.py及既有代理单元测试夹具；本轮仅PROJECT_PROGRESS.md有持久改动。
+
+### 验证
+
+- 使用项目Python3.12.10、既有Clock/FakeStore及httpx.MockTransport，直接执行现有ProxyPool与RotatingProxyTransport的三个四请求并发场景，无新增测试文件、无真实网络、未运行全量套件。
+- 成功响应：供应商调用1次、约0.110秒；供应商持续503：调用4次、约0.343秒；学校持续503且开启安全GET代理重试：调用8次、约0.391秒。三个场景提取最大同时执行数均为1，租约时钟未推进，排除了模拟中的自然过期；后两项是合成故障复现，不代表现场实际响应为503。
+- 核对SchoolSessions.read_attempts源码的两次上限及协议层retry_proxy=True，额外的外层重试放大属于静态调用链证据，未将上述8次表述为完整业务调用链上限。
+- 本次只有Markdown排查记录，UTF-8及替换字符检查、git diff --check通过；按纯Markdown分支push路径规则不触发CI，不将其记为CI成功。
+- 首次依赖探测误在仓库根执行，因根目录不是后端uv项目且缺少pytest失败；改至backend后确认Python3.12.10和离线依赖可用，三个复现均完成。未为此安装依赖或改动环境配置。
+
+## 2026-11-10 · 0.23.2 监控定时采集夜间静默
+
+### 已完成
+
+- 起始dev工作区干净，HEAD为918609e；fetch后与origin/dev一致。核对监控Scheduler、Worker与原小时合批规则，按用户“快速，23:00至06:00不查询”要求限定新定时触发。
+- 在直连/代理共用调度入口按数据库UTC时钟换算Asia/Shanghai，23:00（含）至次日06:00（不含）跳过新定时采集；06:00恢复后沿用最近逻辑槽合并积压及原锚点，不逐条补跑夜间任务。
+- 手动查询、立即采集及配置触发采集保持原规则；已受理/在途任务与有限重试仍按原预算完成，不扩大至学校请求全局禁用。
+- 同步0.23.2前后端版本/锁文件、README、AGENTS及后端计划/架构与定时规则。无AGENT.md，无API字段、迁移、Secret或配置项变化。
+- 修复提交051395a787f0d085de9d77c8e198b7224eaa1c1b已推送origin/dev；[快速CI42842586490](https://github.com/ChaceQC/elect/actions/runs/42842586490)已启动，收尾时仍在运行，未宣称CI成功。
+
+### 进行中
+
+- 无实现进行中项；源码与dev推送完成，快速CI正在运行。
+
+### 阻塞与风险
+
+- 无实现阻塞。现有部署未升级，未执行真实学校查询、绑定、支付或邮件操作。
+
+### 下一步
+
+- 通过既有升级入口更新0.23.2配套镜像，核对北京时间23:00静默及06:00恢复，使运行环境采用新规则。
+
+### 主要文件或模块
+
+- backend/services/monitoring/scheduler.py、backend/tests/unit/test_t4_schedule.py、监控小时/配置集成用例、前后端版本/锁文件及定时规则文档。
+
+### 验证
+
+- `uv run --locked --no-sync pytest tests/unit/test_t4_schedule.py -q`为10 passed，覆盖上海22:59:59、23:00、次日05:59:59和06:00在直连/代理两种模式的调度边界、静默无扫描/创建及恢复逻辑槽/锚点；未重复全量本地测试。
+- 四个受影响Python文件Ruff通过，`uv lock --check`、17个变更文件UTF-8/替换字符检查、五处0.23.2版本字段核对及`git diff --check`通过。
+- Windows虚拟环境缺少IANA时区数据，单元验证临时以本机已有tzdata目录设置PYTHONTZPATH，未改依赖。小时合批与配置计额集成用例已适配日间时钟，避免受实际执行时间影响；本轮未运行隔离MySQL集成，不将单元检查描述为真实学校验收。
+- 源码推送后工作区干净且dev与origin/dev一致；最终仅提交本Markdown结果记录，CI状态追溯上述源码提交。
+
+## 2026-11-10 · 0.23.1 学校代理按供应商过期时间复用
+
+### 已完成
+
+- 起始dev工作区干净，HEAD为e1ed75a；fetch后与origin/dev一致。核对现行代理实现与用户提供的新A池提取链接，确认固定55秒租约及强制BEAPI会分别忽略供应商期限、改写EAPI套餐参数。
+- 核对易代理公开协议：`data[].expire_time`为IP过期时间字符串，`jsonMeta=1111`请求包含该字段。用户提供链接一次直接GET仅返回供应商`code/info`，未取得成功租约；没有打印或保存真实请求URL、密钥、订单参数与响应原文。
+- 代理入口优先解析供应商到期时间，无时区按上海时间换算UTC Unix秒；缺失/null/空字符串才从开始提取计60秒。Redis按剩余毫秒缓存，较长期限不截为一分钟，较短期限不延长，非法或已过期时间不缓存。
+- 按用户明确规则原样请求配置URL，仅拼接环境密钥secret，不添加或覆盖其他参数；公开示例链接本身给出单条JSON/HTTPS及过期字段选项。同步公开占位配置与0.23.1版本、相关README/AGENTS、架构/计划/部署/决策文档。无AGENT.md，无新API、数据库迁移或配置项。
+- 修复提交97f6d031ac960182f8e8095506d58be6b0d76e8b已推送origin/dev；[快速CI42772029058](https://github.com/ChaceQC/elect/actions/runs/42772029058)于2026-11-10 15:05:44（Asia/Shanghai）完成，frontend / build、backend / build与check均success。
+
+### 进行中
+
+- 无实现进行中项；源码、dev推送和快速CI/check已完成，收尾仅提交本Markdown验证结果记录。
+
+### 阻塞与风险
+
+- 无实现阻塞。真实提取未取得成功响应，期限计算使用合成供应商响应核验；现有部署未升级，未调用学校、支付或SMTP。
+
+### 下一步
+
+- 后续部署时按既有升级入口更新0.23.1镜像，配置供应商生成的完整API URL及独立密钥，执行指定订单/账号只读验收，核对实际过期字段与缓存时效；如合入main，为最新dev候选创建PR并等待完整五组/check。
+
+### 主要文件或模块
+
+- backend/services/school_adapter/infrastructure/proxy.py、backend/tests/unit/test_school_proxy.py、deploy/.env*.example、前后端版本/锁文件及学校代理规则文档。
+
+### 验证
+
+- Python3.12.10环境执行`uv run --locked --no-sync pytest tests/unit/test_school_proxy.py tests/unit/test_school_proxy_transport.py -q`最终34 passed。覆盖长短过期时间、上海/显式时区、缺失/null/空字符串60秒、TTL扣提取耗时、到期重新获取、无效/过期不缓存，以及URL已有参数/重复额外参数原样保留与未提供参数不补齐。
+- 两个受影响Python文件Ruff通过，`uv lock --check`通过；19个变更文件UTF-8解码/替换字符检查、五处0.23.1版本字段及`git diff --check`通过。未新增依赖，不重复全量本地业务套件。
+- 上述修复提交的快速CI前后端与统一check成功；business/compatibility/delivery/publish按快速场景跳过，不记为完整发布/恢复或真实代理学校验收。最后仅更新PROJECT_PROGRESS.md结果记录，按纯Markdown路径规则不触发新push CI，业务验证追溯97f6d03及上述运行。
+
 ## 2026-11-10 · 0.23.0 学校代理与小时批次采集
 
 ### 已完成

@@ -3,6 +3,7 @@
 import hashlib
 from datetime import timedelta
 from uuid import NAMESPACE_URL, UUID, uuid5
+from zoneinfo import ZoneInfo
 
 from services.common.archive_store import request_key, unavailable
 from services.common.database import OUTBOX_PENDING
@@ -110,6 +111,9 @@ async def scheduler_tick(engine, *, proxy_enabled=False):
     async with engine.begin() as conn:
         clock = await first(conn, "SELECT UTC_TIMESTAMP(6) AS now")
         now = clock["now"]
+        local_hour = aware(now).astimezone(ZoneInfo("Asia/Shanghai")).hour
+        if local_hour >= 23 or local_hour < 6:
+            return False
         trigger, marker = None, None
         eligible = (
             "SELECT * FROM monitors WHERE state='active' AND desired_enabled=1 "
