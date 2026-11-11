@@ -6,6 +6,7 @@ import pytest
 from services.common.errors import ErrorCode
 from services.common.http import ApiError
 from services.school_adapter.infrastructure.proxy import (
+    FAILURE_KEY,
     LEASE_KEY,
     LOCK_KEY,
     PUBLISH,
@@ -227,6 +228,7 @@ def test_supplier_failure_is_retryable_and_does_not_expose_request_or_response(r
         assert "synthetic-response" not in str(caught.value)
         assert store.read(LOCK_KEY) is None
         assert store.read(LEASE_KEY) is None
+        assert store.values[FAILURE_KEY] == ("1", clock() + 5)
 
     asyncio.run(run())
 

@@ -47,30 +47,32 @@ def transport_for(pool, handler, options):
     return RotatingProxyTransport(pool, factory=factory)
 
 
-def test_failed_proxy_is_replaced_for_read_and_school_dns_is_not_required():
+@pytest.mark.parametrize("failure", [httpx.ProxyError, httpx.ConnectError, httpx.ConnectTimeout])
+def test_failed_proxy_is_replaced_for_read_and_school_dns_is_not_required(failure):
     async def verify():
         pool, seen, options = Pool(), [], []
 
         def handler(proxy, request):
             seen.append((proxy, request.url.host, request.headers["authorization"]))
             if len(seen) == 1:
-                raise httpx.ProxyError("synthetic tunnel failure")
+                raise failure("synthetic tunnel failure")
             return httpx.Response(200, json={"code": 200, "data": []})
 
         transport = SchoolTransport(
             Limiter(), proxy_pool=pool, transport=transport_for(pool, handler, options),
         )
         transport.resolver.resolve = AsyncMock(side_effect=AssertionError("local DNS used"))
+        deadline = Deadline(2)
         async with transport.client() as client:
             result = await transport.request(
-                client, "GET", "https://sdgl.hbue.edu.cn/api/getInfo", Deadline(2),
+                client, "GET", "https://sdgl.hbue.edu.cn/api/getInfo", deadline,
                 retry_proxy=True, authenticated=True,
                 headers={"Authorization": "Bearer synthetic"},
             )
         assert result.status_code == 200 and len(seen) == 2
         assert [row[0] for row in seen] == [lease.url for lease in pool.leases]
         assert all(row[1:] == ("sdgl.hbue.edu.cn", "Bearer synthetic") for row in seen)
-        assert len(pool.invalidated) == 1
+        assert pool.invalidated == [pool.leases[0]] and deadline.proxy_retry_used
         assert all(option["trust_env"] is False and option["retries"] == 0 for option in options)
         assert all("verify" not in option and "proxy_auth" not in option for option in options)
 
@@ -78,13 +80,14 @@ def test_failed_proxy_is_replaced_for_read_and_school_dns_is_not_required():
 
 
 @pytest.mark.parametrize("kind", [SchoolTransport, PaymentTransport])
-def test_proxy_failure_never_replays_post(kind):
+@pytest.mark.parametrize("failure", [httpx.ReadTimeout, httpx.ProxyError])
+def test_proxy_failure_never_replays_post(kind, failure):
     async def verify():
         pool, calls, options = Pool(), [], []
 
         def handler(proxy, request):
             calls.append(request)
-            raise httpx.ReadTimeout("synthetic unknown dispatch")
+            raise failure("synthetic unknown dispatch")
 
         transport = kind(
             Limiter(), proxy_pool=pool, transport=transport_for(pool, handler, options),
@@ -93,16 +96,18 @@ def test_proxy_failure_never_replays_post(kind):
             "https://sdgl.hbue.edu.cn/api/base/order/phonePay" if kind is SchoolTransport
             else "http://cwcwx.hbue.edu.cn/zhifu/PayMain.aspx?prePayId=synthetic"
         )
+        deadline = Deadline(2)
         with pytest.raises(ApiError):
             async with transport.client() as client:
-                await transport.request(client, "POST", url, Deadline(2), data={"synthetic": "1"})
-        assert len(calls) == 1 and len(pool.invalidated) == 1
+                await transport.request(client, "POST", url, deadline, data={"synthetic": "1"})
+        assert len(calls) == 1 and not deadline.proxy_retry_used
+        assert pool.invalidated == ([pool.leases[0]] if failure is httpx.ProxyError else [])
 
     asyncio.run(verify())
 
 
-@pytest.mark.parametrize("status", [401, 429, 503])
-def test_auth_and_rate_limits_keep_proxy_and_gateway_failure_changes_it(status):
+@pytest.mark.parametrize("status", [401, 429, 502, 503, 504])
+def test_school_response_keeps_proxy(status):
     async def verify():
         pool, options, calls = Pool(), [], []
 
@@ -117,8 +122,92 @@ def test_auth_and_rate_limits_keep_proxy_and_gateway_failure_changes_it(status):
                 extensions={"school_deadline": Deadline(2), "school_proxy_retry": True},
             )
         assert result.status_code == status
-        assert len(calls) == (2 if status == 503 else 1)
-        assert bool(pool.invalidated) == (status == 503)
+        assert len(calls) == 1 and not pool.invalidated
+
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+def test_proxy_407_retries_read_with_new_lease(method):
+    async def verify():
+        pool, options, calls, rejected = Pool(), [], [], []
+
+        def handler(proxy, request):
+            calls.append(proxy)
+            if len(calls) == 1:
+                response = httpx.Response(407, stream=httpx.ByteStream(b"synthetic"))
+                rejected.append(response)
+                return response
+            return httpx.Response(200)
+
+        wire = transport_for(pool, handler, options)
+        deadline = Deadline(2)
+        async with httpx.AsyncClient(transport=wire) as client:
+            result = await client.request(
+                method, "https://sdgl.hbue.edu.cn/api/getInfo",
+                extensions={"school_deadline": deadline, "school_proxy_retry": True},
+            )
+        assert result.status_code == 200 and rejected[0].is_closed
+        assert calls == [lease.url for lease in pool.leases]
+        assert pool.invalidated == [pool.leases[0]] and deadline.proxy_retry_used
+
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("failure", [
+    httpx.ReadTimeout, httpx.WriteTimeout, httpx.ReadError, httpx.WriteError,
+    httpx.RemoteProtocolError, httpx.PoolTimeout,
+])
+def test_non_proxy_failure_keeps_lease_and_propagates(failure):
+    async def verify():
+        pool, options, calls = Pool(), [], []
+
+        def handler(proxy, request):
+            calls.append(proxy)
+            raise failure("synthetic upstream failure")
+
+        wire = transport_for(pool, handler, options)
+        deadline = Deadline(2)
+        with pytest.raises(failure):
+            async with httpx.AsyncClient(transport=wire) as client:
+                await client.get(
+                    "https://sdgl.hbue.edu.cn/api/getInfo",
+                    extensions={"school_deadline": deadline, "school_proxy_retry": True},
+                )
+        assert calls == [pool.leases[0].url] and not pool.invalidated
+        assert not deadline.proxy_retry_used
+
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("failure", ["connection", "status"])
+def test_final_proxy_failure_invalidates_latest_lease(failure):
+    async def verify():
+        pool, options, calls = Pool(), [], []
+
+        def handler(proxy, request):
+            calls.append(proxy)
+            if failure == "connection":
+                raise httpx.ConnectError("synthetic connection failure")
+            return httpx.Response(407)
+
+        wire = transport_for(pool, handler, options)
+        deadline = Deadline(2)
+        async with httpx.AsyncClient(transport=wire) as client:
+            if failure == "connection":
+                with pytest.raises(httpx.ConnectError):
+                    await client.get(
+                        "https://sdgl.hbue.edu.cn/api/getInfo",
+                        extensions={"school_deadline": deadline, "school_proxy_retry": True},
+                    )
+            else:
+                result = await client.get(
+                    "https://sdgl.hbue.edu.cn/api/getInfo",
+                    extensions={"school_deadline": deadline, "school_proxy_retry": True},
+                )
+                assert result.status_code == 407
+        assert calls == [lease.url for lease in pool.leases]
+        assert pool.invalidated == pool.leases and deadline.proxy_retry_used
 
     asyncio.run(verify())
 
@@ -175,7 +264,7 @@ def test_allowed_redirect_keeps_proxy_budget_and_reuses_the_same_ip(kind):
     asyncio.run(verify())
 
 
-def test_proxy_stream_failure_invalidates_the_same_lease():
+def test_proxy_stream_failure_keeps_the_same_lease():
     class BrokenStream(httpx.AsyncByteStream):
         async def __aiter__(self):
             yield b"partial"
@@ -192,7 +281,7 @@ def test_proxy_stream_failure_invalidates_the_same_lease():
                     "https://sdgl.hbue.edu.cn/api/getInfo",
                     extensions={"school_deadline": Deadline(2), "school_proxy_retry": True},
                 )
-        assert pool.invalidated == [pool.leases[0]] and len(options) == 1
+        assert not pool.invalidated and len(options) == 1
 
     asyncio.run(verify())
 

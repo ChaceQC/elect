@@ -20,6 +20,7 @@ UA = "Mozilla/5.0 (compatible; ELECT/0.3)"
 class Deadline:
     def __init__(self, seconds):
         self.end = time.monotonic() + seconds
+        self.proxy_retry_used = False
 
     def remaining(self):
         seconds = self.end - time.monotonic()

@@ -146,7 +146,7 @@ class SchoolSessions:
                     token, school_user, row = await self.token(
                         owner, request_id, deadline, invalid_token=token, locked=True
                     )
-                elif attempt == 0 and error.code in {
+                elif attempt == 0 and not deadline.proxy_retry_used and error.code in {
                     ErrorCode.SCHOOL_UNAVAILABLE,
                     ErrorCode.SCHOOL_TIMEOUT,
                 }:

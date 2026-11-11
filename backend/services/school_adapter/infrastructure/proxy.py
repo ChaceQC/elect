@@ -16,6 +16,7 @@ from services.common.http import ApiError
 
 LEASE_KEY = "school_adapter:proxy:lease"
 LOCK_KEY = "school_adapter:proxy:fetch_lock"
+FAILURE_KEY = "school_adapter:proxy:fetch_failure"
 RELEASE = """
 if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
 return 0
@@ -95,9 +96,20 @@ class ProxyPool:
                 lease = await self._cached()
                 if lease:
                     return lease
-                lease = await self._fetch(deadline)
-                ttl_ms = int((lease.expires_at - self.clock()) * 1000)
-                if ttl_ms <= 0 or not await self.store.call(
+                timeout = min(5, deadline.remaining())
+                try:
+                    lease = await self._fetch(timeout)
+                    ttl_ms = int((lease.expires_at - self.clock()) * 1000)
+                    if ttl_ms <= 0:
+                        raise ApiError(
+                            503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理暂时不可用", True
+                        )
+                except (ApiError, asyncio.CancelledError):
+                    await self.store.call(
+                        "eval", PUBLISH, 2, LOCK_KEY, FAILURE_KEY, token, "1", 5000
+                    )
+                    raise
+                if not await self.store.call(
                     "eval", PUBLISH, 2, LOCK_KEY, LEASE_KEY, token, lease.serialize(), ttl_ms
                 ):
                     raise ApiError(
@@ -109,20 +121,25 @@ class ProxyPool:
 
     async def _cached(self):
         value = await self.store.call("get", LEASE_KEY)
-        if not value:
-            return None
-        try:
-            lease = ProxyLease(**json.loads(value))
-            return lease if lease.expires_at > self.clock() else None
-        except (TypeError, ValueError):
+        if value:
+            try:
+                lease = ProxyLease(**json.loads(value))
+                if lease.expires_at > self.clock():
+                    return lease
+            except (TypeError, ValueError):
+                raise ApiError(
+                    503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理缓存异常", True
+                ) from None
+        if await self.store.call("get", FAILURE_KEY):
             raise ApiError(
-                503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理缓存异常", True
-            ) from None
+                503, ErrorCode.DEPENDENCY_UNAVAILABLE, "学校代理暂时不可用", True,
+                retry_after_seconds=5,
+            )
+        return None
 
-    async def _fetch(self, deadline):
+    async def _fetch(self, timeout):
         acquired_at = self.clock()
         url = httpx.URL(self.settings.api_url).copy_merge_params({"secret": self.settings.secret})
-        timeout = min(5, deadline.remaining())
         request = httpx.Request(
             "GET", url,
             extensions={"timeout": dict.fromkeys(("connect", "read", "write", "pool"), timeout)},

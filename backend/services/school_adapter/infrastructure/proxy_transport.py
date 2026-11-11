@@ -2,26 +2,7 @@
 
 import httpx
 
-PROXY_ERRORS = (
-    httpx.NetworkError, httpx.ProxyError, httpx.RemoteProtocolError, httpx.TimeoutException,
-)
-BAD_GATEWAY = {407, 502, 503, 504}
-
-
-class ProxyStream(httpx.AsyncByteStream):
-    def __init__(self, stream, pool, lease):
-        self.stream, self.pool, self.lease = stream, pool, lease
-
-    async def __aiter__(self):
-        try:
-            async for chunk in self.stream:
-                yield chunk
-        except PROXY_ERRORS:
-            await self.pool.invalidate(self.lease)
-            raise
-
-    async def aclose(self):
-        await self.stream.aclose()
+PROXY_ERRORS = (httpx.ProxyError, httpx.ConnectError, httpx.ConnectTimeout)
 
 
 class RotatingProxyTransport(httpx.AsyncBaseTransport):
@@ -30,8 +11,10 @@ class RotatingProxyTransport(httpx.AsyncBaseTransport):
 
     async def handle_async_request(self, request):
         deadline = request.extensions["school_deadline"]
-        retry = request.method in {"GET", "HEAD"} and request.extensions.get(
-            "school_proxy_retry", False
+        retry = (
+            request.method in {"GET", "HEAD"}
+            and request.extensions.get("school_proxy_retry", False)
+            and not deadline.proxy_retry_used
         )
         for attempt in range(2 if retry else 1):
             lease = await self.pool.get(deadline)
@@ -44,19 +27,18 @@ class RotatingProxyTransport(httpx.AsyncBaseTransport):
             transport = self.transports[key]
             try:
                 response = await transport.handle_async_request(request)
-            except httpx.PoolTimeout:
-                raise
             except PROXY_ERRORS:
                 await self.pool.invalidate(lease)
                 if not retry or attempt:
                     raise
+                deadline.proxy_retry_used = True
                 continue
-            if response.status_code in BAD_GATEWAY:
+            if response.status_code == 407:
                 await self.pool.invalidate(lease)
                 if retry and not attempt:
                     await response.aclose()
+                    deadline.proxy_retry_used = True
                     continue
-            response.stream = ProxyStream(response.stream, self.pool, lease)
             return response
 
     async def aclose(self):
